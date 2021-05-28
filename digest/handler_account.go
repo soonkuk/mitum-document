@@ -29,7 +29,6 @@ func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 	} else {
 		address = a
 	}
-
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		return hd.handleAccountInGroup(address)
 	}); err != nil {
@@ -38,11 +37,9 @@ func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 		} else {
 			hd.Log().Error().Err(err).Str("address", address.String()).Msg("failed to get account")
 		}
-
 		hd.handleError(w, err)
 	} else {
 		hd.writeHalBytes(w, v.([]byte), http.StatusOK)
-
 		if !shared {
 			hd.writeCache(w, cachekey, time.Second*2)
 		}
@@ -60,6 +57,7 @@ func (hd *Handlers) handleAccountInGroup(address base.Address) (interface{}, err
 		if err != nil {
 			return nil, err
 		}
+
 		return hd.enc.Marshal(hal)
 	}
 }
@@ -73,7 +71,7 @@ func (hd *Handlers) buildAccountHal(va AccountValue) (Hal, error) {
 
 	var hal Hal
 	hal = NewBaseHal(va, NewHalLink(h, nil))
-
+	hal = hal.AddLink("currency:{currencyid}", NewHalLink(HandlerPathCurrency, nil).SetTemplated())
 	h, err = hd.combineURL(HandlerPathAccountOperations, "address", hinted)
 	if err != nil {
 		return nil, err

@@ -43,6 +43,28 @@ var balanceIndexModels = []mongo.IndexModel{
 	},
 }
 
+var filedataIndexModels = []mongo.IndexModel{
+	{
+		Keys: bson.D{bson.E{Key: "address", Value: 1}, bson.E{Key: "height", Value: -1}},
+		Options: options.Index().
+			SetName("mitum_digest_filedata"),
+	},
+	{
+		Keys: bson.D{
+			bson.E{Key: "address", Value: 1},
+			bson.E{Key: "fileid", Value: 1},
+			bson.E{Key: "height", Value: -1},
+		},
+		Options: options.Index().
+			SetName("mitum_digest_filedata_blocksign"),
+	},
+	{
+		Keys: bson.D{bson.E{Key: "height", Value: -1}},
+		Options: options.Index().
+			SetName("mitum_digest_filedata_height"),
+	},
+}
+
 var operationIndexModels = []mongo.IndexModel{
 	{
 		Keys: bson.D{bson.E{Key: "addresses", Value: 1}, bson.E{Key: "height", Value: 1}, bson.E{Key: "index", Value: 1}},
@@ -63,6 +85,8 @@ var operationIndexModels = []mongo.IndexModel{
 
 var defaultIndexes = map[string] /* collection */ []mongo.IndexModel{
 	defaultColNameAccount:   accountIndexModels,
+	defaultColNameDocument:  accountIndexModels,
 	defaultColNameBalance:   balanceIndexModels,
+	defaultColNameFileData:  filedataIndexModels,
 	defaultColNameOperation: operationIndexModels,
 }

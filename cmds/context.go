@@ -9,8 +9,8 @@ import (
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/soonkuk/mitum-data/currency"
+	"github.com/soonkuk/mitum-data/digest"
 )
 
 var (

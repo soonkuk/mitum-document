@@ -10,8 +10,9 @@ func (va AccountValue) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(va.Hint()),
 		bson.M{
-			"ac":              va.ac,
-			"balance":         va.balance,
+			"ac":      va.ac,
+			"balance": va.balance,
+			// "filedata":        va.filedata,
 			"height":          va.height,
 			"previous_height": va.previousHeight,
 		},
@@ -19,8 +20,9 @@ func (va AccountValue) MarshalBSON() ([]byte, error) {
 }
 
 type AccountValueBSONUnpacker struct {
-	AC bson.Raw    `bson:"ac"`
-	BL bson.Raw    `bson:"balance"`
+	AC bson.Raw `bson:"ac"`
+	BL bson.Raw `bson:"balance"`
+	// FD bson.Raw    `bson:"filedata"`
 	HT base.Height `bson:"height"`
 	PT base.Height `bson:"previous_height"`
 }

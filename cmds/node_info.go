@@ -7,7 +7,7 @@ import (
 	"github.com/spikeekips/mitum/network"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/soonkuk/mitum-data/digest"
 )
 
 type NodeInfoCommand struct {

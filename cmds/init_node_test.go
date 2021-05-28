@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/launch/config"
 	"github.com/spikeekips/mitum/util/encoder"

@@ -27,8 +27,8 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/soonkuk/mitum-data/currency"
+	"github.com/soonkuk/mitum-data/digest"
 )
 
 var BaseNodeCommandHooks = func(cmd *BaseNodeCommand) []pm.Hook {
@@ -150,6 +150,10 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.Transfers{}, currency.NewTransfersProcessor(cp)); err != nil {
 		return nil, err
+	} else if _, err := opr.SetProcessor(currency.CreateDocuments{}, currency.NewCreateDocumentsProcessor(cp)); err != nil {
+		return nil, err
+	} else if _, err := opr.SetProcessor(currency.TransferDocuments{}, currency.NewTransferDocumentsProcessor(cp)); err != nil {
+		return nil, err
 	}
 
 	threshold, err := base.NewThreshold(uint(len(suffrage.Nodes())), policy.ThresholdRatio())
@@ -202,6 +206,8 @@ func InitializeProposalProcessor(ctx context.Context, opr *currency.OperationPro
 		currency.Transfers{},
 		currency.CurrencyPolicyUpdater{},
 		currency.CurrencyRegister{},
+		currency.CreateDocuments{},
+		currency.TransferDocuments{},
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

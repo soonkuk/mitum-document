@@ -12,7 +12,7 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/soonkuk/mitum-data/digest"
 )
 
 const ProcessNameDigestDatabase = "digest_database"

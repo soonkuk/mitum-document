@@ -7,7 +7,7 @@ import (
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 )
 
 type KeyUpdaterCommand struct {

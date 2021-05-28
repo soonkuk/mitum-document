@@ -22,6 +22,10 @@ func (cid CurrencyID) String() string {
 	return string(cid)
 }
 
+func (cid CurrencyID) Equal(b CurrencyID) bool {
+	return cid == b
+}
+
 func (cid CurrencyID) IsValid([]byte) error {
 	if l := len(cid); l < MinLengthCurrencyID || l > MaxLengthCurrencyID {
 		return xerrors.Errorf(

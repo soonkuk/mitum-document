@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/valuehash"
@@ -13,6 +13,18 @@ import (
 
 func IsAccountState(st state.State) (currency.Account, bool, error) {
 	if !currency.IsStateAccountKey(st.Key()) {
+		return currency.Account{}, false, nil
+	}
+
+	ac, err := currency.LoadStateAccountValue(st)
+	if err != nil {
+		return currency.Account{}, false, err
+	}
+	return ac, true, nil
+}
+
+func IsDocumentState(st state.State) (currency.Account, bool, error) {
+	if !currency.IsStateDocumentKey(st.Key()) {
 		return currency.Account{}, false, nil
 	}
 

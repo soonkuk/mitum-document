@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/state"
 	quicnetwork "github.com/spikeekips/mitum/network/quic"
 	"github.com/spikeekips/mitum/util"

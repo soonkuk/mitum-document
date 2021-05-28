@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/xerrors"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
@@ -29,7 +29,9 @@ type BlockSession struct {
 	opsTreeNodes    map[string]operation.FixedTreeNode
 	operationModels []mongo.WriteModel
 	accountModels   []mongo.WriteModel
+	documentModels  []mongo.WriteModel
 	balanceModels   []mongo.WriteModel
+	filedataModels  []mongo.WriteModel
 	statesValue     *sync.Map
 }
 
@@ -88,7 +90,21 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 		return err
 	}
 
-	return bs.writeModels(ctx, defaultColNameBalance, bs.balanceModels)
+	if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
+		return err
+	}
+
+	if err := bs.writeModels(ctx, defaultColNameBalance, bs.balanceModels); err != nil {
+		return err
+	}
+
+	if len(bs.filedataModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameFileData, bs.filedataModels); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (bs *BlockSession) Close() error {
@@ -163,7 +179,9 @@ func (bs *BlockSession) prepareAccounts() error {
 	}
 
 	var accountModels []mongo.WriteModel
+	var documentModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
+	var filedataModels []mongo.WriteModel
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {
@@ -173,19 +191,38 @@ func (bs *BlockSession) prepareAccounts() error {
 				return err
 			}
 			accountModels = append(accountModels, j...)
+		case currency.IsStateDocumentKey(st.Key()):
+			j, err := bs.handleDocumentState(st)
+			if err != nil {
+				return err
+			}
+			documentModels = append(documentModels, j...)
 		case currency.IsStateBalanceKey(st.Key()):
 			j, err := bs.handleBalanceState(st)
 			if err != nil {
 				return err
 			}
 			balanceModels = append(balanceModels, j...)
+
+		case currency.IsStateFileDataKey(st.Key()):
+			if j, err := bs.handleFileDataState(st); err != nil {
+				return err
+			} else {
+				filedataModels = append(filedataModels, j...)
+			}
+
 		default:
 			continue
 		}
 	}
 
 	bs.accountModels = accountModels
+	bs.documentModels = documentModels
 	bs.balanceModels = balanceModels
+
+	if len(filedataModels) > 0 {
+		bs.filedataModels = filedataModels
+	}
 
 	return nil
 }
@@ -200,12 +237,30 @@ func (bs *BlockSession) handleAccountState(st state.State) ([]mongo.WriteModel, 
 	}
 }
 
+func (bs *BlockSession) handleDocumentState(st state.State) ([]mongo.WriteModel, error) {
+	if rs, err := NewDocumentValue(st); err != nil {
+		return nil, err
+	} else if doc, err := NewDocumentDoc(rs, bs.st.database.Encoder()); err != nil {
+		return nil, err
+	} else {
+		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+	}
+}
+
 func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, error) {
 	doc, err := NewBalanceDoc(st, bs.st.database.Encoder())
 	if err != nil {
 		return nil, err
 	}
 	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+}
+
+func (bs *BlockSession) handleFileDataState(st state.State) ([]mongo.WriteModel, error) {
+	if doc, err := NewFileDataDoc(st, bs.st.database.Encoder()); err != nil {
+		return nil, err
+	} else {
+		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+	}
 }
 
 func (bs *BlockSession) writeModels(ctx context.Context, col string, models []mongo.WriteModel) error {
@@ -257,6 +312,7 @@ func (bs *BlockSession) close() error {
 	bs.operationModels = nil
 	bs.accountModels = nil
 	bs.balanceModels = nil
+	bs.filedataModels = nil
 
 	return bs.st.Close()
 }

@@ -64,3 +64,33 @@ func loadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 		return st, nil
 	}
 }
+
+func loadFileData(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return nil, err
+	}
+
+	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
+		return nil, err
+	} else if st, ok := hinter.(state.State); !ok {
+		return nil, xerrors.Errorf("filedata load error when cast hinter to state.State : %T", hinter)
+	} else {
+		return st, nil
+	}
+}
+
+func loadDocumentValue(decoder func(interface{}) error, encs *encoder.Encoders) (DocumentValue, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return DocumentValue{}, err
+	}
+
+	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
+		return DocumentValue{}, err
+	} else if rs, ok := hinter.(DocumentValue); !ok {
+		return DocumentValue{}, xerrors.Errorf("not DocumentValue: %T", hinter)
+	} else {
+		return rs, nil
+	}
+}

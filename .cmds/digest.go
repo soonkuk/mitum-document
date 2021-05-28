@@ -8,7 +8,7 @@ import (
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/xerrors"
 
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/soonkuk/mitum-data/digest"
 	contestlib "github.com/spikeekips/mitum/contest/lib"
 	"github.com/spikeekips/mitum/launcher"
 	"github.com/spikeekips/mitum/network"

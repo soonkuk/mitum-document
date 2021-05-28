@@ -120,9 +120,11 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*CreateAccountsProcessor,
 		*KeyUpdaterProcessor,
 		*CurrencyRegisterProcessor,
-		*CurrencyPolicyUpdaterProcessor:
+		*CurrencyPolicyUpdaterProcessor,
+		*CreateDocumentsProcessor,
+		*TransferDocumentsProcessor:
 		return opr.process(op)
-	case Transfers, CreateAccounts, KeyUpdater, CurrencyRegister, CurrencyPolicyUpdater:
+	case Transfers, CreateAccounts, KeyUpdater, CurrencyRegister, CurrencyPolicyUpdater, CreateDocuments, TransferDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -142,6 +144,10 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *CreateAccountsProcessor:
 		sp = t
 	case *KeyUpdaterProcessor:
+		sp = t
+	case *CreateDocumentsProcessor:
+		sp = t
+	case *TransferDocumentsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -169,7 +175,6 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 			return xerrors.Errorf("failed to get Addresses")
 		}
 		newAddresses = as
-
 		did = fact.Sender().String()
 		didtype = DuplicationTypeSender
 	case KeyUpdater:
@@ -181,6 +186,18 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 	case CurrencyPolicyUpdater:
 		did = t.Fact().(CurrencyPolicyUpdaterFact).Currency().String()
 		didtype = DuplicationTypeCurrency
+	case CreateDocuments:
+		fact := t.Fact().(CreateDocumentsFact)
+		if as, err := fact.Targets(); err != nil {
+			return xerrors.Errorf("failed to get Addresses")
+		} else {
+			newAddresses = as
+		}
+		did = fact.Sender().String()
+		didtype = DuplicationTypeSender
+	case TransferDocuments:
+		did = t.Fact().(TransferDocumentsFact).Sender().String()
+		didtype = DuplicationTypeSender
 	default:
 		return nil
 	}
@@ -260,7 +277,9 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		CreateAccounts,
 		KeyUpdater,
 		CurrencyRegister,
-		CurrencyPolicyUpdater:
+		CurrencyPolicyUpdater,
+		CreateDocuments,
+		TransferDocuments:
 		return nil, false, xerrors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil

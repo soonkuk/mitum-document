@@ -12,7 +12,7 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
-	currency "github.com/spikeekips/mitum-currency/currency"
+	currency "github.com/soonkuk/mitum-data/currency"
 )
 
 type TransferCommand struct {

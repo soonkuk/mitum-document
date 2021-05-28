@@ -6,7 +6,7 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"golang.org/x/xerrors"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 )
 
 var (
@@ -15,8 +15,9 @@ var (
 )
 
 type AccountValue struct {
-	ac             currency.Account
-	balance        []currency.Amount
+	ac      currency.Account
+	balance []currency.Amount
+	// filedata       currency.FileData
 	height         base.Height
 	previousHeight base.Height
 }
@@ -56,7 +57,9 @@ func (va AccountValue) Height() base.Height {
 }
 
 func (va AccountValue) SetHeight(height base.Height) AccountValue {
-	va.height = height
+	if int64(height) > int64(va.height) {
+		va.height = height
+	}
 
 	return va
 }
@@ -66,7 +69,9 @@ func (va AccountValue) PreviousHeight() base.Height {
 }
 
 func (va AccountValue) SetPreviousHeight(height base.Height) AccountValue {
-	va.previousHeight = height
+	if int64(height) > int64(va.previousHeight) {
+		va.previousHeight = height
+	}
 
 	return va
 }

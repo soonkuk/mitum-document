@@ -3,7 +3,7 @@ package cmds
 import (
 	"golang.org/x/xerrors"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 )

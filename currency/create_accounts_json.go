@@ -35,7 +35,7 @@ type CreateAccountsFactJSONUnpacker struct {
 }
 
 func (fact *CreateAccountsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var uca CreateAccountsFactJSONUnpacker
+	var uca CreateDocumentsFactJSONUnpacker
 	if err := jsonenc.Unmarshal(b, &uca); err != nil {
 		return err
 	}

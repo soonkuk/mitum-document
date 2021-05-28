@@ -19,6 +19,7 @@ var EmptyAddress = Address("")
 
 type Address string
 
+// NewAddress는 Hint가 붙지않은 주소를 받아서 Address Type을 만든다.
 func NewAddress(name string) (Address, error) {
 	ca := Address(name)
 
@@ -37,6 +38,7 @@ func (ca Address) Raw() string {
 	return string(ca)
 }
 
+// String()은 Hint가 붙은 주소를 반환한다.
 func (ca Address) String() string {
 	return hint.NewHintedString(ca.Hint(), string(ca)).String()
 }

@@ -64,6 +64,10 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(Address(""))
 	_ = t.Encs.TestAddHinter(CreateAccounts{})
 	_ = t.Encs.TestAddHinter(Transfers{})
+	_ = t.Encs.TestAddHinter(CreateDocuments{})
+	_ = t.Encs.TestAddHinter(CreateDocumentsFact{})
+	_ = t.Encs.TestAddHinter(TransferDocuments{})
+	_ = t.Encs.TestAddHinter(TransferDocumentsFact{})
 	_ = t.Encs.TestAddHinter(KeyUpdaterFact{})
 	_ = t.Encs.TestAddHinter(KeyUpdater{})
 	_ = t.Encs.TestAddHinter(FeeOperationFact{})
@@ -73,6 +77,7 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(CurrencyPolicyUpdaterFact{})
 	_ = t.Encs.TestAddHinter(CurrencyPolicyUpdater{})
 	_ = t.Encs.TestAddHinter(CurrencyPolicy{})
+	_ = t.Encs.TestAddHinter(FileData{})
 
 	t.cid = CurrencyID("SEEME")
 }
@@ -126,6 +131,19 @@ func (t *baseTestOperationProcessor) newStateKeys(a base.Address, keys Keys) sta
 	return su
 }
 
+func (t *baseTestOperationProcessor) newStateDocumentKeys(a base.Address, keys Keys) state.State {
+	key := StateKeyDocument(a)
+
+	ac, err := NewAccount(a, keys)
+	t.NoError(err)
+
+	value, _ := state.NewHintedValue(ac)
+	su, err := state.NewStateV0(key, value, base.NilHeight)
+	t.NoError(err)
+
+	return su
+}
+
 func (t *baseTestOperationProcessor) newKey(pub key.Publickey, w uint) Key {
 	k, err := NewKey(pub, w)
 	if err != nil {
@@ -164,6 +182,30 @@ func (t *baseTestOperationProcessor) newStateAmount(a base.Address, amount Amoun
 func (t *baseTestOperationProcessor) newStateBalance(a base.Address, big Big, cid CurrencyID) state.State {
 	key := StateKeyBalance(a, cid)
 	value, _ := state.NewHintedValue(NewAmount(big, cid))
+	su, err := state.NewStateV0(key, value, base.NilHeight)
+	t.NoError(err)
+
+	return su
+}
+
+func (t *baseTestOperationProcessor) newDocument(exists bool, filedata FileData) (*account, []state.State) {
+	ac := t.baseTest.newAccount()
+
+	if !exists {
+		return ac, nil
+	}
+
+	var sts []state.State
+	sts = append(sts, t.newStateDocumentKeys(ac.Address, ac.Keys()))
+
+	sts = append(sts, t.newStateFileData(ac.Address, filedata))
+
+	return ac, sts
+}
+
+func (t *baseTestOperationProcessor) newStateFileData(a base.Address, filedata FileData) state.State {
+	key := StateKeyFileData(a)
+	value, _ := state.NewHintedValue(filedata)
 	su, err := state.NewStateV0(key, value, base.NilHeight)
 	t.NoError(err)
 

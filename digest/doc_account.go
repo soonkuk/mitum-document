@@ -1,7 +1,7 @@
 package digest
 
 import (
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -41,6 +41,19 @@ func (doc AccountDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
+func NewDocumentDoc(rs DocumentValue, enc encoder.Encoder) (AccountDoc, error) {
+	b, err := mongodbstorage.NewBaseDoc(nil, rs, enc)
+	if err != nil {
+		return AccountDoc{}, err
+	}
+
+	return AccountDoc{
+		BaseDoc: b,
+		address: currency.StateAddressKeyPrefix(rs.ac.Address()),
+		height:  rs.height,
+	}, nil
+}
+
 type BalanceDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
@@ -71,10 +84,50 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	address := doc.st.Key()[:len(doc.st.Key())-len(currency.StateKeyBalanceSuffix)-len(doc.am.Currency())-1]
 	m["address"] = address
 	m["currency"] = doc.am.Currency().String()
+	m["height"] = doc.st.Height()
+
+	return bsonenc.Marshal(m)
+}
+
+type FileDataDoc struct {
+	mongodbstorage.BaseDoc
+	st state.State
+	sc currency.SignCode
+	ow base.Address
+}
+
+// NewFileDataDoc gets the State of FileData
+func NewFileDataDoc(st state.State, enc encoder.Encoder) (FileDataDoc, error) {
+
+	var fd currency.FileData
+	if i, err := currency.StateFileDataValue(st); err != nil {
+		return FileDataDoc{}, xerrors.Errorf("FileDataDoc needs FileData state: %w", err)
+	} else {
+		fd = i
+	}
+
+	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
+	if err != nil {
+		return FileDataDoc{}, err
+	}
+	return FileDataDoc{
+		BaseDoc: b,
+		st:      st,
+		sc:      fd.SignCode(),
+		ow:      fd.Owner(),
+	}, nil
+}
+
+func (doc FileDataDoc) MarshalBSON() ([]byte, error) {
+	m, err := doc.BaseDoc.M()
+	if err != nil {
+		return nil, err
+	}
+	address := doc.st.Key()[:len(doc.st.Key())-len(currency.StateKeyFileDataSuffix)]
+	m["address"] = address
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)

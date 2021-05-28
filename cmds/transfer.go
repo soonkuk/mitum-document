@@ -10,7 +10,7 @@ import (
 	"github.com/spikeekips/mitum/base/seal"
 	"github.com/spikeekips/mitum/util"
 
-	currency "github.com/spikeekips/mitum-currency/currency"
+	currency "github.com/soonkuk/mitum-data/currency"
 )
 
 type TransferCommand struct {

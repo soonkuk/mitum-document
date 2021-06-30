@@ -3,6 +3,7 @@ package digest
 import (
 	"encoding/json"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
@@ -11,10 +12,10 @@ import (
 type DocumentValueJSONPacker struct {
 	jsonenc.HintedHead
 	currency.AccountPackerJSON
-	BL []currency.Amount `json:"balance"`
-	FD currency.FileData `json:"filedata"`
-	HT base.Height       `json:"height"`
-	PT base.Height       `json:"previous_height"`
+	BL []currency.Amount  `json:"balance"`
+	FD blocksign.FileData `json:"filedata"`
+	HT base.Height        `json:"height"`
+	PT base.Height        `json:"previous_height"`
 }
 
 func (va DocumentValue) MarshalJSON() ([]byte, error) {

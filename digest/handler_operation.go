@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -250,8 +251,8 @@ func (hd *Handlers) buildOperationHal(va OperationValue) (Hal, error) {
 						SetProperty("address", address),
 				)
 			}
-		} else if t, ok := va.Operation().(currency.CreateDocuments); ok {
-			items := t.Fact().(currency.CreateDocumentsFact).Items()
+		} else if t, ok := va.Operation().(blocksign.CreateDocuments); ok {
+			items := t.Fact().(blocksign.CreateDocumentsFact).Items()
 			for i := range items {
 				a, err := items[i].Address()
 				if err != nil {

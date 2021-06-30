@@ -63,7 +63,7 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 	}
 
 	if receiver := fact.Policy().Feeer().Receiver(); receiver != nil {
-		if err := checkExistsState(StateKeyAccount(receiver), getState); err != nil {
+		if err := CheckExistsState(StateKeyAccount(receiver), getState); err != nil {
 			return nil, xerrors.Errorf("feeer receiver account not found: %w", err)
 		}
 	}

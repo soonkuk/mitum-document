@@ -27,8 +27,10 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/soonkuk/mitum-data/digest"
+	"github.com/soonkuk/mitum-data/processor"
 )
 
 var BaseNodeCommandHooks = func(cmd *BaseNodeCommand) []pm.Hook {
@@ -142,17 +144,17 @@ func AttachProposalProcessor(
 	nodepool *network.Nodepool,
 	suffrage base.Suffrage,
 	cp *currency.CurrencyPool,
-) (*currency.OperationProcessor, error) {
-	opr := currency.NewOperationProcessor(cp)
+) (*processor.OperationProcessor, error) {
+	opr := processor.NewOperationProcessor(cp)
 	if _, err := opr.SetProcessor(currency.CreateAccounts{}, currency.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.KeyUpdater{}, currency.NewKeyUpdaterProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.Transfers{}, currency.NewTransfersProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.CreateDocuments{}, currency.NewCreateDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(blocksign.CreateDocuments{}, blocksign.NewCreateDocumentsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.TransferDocuments{}, currency.NewTransferDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(blocksign.TransferDocuments{}, blocksign.NewTransferDocumentsProcessor(cp)); err != nil {
 		return nil, err
 	}
 
@@ -186,7 +188,7 @@ func AttachProposalProcessor(
 	return opr, nil
 }
 
-func InitializeProposalProcessor(ctx context.Context, opr *currency.OperationProcessor) (context.Context, error) {
+func InitializeProposalProcessor(ctx context.Context, opr *processor.OperationProcessor) (context.Context, error) {
 	var oprs *hint.Hintmap
 	if err := process.LoadOperationProcessorsContextValue(ctx, &oprs); err != nil {
 		if !xerrors.Is(err, util.ContextValueNotFoundError) {
@@ -206,8 +208,8 @@ func InitializeProposalProcessor(ctx context.Context, opr *currency.OperationPro
 		currency.Transfers{},
 		currency.CurrencyPolicyUpdater{},
 		currency.CurrencyRegister{},
-		currency.CreateDocuments{},
-		currency.TransferDocuments{},
+		blocksign.CreateDocuments{},
+		blocksign.TransferDocuments{},
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

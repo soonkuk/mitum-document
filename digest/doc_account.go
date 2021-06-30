@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -95,15 +96,15 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 type FileDataDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
-	sc currency.SignCode
+	sc blocksign.SignCode
 	ow base.Address
 }
 
 // NewFileDataDoc gets the State of FileData
 func NewFileDataDoc(st state.State, enc encoder.Encoder) (FileDataDoc, error) {
 
-	var fd currency.FileData
-	if i, err := currency.StateFileDataValue(st); err != nil {
+	var fd blocksign.FileData
+	if i, err := blocksign.StateFileDataValue(st); err != nil {
 		return FileDataDoc{}, xerrors.Errorf("FileDataDoc needs FileData state: %w", err)
 	} else {
 		fd = i
@@ -126,7 +127,7 @@ func (doc FileDataDoc) MarshalBSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	address := doc.st.Key()[:len(doc.st.Key())-len(currency.StateKeyFileDataSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyFileDataSuffix)]
 	m["address"] = address
 	m["height"] = doc.st.Height()
 

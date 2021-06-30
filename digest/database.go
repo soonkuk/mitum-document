@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -561,9 +562,9 @@ func (st *Database) Document(a base.Address) (DocumentValue, bool /* exists */, 
 	return rs, true, nil
 }
 
-func (st *Database) filedata(a base.Address) (currency.FileData, base.Height, base.Height, error) {
+func (st *Database) filedata(a base.Address) (blocksign.FileData, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
-	var fd currency.FileData
+	var fd blocksign.FileData
 
 	filter := util.NewBSONFilter("address", currency.StateAddressKeyPrefix(a))
 
@@ -584,11 +585,11 @@ func (st *Database) filedata(a base.Address) (currency.FileData, base.Height, ba
 		},
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
-		return currency.NewEmptyFileData(), lastHeight, previousHeight, err
+		return blocksign.NewEmptyFileData(), lastHeight, previousHeight, err
 	}
 
-	if i, err := currency.StateFileDataValue(sta); err != nil {
-		return currency.NewEmptyFileData(), lastHeight, previousHeight, err
+	if i, err := blocksign.StateFileDataValue(sta); err != nil {
+		return blocksign.NewEmptyFileData(), lastHeight, previousHeight, err
 	} else {
 		fd = i
 	}

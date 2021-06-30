@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
@@ -16,7 +17,7 @@ func (dv *DocumentValue) unpack(enc encoder.Encoder, bac []byte, bfd []byte, hei
 	}
 
 	if bfd != nil {
-		i, err := currency.DecodeFileData(bfd, enc)
+		i, err := blocksign.DecodeFileData(bfd, enc)
 		if err != nil {
 			return err
 		}

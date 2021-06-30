@@ -46,3 +46,11 @@ func checkFactSignsByState(
 
 	return nil
 }
+
+func CheckFactSignsByState(
+	address base.Address,
+	fs []operation.FactSign,
+	getState func(string) (state.State, bool, error),
+) error {
+	return checkFactSignsByState(address, fs, getState)
+}

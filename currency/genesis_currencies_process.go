@@ -17,7 +17,7 @@ func (op GenesisCurrencies) Process(
 		return operation.NewBaseReasonErrorFromError(err)
 	}
 
-	ns, err := notExistsState(StateKeyAccount(newAddress), "key of genesis", getState)
+	ns, err := NotExistsState(StateKeyAccount(newAddress), "key of genesis", getState)
 	if err != nil {
 		return err
 	}
@@ -27,13 +27,13 @@ func (op GenesisCurrencies) Process(
 	for i := range fact.cs {
 		c := fact.cs[i]
 
-		st, err := notExistsState(StateKeyCurrencyDesign(c.Currency()), "currency", getState)
+		st, err := NotExistsState(StateKeyCurrencyDesign(c.Currency()), "currency", getState)
 		if err != nil {
 			return err
 		}
 		sts[c.Currency()] = st
 
-		st, err = notExistsState(StateKeyBalance(newAddress, c.Currency()), "balance of genesis", getState)
+		st, err = NotExistsState(StateKeyBalance(newAddress, c.Currency()), "balance of genesis", getState)
 		if err != nil {
 			return err
 		}

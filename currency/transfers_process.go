@@ -94,7 +94,7 @@ func (opp *TransfersProcessor) PreProcess(
 ) (state.Processor, error) {
 	fact := opp.Fact().(TransfersFact)
 
-	if err := checkExistsState(StateKeyAccount(fact.sender), getState); err != nil {
+	if err := CheckExistsState(StateKeyAccount(fact.sender), getState); err != nil {
 		return nil, err
 	}
 

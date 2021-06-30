@@ -59,12 +59,12 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 		}
 	}
 
-	if err := checkExistsState(StateKeyAccount(item.GenesisAccount()), getState); err != nil {
+	if err := CheckExistsState(StateKeyAccount(item.GenesisAccount()), getState); err != nil {
 		return nil, xerrors.Errorf("genesis account not found: %w", err)
 	}
 
 	if receiver := item.Policy().Feeer().Receiver(); receiver != nil {
-		if err := checkExistsState(StateKeyAccount(receiver), getState); err != nil {
+		if err := CheckExistsState(StateKeyAccount(receiver), getState); err != nil {
 			return nil, xerrors.Errorf("feeer receiver account not found: %w", err)
 		}
 	}

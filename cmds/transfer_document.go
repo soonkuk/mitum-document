@@ -7,7 +7,7 @@ import (
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/soonkuk/mitum-data/blocksign"
 )
 
 type TransferDocumentCommand struct {
@@ -84,18 +84,18 @@ func (cmd *TransferDocumentCommand) parseFlags() error {
 }
 
 func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
-	var items []currency.TransferDocumentsItem
+	var items []blocksign.TransferDocumentsItem
 	if i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID()); err != nil {
 		return nil, err
 	} else {
 		for j := range i {
-			if t, ok := i[j].(currency.TransferDocuments); ok {
-				items = t.Fact().(currency.TransferDocumentsFact).Items()
+			if t, ok := i[j].(blocksign.TransferDocuments); ok {
+				items = t.Fact().(blocksign.TransferDocumentsFact).Items()
 			}
 		}
 	}
 
-	item := currency.NewTransferDocumentsItemSingleFile(cmd.document, cmd.receiver, cmd.Currency.CID)
+	item := blocksign.NewTransferDocumentsItemSingleFile(cmd.document, cmd.receiver, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, erro
 		items = append(items, item)
 	}
 
-	fact := currency.NewTransferDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := blocksign.NewTransferDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	var fs []operation.FactSign
 	if sig, err := operation.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID()); err != nil {
@@ -112,7 +112,7 @@ func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, erro
 		fs = append(fs, operation.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 	}
 
-	if op, err := currency.NewTransferDocuments(fact, fs, cmd.Memo); err != nil {
+	if op, err := blocksign.NewTransferDocuments(fact, fs, cmd.Memo); err != nil {
 		return nil, xerrors.Errorf("failed to create transfer-document operation: %w", err)
 	} else {
 		return op, nil

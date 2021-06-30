@@ -7,6 +7,7 @@ import (
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 )
 
@@ -101,13 +102,13 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 }
 
 func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
-	var items []currency.CreateDocumentsItem
+	var items []blocksign.CreateDocumentsItem
 	if i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID()); err != nil {
 		return nil, err
 	} else {
 		for j := range i {
-			if t, ok := i[j].(currency.CreateDocuments); ok {
-				items = t.Fact().(currency.CreateDocumentsFact).Items()
+			if t, ok := i[j].(blocksign.CreateDocuments); ok {
+				items = t.Fact().(blocksign.CreateDocumentsFact).Items()
 			}
 		}
 	}
@@ -123,7 +124,7 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 			}
 		}
 	*/
-	item := currency.NewCreateDocumentsItemSingleFile(cmd.keys, currency.SignCode(cmd.SignCode), cmd.owner, cmd.Currency.CID)
+	item := blocksign.NewCreateDocumentsItemSingleFile(cmd.keys, blocksign.SignCode(cmd.SignCode), cmd.owner, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err
@@ -131,7 +132,7 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 		items = append(items, item)
 	}
 
-	fact := currency.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := blocksign.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	var fs []operation.FactSign
 	if sig, err := operation.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID()); err != nil {
@@ -140,7 +141,7 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 		fs = append(fs, operation.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 	}
 
-	if op, err := currency.NewCreateDocuments(fact, fs, cmd.Memo); err != nil {
+	if op, err := blocksign.NewCreateDocuments(fact, fs, cmd.Memo); err != nil {
 		return nil, xerrors.Errorf("failed to create create-account operation: %w", err)
 	} else {
 		return op, nil

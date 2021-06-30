@@ -191,7 +191,7 @@ func (opp *FeeOperationProcessor) Process(
 			continue
 		}
 
-		if err := checkExistsState(StateKeyAccount(feeer.Receiver()), getState); err != nil {
+		if err := CheckExistsState(StateKeyAccount(feeer.Receiver()), getState); err != nil {
 			return err
 		} else if st, _, err := getState(StateKeyBalance(feeer.Receiver(), am.Currency())); err != nil {
 			return err

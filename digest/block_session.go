@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/xerrors"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
@@ -204,7 +205,7 @@ func (bs *BlockSession) prepareAccounts() error {
 			}
 			balanceModels = append(balanceModels, j...)
 
-		case currency.IsStateFileDataKey(st.Key()):
+		case blocksign.IsStateFileDataKey(st.Key()):
 			if j, err := bs.handleFileDataState(st); err != nil {
 				return err
 			} else {

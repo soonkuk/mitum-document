@@ -78,7 +78,7 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicyUpdaterFact{})
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicyUpdater{})
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicy{})
-	_ = t.Encs.TestAddHinter(FileData{})
+	_ = t.Encs.TestAddHinter(DocumentData{})
 
 	t.cid = currency.CurrencyID("SEEME")
 }
@@ -189,7 +189,7 @@ func (t *baseTestOperationProcessor) newStateBalance(a base.Address, big currenc
 	return su
 }
 
-func (t *baseTestOperationProcessor) newDocument(exists bool, filedata FileData) (*account, []state.State) {
+func (t *baseTestOperationProcessor) newDocument(exists bool, docData DocumentData) (*account, []state.State) {
 	ac := t.baseTest.newAccount()
 
 	if !exists {
@@ -199,14 +199,14 @@ func (t *baseTestOperationProcessor) newDocument(exists bool, filedata FileData)
 	var sts []state.State
 	sts = append(sts, t.newStateDocumentKeys(ac.Address, ac.Keys()))
 
-	sts = append(sts, t.newStateFileData(ac.Address, filedata))
+	sts = append(sts, t.newStateDocumentData(ac.Address, docData))
 
 	return ac, sts
 }
 
-func (t *baseTestOperationProcessor) newStateFileData(a base.Address, filedata FileData) state.State {
-	key := StateKeyFileData(a)
-	value, _ := state.NewHintedValue(filedata)
+func (t *baseTestOperationProcessor) newStateDocumentData(a base.Address, docData DocumentData) state.State {
+	key := StateKeyDocumentData(a)
+	value, _ := state.NewHintedValue(docData)
 	su, err := state.NewStateV0(key, value, base.NilHeight)
 	t.NoError(err)
 

@@ -17,40 +17,64 @@ func (op TransferDocuments) Process(
 }
 
 type TransferDocumentsItemProcessor struct {
-	cp   *currency.CurrencyPool
-	h    valuehash.Hash
-	item TransferDocumentsItem
-	das  state.State // document account state
-	dfs  state.State // document filedata state
-	fd   FileData
-	keys currency.Keys
+	cp    *currency.CurrencyPool
+	h     valuehash.Hash
+	item  TransferDocumentsItem
+	sas   state.State // sender account state
+	das   state.State // document account state
+	dds   state.State // document filedata state
+	dd    DocumentData
+	keys  currency.Keys // document owner keys
+	skeys currency.Keys // sender keys
 }
 
 func (opp *TransferDocumentsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
+	if st, err := currency.ExistsState(currency.StateKeyDocument(opp.item.Sender()), "sender", getState); err != nil {
+		return err
+	} else {
+		opp.sas = st
+	}
+
+	if skeys, err := currency.StateKeysValue(opp.sas); err != nil {
+		return err
+	} else {
+		opp.skeys = skeys
+	}
+
 	if st, err := currency.ExistsState(currency.StateKeyDocument(opp.item.Document()), "document", getState); err != nil {
 		return err
 	} else {
 		opp.das = st
 	}
-	if st, err := currency.ExistsState(StateKeyFileData(opp.item.Document()), "filedata", getState); err != nil {
+
+	dkeys, err := currency.StateKeysValue(opp.das)
+	if err != nil {
 		return err
-	} else {
-		opp.dfs = st
 	}
-	if fd, err := StateFileDataValue(opp.dfs); err != nil {
+	if !opp.skeys.Equal(dkeys) {
+		return err
+	}
+
+	if st, err := currency.ExistsState(StateKeyDocumentData(opp.item.Document()), "document data", getState); err != nil {
 		return err
 	} else {
-		opp.fd = fd
+		opp.dds = st
+	}
+	if dd, err := StateDocumentDataValue(opp.dds); err != nil {
+		return err
+	} else {
+		opp.dd = dd
 	}
 
 	// get account address of receiver
 	receiver := opp.item.Receiver()
-	// check existence of reciever account and get key State
-	opp.fd = opp.fd.WithData(opp.fd.signcode, opp.item.Receiver())
+	// change owner of documentData as receiver
+	opp.dd = opp.dd.WithData(opp.dd.FileHash(), opp.dd.Creator(), opp.item.Receiver(), opp.dd.Signers())
 
+	// check existence of reciever account and get receiver keys
 	if st, err := currency.ExistsState(currency.StateKeyAccount(receiver), "receiver", getState); err != nil {
 		return err
 	} else if ks, err := currency.StateKeysValue(st); err != nil {
@@ -68,12 +92,14 @@ func (opp *TransferDocumentsItemProcessor) Process(
 ) ([]state.State, error) {
 	sts := make([]state.State, 2)
 
+	// replace Document acccount key as receivers(new owner) key
 	if st, err := currency.SetStateKeysValue(opp.das, opp.keys); err != nil {
 		return nil, err
 	} else {
 		sts[0] = st
 	}
-	if st, err := SetStateFileDataValue(opp.dfs, opp.fd); err != nil {
+	// replace Document data
+	if st, err := SetStateDocumentDataValue(opp.dds, opp.dd); err != nil {
 		return nil, err
 	} else {
 		sts[1] = st
@@ -112,6 +138,12 @@ func (opp *TransferDocumentsProcessor) PreProcess(
 	// fetch sender StateAccount
 	if err := currency.CheckExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
 		return nil, err
+	}
+	// check sender is owner
+	for i := range fact.items {
+		if !fact.sender.Equal(fact.items[i].Sender()) {
+			return nil, xerrors.Errorf("item sender is not same with fact sender, %q", fact.items[i].Sender())
+		}
 	}
 
 	if required, err := opp.calculateItemsFee(); err != nil {

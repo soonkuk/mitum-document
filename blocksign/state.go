@@ -4,48 +4,47 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/xerrors"
-
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util"
+	"golang.org/x/xerrors"
 )
 
 var (
-	StateKeyDocumentSuffix = ":document"
-	StateKeyFileDataSuffix = ":filedata"
-	StateKeyFileIDSuffix   = ":fileid"
-	StateKeySignCodeSuffix = ":signcode"
-	StateKeyOwnerSuffix    = ":owner"
+	StateKeyDocumentSuffix     = ":document"
+	StateKeyDocumentDataSuffix = ":documentData"
+	//StateKeyFileIDSuffix   = ":fileid"
+	//StateKeySignCodeSuffix = ":signcode"
+	//StateKeyOwnerSuffix    = ":owner"
 )
 
-func StateFileDataKeyPrefix(a base.Address) string {
+func StateDocumentDataKeyPrefix(a base.Address) string {
 	return currency.StateAddressKeyPrefix(a)
 }
 
-func StateKeyFileData(a base.Address) string {
-	return fmt.Sprintf("%s%s", StateFileDataKeyPrefix(a), StateKeyFileDataSuffix)
+func StateKeyDocumentData(a base.Address) string {
+	return fmt.Sprintf("%s%s", StateDocumentDataKeyPrefix(a), StateKeyDocumentDataSuffix)
 }
 
-func IsStateFileDataKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyFileDataSuffix)
+func IsStateDocumentDataKey(key string) bool {
+	return strings.HasSuffix(key, StateKeyDocumentDataSuffix)
 }
 
-func StateFileDataValue(st state.State) (FileData, error) {
+func StateDocumentDataValue(st state.State) (DocumentData, error) {
 	v := st.Value()
 	if v == nil {
-		return FileData{}, util.NotFoundError.Errorf("filedata not found in State")
+		return DocumentData{}, util.NotFoundError.Errorf("filedata not found in State")
 	}
 
-	if s, ok := v.Interface().(FileData); !ok {
-		return FileData{}, xerrors.Errorf("invalid filedata value found, %T", v.Interface())
+	if s, ok := v.Interface().(DocumentData); !ok {
+		return DocumentData{}, xerrors.Errorf("invalid filedata value found, %T", v.Interface())
 	} else {
 		return s, nil
 	}
 }
 
-func SetStateFileDataValue(st state.State, v FileData) (state.State, error) {
+func SetStateDocumentDataValue(st state.State, v DocumentData) (state.State, error) {
 	if uv, err := state.NewHintedValue(v); err != nil {
 		return nil, err
 	} else {
@@ -53,6 +52,7 @@ func SetStateFileDataValue(st state.State, v FileData) (state.State, error) {
 	}
 }
 
+/*
 func StateFileIDKeyPrefix(a base.Address, fid FileID) string {
 	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), fid)
 }
@@ -151,3 +151,4 @@ func SetStateOwnerValue(st state.State, v base.Address) (state.State, error) {
 		return st.SetValue(uv)
 	}
 }
+*/

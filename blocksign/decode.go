@@ -5,13 +5,13 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func DecodeFileData(b []byte, enc encoder.Encoder) (FileData, error) {
+func DecodeDocumentData(b []byte, enc encoder.Encoder) (DocumentData, error) {
 	if i, err := enc.Decode(b); err != nil {
-		return FileData{}, err
+		return DocumentData{}, err
 	} else if i == nil {
-		return FileData{}, nil
-	} else if v, ok := i.(FileData); !ok {
-		return FileData{}, util.WrongTypeError.Errorf("not FileData; type=%T", i)
+		return DocumentData{}, nil
+	} else if v, ok := i.(DocumentData); !ok {
+		return DocumentData{}, util.WrongTypeError.Errorf("not DocumentData; type=%T", i)
 	} else {
 		return v, nil
 	}

@@ -25,9 +25,9 @@ type TransferDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
+	Sender() base.Address
 	Document() base.Address
 	Receiver() base.Address
-	// Signers() []base.Address
 	Currency() currency.CurrencyID
 	Rebuild() TransferDocumentsItem
 }

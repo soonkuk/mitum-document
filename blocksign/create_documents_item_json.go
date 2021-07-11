@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/soonkuk/mitum-data/currency"
-	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 )
 
 type CreateDocumentsItemJSONPacker struct {
 	jsonenc.HintedHead
 	KS currency.Keys       `json:"keys"`
-	SC SignCode            `json:"signcode"`
-	OW base.Address        `json:"owner"`
+	DC DocumentData        `json:"document"`
 	CI currency.CurrencyID `json:"currency"`
 }
 
@@ -20,17 +18,15 @@ func (it BaseCreateDocumentsItem) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(CreateDocumentsItemJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(it.Hint()),
 		KS:         it.keys,
-		SC:         it.sc,
-		OW:         it.owner,
+		DC:         it.doc,
 		CI:         it.cid,
 	})
 }
 
 type CreateDocumentsItemJSONUnpacker struct {
-	KS json.RawMessage     `json:"keys"`
-	SC string              `json:"signcode"`
-	OW base.AddressDecoder `json:"owner"`
-	CI string              `json:"currency"`
+	KS json.RawMessage `json:"keys"`
+	DC json.RawMessage `json:"document"`
+	CI string          `json:"currency"`
 }
 
 func (it *BaseCreateDocumentsItem) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -44,5 +40,5 @@ func (it *BaseCreateDocumentsItem) UnpackJSON(b []byte, enc *jsonenc.Encoder) er
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.KS, ucd.SC, ucd.OW, ucd.CI)
+	return it.unpack(enc, ht.H, ucd.KS, ucd.DC, ucd.CI)
 }

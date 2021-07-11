@@ -20,9 +20,9 @@ type CreateDocumentsItemProcessor struct {
 	cp   *currency.CurrencyPool
 	h    valuehash.Hash
 	item CreateDocumentsItem
-	nas  state.State   // document new account state
-	nfs  state.State   // document new FileID state
-	keys currency.Keys // owner keys
+	nas  state.State   // new document account state
+	nds  state.State   // new document data state
+	keys currency.Keys // creator keys
 }
 
 func (opp *CreateDocumentsItemProcessor) PreProcess(
@@ -34,7 +34,7 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	// get account address of new target document
+	// get address of new target document
 	var dadr base.Address
 	if a, err := opp.item.Address(); err != nil {
 		return err
@@ -42,8 +42,8 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		dadr = a
 	}
 
-	// check the existence of owner account state key
-	if st, err := currency.ExistsState(currency.StateKeyAccount(opp.item.Owner()), "key of Owner", getState); err != nil {
+	// check the existence of creator account state key
+	if st, err := currency.ExistsState(currency.StateKeyAccount(opp.item.DocumentData().Creator().address), "key of Creator", getState); err != nil {
 		return err
 	} else {
 		if ks, err := currency.StateKeysValue(st); err != nil {
@@ -57,19 +57,17 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	// new account state generated with keyAccount(addr+hintType+:account)
 	if st, err := currency.NotExistsState(currency.StateKeyDocument(dadr), "key of Document", getState); err != nil {
 		return err
-	} else if st, err := currency.SetStateKeysValue(st, opp.item.Keys()); err != nil {
-		return err
 	} else {
 		opp.nas = st
 	}
 
-	switch st, found, err := getState(StateKeyFileData(dadr)); {
+	switch st, found, err := getState(StateKeyDocumentData(dadr)); {
 	case err != nil:
 		return err
 	case found:
 		return xerrors.Errorf(" already registered, %q", dadr)
 	default:
-		opp.nfs = st
+		opp.nds = st
 	}
 
 	return nil
@@ -87,12 +85,12 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	} else {
 		sts[0] = st
 	}
-	filedata := NewFileData(opp.item.SignCode(), opp.item.Owner())
+	documentData := NewDocumentData(opp.item.DocumentData().FileHash(), opp.item.DocumentData().Creator(), opp.item.DocumentData().Owner(), opp.item.Rebuild().DocumentData().Signers())
 
-	if f, err := SetStateFileDataValue(opp.nfs, filedata); err != nil {
+	if d, err := SetStateDocumentDataValue(opp.nds, documentData); err != nil {
 		return nil, err
 	} else {
-		sts[1] = f
+		sts[1] = d
 	}
 
 	return sts, nil

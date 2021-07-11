@@ -9,14 +9,16 @@ import (
 
 type BaseTransferDocumentsItem struct {
 	hint     hint.Hint
+	sender   base.Address
 	document base.Address // document address
 	receiver base.Address // document receiver
 	cid      currency.CurrencyID
 }
 
-func NewBaseTransferDocumentsItem(ht hint.Hint, document base.Address, receiver base.Address, cid currency.CurrencyID) BaseTransferDocumentsItem {
+func NewBaseTransferDocumentsItem(ht hint.Hint, sender base.Address, document base.Address, receiver base.Address, cid currency.CurrencyID) BaseTransferDocumentsItem {
 	return BaseTransferDocumentsItem{
 		hint:     ht,
+		sender:   sender,
 		document: document,
 		receiver: receiver,
 		cid:      cid,
@@ -28,16 +30,19 @@ func (it BaseTransferDocumentsItem) Hint() hint.Hint {
 }
 
 func (it BaseTransferDocumentsItem) Bytes() []byte {
-	bs := make([][]byte, 3)
-	bs[0] = it.document.Bytes()
-	bs[1] = it.receiver.Bytes()
-	bs[2] = it.cid.Bytes()
+	bs := make([][]byte, 4)
+	bs[0] = it.sender.Bytes()
+	bs[1] = it.document.Bytes()
+	bs[2] = it.receiver.Bytes()
+	bs[3] = it.cid.Bytes()
 
 	return util.ConcatBytesSlice(bs...)
 }
 
 func (it BaseTransferDocumentsItem) IsValid([]byte) error {
-	if err := it.document.IsValid(nil); err != nil {
+	if err := it.sender.IsValid(nil); err != nil {
+		return err
+	} else if err := it.document.IsValid(nil); err != nil {
 		return err
 	} else if err := it.receiver.IsValid(nil); err != nil {
 		return err
@@ -53,6 +58,10 @@ func (it BaseTransferDocumentsItem) IsValid([]byte) error {
 	*/
 
 	return nil
+}
+
+func (it BaseTransferDocumentsItem) Sender() base.Address {
+	return it.sender
 }
 
 func (it BaseTransferDocumentsItem) Document() base.Address {

@@ -18,7 +18,7 @@ type CreateDocumentsItemSingleFile struct {
 
 func NewCreateDocumentsItemSingleFile(
 	keys currency.Keys,
-	sc SignCode,
+	doc DocumentData,
 	owner base.Address,
 	cid currency.CurrencyID,
 ) CreateDocumentsItemSingleFile {
@@ -26,8 +26,7 @@ func NewCreateDocumentsItemSingleFile(
 		BaseCreateDocumentsItem: NewBaseCreateDocumentsItem(
 			CreateDocumentsItemSingleFileHint,
 			keys,
-			sc,
-			owner,
+			doc,
 			cid,
 		),
 	}

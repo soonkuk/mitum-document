@@ -4,7 +4,6 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/soonkuk/mitum-data/currency"
-	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 	"github.com/spikeekips/mitum/util/hint"
 )
@@ -13,8 +12,7 @@ func (it *BaseCreateDocumentsItem) unpack(
 	enc encoder.Encoder,
 	ht hint.Hint,
 	bks []byte,
-	bsc string,
-	bOwner base.AddressDecoder,
+	bDoc []byte,
 	scid string,
 
 ) error {
@@ -27,12 +25,15 @@ func (it *BaseCreateDocumentsItem) unpack(
 	} else {
 		it.keys = k
 	}
-	a, err := bOwner.Encode(enc)
-	if err != nil {
+
+	if hinter, err := enc.Decode(bDoc); err != nil {
 		return err
+	} else if d, ok := hinter.(DocumentData); !ok {
+		return xerrors.Errorf("not DocumetData type : %T", d)
+	} else {
+		it.doc = d
 	}
-	it.owner = a
-	it.sc = SignCode(bsc)
+
 	it.cid = currency.CurrencyID(scid)
 
 	return nil

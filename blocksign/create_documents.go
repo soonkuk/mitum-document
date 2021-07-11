@@ -22,7 +22,7 @@ var (
 var MaxCreateDocumentsItems uint = 10
 
 type FileDataItem interface {
-	FileData() FileData
+	DocumentData() DocumentData
 }
 
 type CreateDocumentsItem interface {
@@ -30,9 +30,7 @@ type CreateDocumentsItem interface {
 	isvalid.IsValider
 	Bytes() []byte
 	Keys() currency.Keys
-	SignCode() SignCode
-	Owner() base.Address
-	// Signers() []base.Address
+	DocumentData() DocumentData
 	Address() (base.Address, error)
 	Currency() currency.CurrencyID
 	Rebuild() CreateDocumentsItem

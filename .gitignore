@@ -12,6 +12,7 @@ tmp*
 /db
 *.orig
 .idea
+.vscode
 tests/*/*/coverage/
 .*vimrc
 .*.go

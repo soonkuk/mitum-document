@@ -12,19 +12,55 @@ import (
 )
 
 var (
-	StateKeyDocumentSuffix     = ":document"
-	StateKeyDocumentDataSuffix = ":documentData"
+	StateKeyDocumentSuffix         = ":document"
+	StateKeyDocumentDataExclSuffix = ":documentDataExcl"
+	StateKeyDocumentDataSuffix     = ":documentData"
 	//StateKeyFileIDSuffix   = ":fileid"
 	//StateKeySignCodeSuffix = ":signcode"
 	//StateKeyOwnerSuffix    = ":owner"
+	StateKeyLastDocumentId = "lastId:document"
 )
 
-func StateDocumentDataKeyPrefix(a base.Address) string {
-	return currency.StateAddressKeyPrefix(a)
+/*
+func StateKeyDocument() string {
+	return fmt.Sprintf("%s%s", "lastestId", StateKeyDocumentSuffix)
+}
+*/
+func StateLastDocumentIdValue(st state.State) (DocId, error) {
+	v := st.Value()
+	if v == nil {
+		return DocId{}, util.NotFoundError.Errorf("document id not found in State")
+	}
+
+	if s, ok := v.Interface().(DocId); !ok {
+		return DocId{}, xerrors.Errorf("invalid document id value found, %T", v.Interface())
+	} else {
+		return s, nil
+	}
 }
 
-func StateKeyDocumentData(a base.Address) string {
-	return fmt.Sprintf("%s%s", StateDocumentDataKeyPrefix(a), StateKeyDocumentDataSuffix)
+func SetStateLastDocumentIdValue(st state.State, v DocId) (state.State, error) {
+	if uv, err := state.NewHintedValue(v); err != nil {
+		return nil, err
+	} else {
+		return st.SetValue(uv)
+	}
+}
+
+func IsStateDocumentDataExclKey(key string) bool {
+	return strings.HasSuffix(key, StateKeyDocumentDataExclSuffix)
+}
+
+func StateKeyDocumentDataExcl(fh FileHash) string {
+	return fmt.Sprintf("%s%s", fh.String(), StateKeyDocumentDataSuffix)
+}
+
+func StateDocumentDataKeyPrefix(a base.Address, di DocId) string {
+	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), di)
+}
+
+func StateKeyDocumentData(a base.Address, di DocId) string {
+	return fmt.Sprintf("%s%s", StateDocumentDataKeyPrefix(a, di), StateKeyDocumentDataSuffix)
 }
 
 func IsStateDocumentDataKey(key string) bool {
@@ -34,11 +70,11 @@ func IsStateDocumentDataKey(key string) bool {
 func StateDocumentDataValue(st state.State) (DocumentData, error) {
 	v := st.Value()
 	if v == nil {
-		return DocumentData{}, util.NotFoundError.Errorf("filedata not found in State")
+		return DocumentData{}, util.NotFoundError.Errorf("document data not found in State")
 	}
 
 	if s, ok := v.Interface().(DocumentData); !ok {
-		return DocumentData{}, xerrors.Errorf("invalid filedata value found, %T", v.Interface())
+		return DocumentData{}, xerrors.Errorf("invalid document data value found, %T", v.Interface())
 	} else {
 		return s, nil
 	}

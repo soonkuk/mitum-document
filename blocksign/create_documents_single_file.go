@@ -17,16 +17,15 @@ type CreateDocumentsItemSingleFile struct {
 }
 
 func NewCreateDocumentsItemSingleFile(
-	keys currency.Keys,
-	doc DocumentData,
-	owner base.Address,
+	fh FileHash,
+	signers []base.Address,
 	cid currency.CurrencyID,
 ) CreateDocumentsItemSingleFile {
 	return CreateDocumentsItemSingleFile{
 		BaseCreateDocumentsItem: NewBaseCreateDocumentsItem(
 			CreateDocumentsItemSingleFileHint,
-			keys,
-			doc,
+			fh,
+			signers,
 			cid,
 		),
 	}

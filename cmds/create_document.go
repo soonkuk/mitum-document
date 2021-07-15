@@ -8,7 +8,6 @@ import (
 	"github.com/spikeekips/mitum/util"
 
 	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
 )
 
 type CreateDocumentCommand struct {
@@ -16,15 +15,11 @@ type CreateDocumentCommand struct {
 	OperationFlags
 	Sender   AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
 	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Owner    AddressFlag    `arg:"" name:"owner" help:"owner address" required:""`
-	SignCode string         `arg:"" name:"signcode" help:"owner signcode" required:""`
-	// Signers   []AddressFlag              `name:"signers" help:"signers for document"`
-	Threshold uint      `help:"threshold for keys (default: ${create_account_threshold})" default:"${create_account_threshold}"` // nolint
-	Keys      []KeyFlag `name:"key" help:"key for new document account (ex: \"<public key>,<weight>\")" sep:"@"`
-	Seal      FileLoad  `help:"seal" optional:""`
-	owner     base.Address
-	sender    base.Address
-	keys      currency.Keys
+	FileHash string         `arg:"" name:"filehash" help:"filehash" required:""`
+	Signers  []AddressFlag  `name:"signers" help:"signers for document"`
+	// Keys      []KeyFlag `name:"key" help:"key for new document account (ex: \"<public key>,<weight>\")" sep:"@"`
+	Seal   FileLoad `help:"seal" optional:""`
+	sender base.Address
 }
 
 func NewCreateDocumentCommand() CreateDocumentCommand {
@@ -73,30 +68,6 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 	} else {
 		cmd.sender = a
 	}
-	if a, err := cmd.Owner.Encode(jenc); err != nil {
-		return xerrors.Errorf("invalid owner format, %q: %w", cmd.Owner.String(), err)
-	} else {
-		cmd.owner = a
-	}
-
-	if len(cmd.Keys) < 1 {
-		return xerrors.Errorf("--key must be given at least one")
-	}
-
-	{
-		ks := make([]currency.Key, len(cmd.Keys))
-		for i := range cmd.Keys {
-			ks[i] = cmd.Keys[i].Key
-		}
-
-		if kys, err := currency.NewKeys(ks, cmd.Threshold); err != nil {
-			return err
-		} else if err := kys.IsValid(nil); err != nil {
-			return err
-		} else {
-			cmd.keys = kys
-		}
-	}
 
 	return nil
 }
@@ -114,17 +85,16 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 	}
 
 	//TODO : Signers 추가
-	/*
-		var signers []base.Address
-		for i := range cmd.Signers {
-			if signer, err := cmd.Signers[i].Encode(jenc); err != nil {
-				return nil, err
-			} else {
-				signers = append(signers, signer)
-			}
+	var signers []base.Address
+	for i := range cmd.Signers {
+		if signer, err := cmd.Signers[i].Encode(jenc); err != nil {
+			return nil, err
+		} else {
+			signers = append(signers, signer)
 		}
-	*/
-	item := blocksign.NewCreateDocumentsItemSingleFile(cmd.keys, blocksign.SignCode(cmd.SignCode), cmd.owner, cmd.Currency.CID)
+	}
+
+	item := blocksign.NewCreateDocumentsItemSingleFile(blocksign.FileHash(cmd.FileHash), signers, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err

@@ -189,13 +189,7 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 		did = t.Fact().(currency.CurrencyPolicyUpdaterFact).Currency().String()
 		didtype = DuplicationTypeCurrency
 	case blocksign.CreateDocuments:
-		fact := t.Fact().(blocksign.CreateDocumentsFact)
-		if as, err := fact.Targets(); err != nil {
-			return xerrors.Errorf("failed to get Addresses")
-		} else {
-			newAddresses = as
-		}
-		did = fact.Sender().String()
+		did = t.Fact().(blocksign.CreateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	case blocksign.TransferDocuments:
 		did = t.Fact().(blocksign.TransferDocumentsFact).Sender().String()

@@ -1,5 +1,6 @@
 package digest
 
+/*
 import (
 	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
@@ -33,3 +34,4 @@ func (dv *DocumentValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 
 	return dv.unpack(enc, uva.AC, uva.FD, uva.HT, uva.PT)
 }
+*/

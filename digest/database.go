@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -525,8 +524,8 @@ func (st *Database) balance(a base.Address) ([]currency.Amount, base.Height, bas
 }
 
 // Account returns DocumentValue.
-func (st *Database) Document(a base.Address) (DocumentValue, bool /* exists */, error) {
-
+//func (st *Database) Document(a base.Address) (DocumentValue, bool /* exists */, error) {
+/*
 	var rs DocumentValue
 	if err := st.database.Client().GetByFilter(
 		defaultColNameDocument,
@@ -601,6 +600,7 @@ func (st *Database) filedata(a base.Address) (blocksign.FileData, base.Height, b
 
 	return fd, lastHeight, previousHeight, nil
 }
+*/
 
 func loadLastBlock(st *Database) (base.Height, bool, error) {
 	switch b, found, err := st.database.Info(DigestStorageLastBlockKey); {

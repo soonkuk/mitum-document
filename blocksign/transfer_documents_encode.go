@@ -6,29 +6,40 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/valuehash"
+	"golang.org/x/xerrors"
 )
 
 func (it *BaseTransferDocumentsItem) unpack(
 	enc encoder.Encoder,
 	ht hint.Hint,
-	sdocument base.AddressDecoder,
-	sreceiver base.AddressDecoder,
-	scid string,
+	document []byte,
+	owner base.AddressDecoder,
+	receiver base.AddressDecoder,
+	cid string,
 ) error {
 
-	a, err := sdocument.Encode(enc)
+	if hinter, err := enc.Decode(document); err != nil {
+		return err
+	} else if d, ok := hinter.(DocId); !ok {
+		return xerrors.Errorf("not Document Id : %T", d)
+	} else {
+		it.documentId = d
+	}
+
+	o, err := owner.Encode(enc)
 	if err != nil {
 		return err
 	}
-	it.document = a
-	b, err := sreceiver.Encode(enc)
+	it.owner = o
+
+	r, err := receiver.Encode(enc)
 	if err != nil {
 		return err
 	}
-	it.receiver = b
+	it.receiver = r
 
 	it.hint = ht
-	it.cid = currency.CurrencyID(scid)
+	it.cid = currency.CurrencyID(cid)
 
 	return nil
 }

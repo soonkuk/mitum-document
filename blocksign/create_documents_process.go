@@ -17,12 +17,14 @@ func (op CreateDocuments) Process(
 }
 
 type CreateDocumentsItemProcessor struct {
-	cp   *currency.CurrencyPool
-	h    valuehash.Hash
-	item CreateDocumentsItem
-	nas  state.State   // new document account state
-	nds  state.State   // new document data state
-	keys currency.Keys // creator keys
+	cp     *currency.CurrencyPool
+	sender base.Address
+	h      valuehash.Hash
+	item   CreateDocumentsItem
+	// nas  state.State   // new document account state
+	nds state.State // new document data state
+	// keys  currency.Keys // creator keys
+	docId DocId // new document id
 }
 
 func (opp *CreateDocumentsItemProcessor) PreProcess(
@@ -34,40 +36,47 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	// get address of new target document
-	var dadr base.Address
-	if a, err := opp.item.Address(); err != nil {
+	// get global last document id
+	switch st, found, err := getState(StateKeyLastDocumentId); {
+	case err != nil:
 		return err
-	} else {
-		dadr = a
-	}
-
-	// check the existence of creator account state key
-	if st, err := currency.ExistsState(currency.StateKeyAccount(opp.item.DocumentData().Creator().address), "key of Creator", getState); err != nil {
-		return err
-	} else {
-		if ks, err := currency.StateKeysValue(st); err != nil {
-			return operation.NewBaseReasonErrorFromError(err)
-		} else {
-			opp.keys = ks
+	case !found:
+		opp.docId = NewDocId(0)
+	default:
+		v, err := StateLastDocumentIdValue(st)
+		if err != nil {
+			return err
 		}
+		v.idx.Add(currency.NewBig(1))
+		opp.docId = v
 	}
 
-	// check the existence of document account state by keyAccount and prepare new account state
-	// new account state generated with keyAccount(addr+hintType+:account)
-	if st, err := currency.NotExistsState(currency.StateKeyDocument(dadr), "key of Document", getState); err != nil {
+	// check existence of new document state with account address
+	if _, found, err := getState(StateKeyDocumentDataExcl(opp.item.FileHash())); err != nil {
 		return err
-	} else {
-		opp.nas = st
+	} else if found {
+		return xerrors.Errorf("already registered, %q", opp.item.FileHash())
 	}
 
-	switch st, found, err := getState(StateKeyDocumentData(dadr)); {
+	// check existence of new document state with account address
+	switch st, found, err := getState(StateKeyDocumentData(opp.sender, opp.docId)); {
 	case err != nil:
 		return err
 	case found:
-		return xerrors.Errorf(" already registered, %q", dadr)
+		return xerrors.Errorf("document id already registered, %q", opp.docId)
 	default:
 		opp.nds = st
+	}
+
+	// check sigenrs account existence
+	signers := opp.item.Signers()
+	for i := range signers {
+		switch _, found, err := getState(currency.StateKeyAccount(signers[i])); {
+		case err != nil:
+			return err
+		case !found:
+			return xerrors.Errorf("signer account not found, %q", signers[i])
+		}
 	}
 
 	return nil
@@ -78,19 +87,25 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
 
-	sts := make([]state.State, 2)
+	sts := make([]state.State, 1)
 
-	if st, err := currency.SetStateKeysValue(opp.nas, opp.keys); err != nil {
-		return nil, err
-	} else {
-		sts[0] = st
+	signers := make([]DocSign, len(opp.item.Signers()))
+	for i := range opp.item.Signers() {
+		signers[i] = NewDocSign(opp.item.Signers()[i], false)
 	}
-	documentData := NewDocumentData(opp.item.DocumentData().FileHash(), opp.item.DocumentData().Creator(), opp.item.DocumentData().Owner(), opp.item.Rebuild().DocumentData().Signers())
 
-	if d, err := SetStateDocumentDataValue(opp.nds, documentData); err != nil {
+	// document state with new document id
+	docData := DocumentData{
+		fileHash: opp.item.FileHash(),
+		id:       opp.docId,
+		creator:  opp.sender,
+		signers:  signers,
+	}
+
+	if d, err := SetStateDocumentDataValue(opp.nds, docData); err != nil {
 		return nil, err
 	} else {
-		sts[1] = d
+		sts[0] = d
 	}
 
 	return sts, nil
@@ -123,6 +138,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 ) (state.Processor, error) {
 	fact := opp.Fact().(CreateDocumentsFact)
 
+	// check sender account state existence
 	if err := currency.CheckExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
 		return nil, err
 	}
@@ -138,7 +154,8 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 
 	ns := make([]*CreateDocumentsItemProcessor, len(fact.items))
 	for i := range fact.items {
-		c := &CreateDocumentsItemProcessor{cp: opp.cp, h: opp.Hash(), item: fact.items[i]}
+
+		c := &CreateDocumentsItemProcessor{cp: opp.cp, sender: fact.sender, h: opp.Hash(), item: fact.items[i]}
 		if err := c.PreProcess(getState, setState); err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}
@@ -146,6 +163,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 		ns[i] = c
 	}
 
+	// check fact sign
 	if err := currency.CheckFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
 		return nil, operation.NewBaseReasonError("invalid signing: %w", err)
 	}
@@ -164,7 +182,7 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 	var sts []state.State // nolint:prealloc
 	for i := range opp.ns {
 		if s, err := opp.ns[i].Process(getState, setState); err != nil {
-			return operation.NewBaseReasonError("failed to process create account item: %w", err)
+			return operation.NewBaseReasonError("failed to process create document item: %w", err)
 		} else {
 			sts = append(sts, s...)
 		}

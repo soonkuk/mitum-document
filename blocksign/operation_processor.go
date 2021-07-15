@@ -156,13 +156,7 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 
 	switch t := op.(type) {
 	case CreateDocuments:
-		fact := t.Fact().(CreateDocumentsFact)
-		if as, err := fact.Targets(); err != nil {
-			return xerrors.Errorf("failed to get Addresses")
-		} else {
-			newAddresses = as
-		}
-		did = fact.Sender().String()
+		did = t.Fact().(CreateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	case TransferDocuments:
 		did = t.Fact().(TransferDocumentsFact).Sender().String()

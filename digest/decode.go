@@ -65,6 +65,7 @@ func loadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 	}
 }
 
+/*
 func loadFileData(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
 	var b bson.Raw
 	if err := decoder(&b); err != nil {
@@ -94,3 +95,4 @@ func loadDocumentValue(decoder func(interface{}) error, encs *encoder.Encoders) 
 		return rs, nil
 	}
 }
+*/

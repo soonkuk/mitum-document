@@ -29,9 +29,8 @@ type CreateDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	Keys() currency.Keys
-	DocumentData() DocumentData
-	Address() (base.Address, error)
+	FileHash() FileHash
+	Signers() []base.Address
 	Currency() currency.CurrencyID
 	Rebuild() CreateDocumentsItem
 }
@@ -95,25 +94,9 @@ func (fact CreateDocumentsFact) IsValid([]byte) error {
 		return err
 	}
 
-	foundKeys := map[string]struct{}{}
 	for i := range fact.items {
 		if err := fact.items[i].IsValid(nil); err != nil {
 			return err
-		}
-
-		it := fact.items[i]
-		k := it.Keys().Hash().String()
-		if _, found := foundKeys[k]; found {
-			return xerrors.Errorf("duplicated acocunt Keys found, %s", k)
-		}
-
-		switch a, err := it.Address(); {
-		case err != nil:
-			return err
-		case fact.sender.Equal(a):
-			return xerrors.Errorf("target document address is same with sender, %q", fact.sender)
-		default:
-			foundKeys[k] = struct{}{}
 		}
 	}
 
@@ -134,33 +117,6 @@ func (fact CreateDocumentsFact) Sender() base.Address {
 
 func (fact CreateDocumentsFact) Items() []CreateDocumentsItem {
 	return fact.items
-}
-
-func (fact CreateDocumentsFact) Targets() ([]base.Address, error) {
-	as := make([]base.Address, len(fact.items))
-	for i := range fact.items {
-		if a, err := fact.items[i].Address(); err != nil {
-			return nil, err
-		} else {
-			as[i] = a
-		}
-	}
-
-	return as, nil
-}
-
-func (fact CreateDocumentsFact) Addresses() ([]base.Address, error) {
-	as := make([]base.Address, len(fact.items)+1)
-
-	if tas, err := fact.Targets(); err != nil {
-		return nil, err
-	} else {
-		copy(as, tas)
-	}
-
-	as[len(fact.items)] = fact.Sender()
-
-	return as, nil
 }
 
 func (fact CreateDocumentsFact) Rebulild() CreateDocumentsFact {

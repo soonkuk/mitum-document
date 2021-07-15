@@ -11,7 +11,8 @@ func (it BaseTransferDocumentsItem) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(it.Hint()),
 			bson.M{
-				"document": it.document,
+				"document": it.documentId,
+				"owner":    it.owner,
 				"receiver": it.receiver,
 				"currency": it.cid,
 			}),
@@ -19,7 +20,8 @@ func (it BaseTransferDocumentsItem) MarshalBSON() ([]byte, error) {
 }
 
 type BaseTransferDocumentsItemBSONUnpacker struct {
-	DM base.AddressDecoder `bson:"document"`
+	DM []byte              `bson:"document"`
+	OW base.AddressDecoder `bson:"owner"`
 	RC base.AddressDecoder `bson:"receiver"`
 	CI string              `bson:"currency"`
 }
@@ -35,5 +37,5 @@ func (it *BaseTransferDocumentsItem) UnpackBSON(b []byte, enc *bsonenc.Encoder) 
 		return err
 	}
 
-	return it.unpack(enc, ht.H, uit.DM, uit.RC, uit.CI)
+	return it.unpack(enc, ht.H, uit.DM, uit.OW, uit.RC, uit.CI)
 }

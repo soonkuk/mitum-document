@@ -1,7 +1,6 @@
 package digest
 
 import (
-	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -42,6 +41,7 @@ func (doc AccountDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
+/*
 func NewDocumentDoc(rs DocumentValue, enc encoder.Encoder) (AccountDoc, error) {
 	b, err := mongodbstorage.NewBaseDoc(nil, rs, enc)
 	if err != nil {
@@ -54,6 +54,7 @@ func NewDocumentDoc(rs DocumentValue, enc encoder.Encoder) (AccountDoc, error) {
 		height:  rs.height,
 	}, nil
 }
+*/
 
 type BalanceDoc struct {
 	mongodbstorage.BaseDoc
@@ -93,6 +94,7 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
+/*
 type FileDataDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
@@ -133,3 +135,4 @@ func (doc FileDataDoc) MarshalBSON() ([]byte, error) {
 
 	return bsonenc.Marshal(m)
 }
+*/

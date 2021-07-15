@@ -1,6 +1,7 @@
 package blocksign // nolint:dupl
 
 import (
+	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -9,17 +10,17 @@ func (it BaseCreateDocumentsItem) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(it.Hint()),
 			bson.M{
-				"keys":     it.keys,
-				"document": it.doc,
+				"filehash": it.fileHash,
+				"signers":  it.signers,
 				"currency": it.cid,
 			}),
 	)
 }
 
 type CreateDocumentsItemBSONUnpacker struct {
-	KS bson.Raw `bson:"keys"`
-	DC bson.Raw `bson:"document"`
-	CI string   `bson:"currency"`
+	FH string                `bson:"filehash"`
+	SG []base.AddressDecoder `bson:"signers"`
+	CI string                `bson:"currency"`
 }
 
 func (it *BaseCreateDocumentsItem) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
@@ -33,5 +34,5 @@ func (it *BaseCreateDocumentsItem) UnpackBSON(b []byte, enc *bsonenc.Encoder) er
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.KS, ucd.DC, ucd.CI)
+	return it.unpack(enc, ht.H, ucd.FH, ucd.SG, ucd.CI)
 }

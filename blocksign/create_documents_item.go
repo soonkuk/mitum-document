@@ -8,18 +8,18 @@ import (
 )
 
 type BaseCreateDocumentsItem struct {
-	hint hint.Hint
-	keys currency.Keys
-	doc  DocumentData
-	cid  currency.CurrencyID
+	hint     hint.Hint
+	fileHash FileHash
+	signers  []base.Address
+	cid      currency.CurrencyID
 }
 
-func NewBaseCreateDocumentsItem(ht hint.Hint, keys currency.Keys, doc DocumentData, cid currency.CurrencyID) BaseCreateDocumentsItem {
+func NewBaseCreateDocumentsItem(ht hint.Hint, filehash FileHash, signers []base.Address, cid currency.CurrencyID) BaseCreateDocumentsItem {
 	return BaseCreateDocumentsItem{
-		hint: ht,
-		keys: keys,
-		doc:  doc,
-		cid:  cid,
+		hint:     ht,
+		fileHash: filehash,
+		signers:  signers,
+		cid:      cid,
 	}
 }
 
@@ -28,41 +28,29 @@ func (it BaseCreateDocumentsItem) Hint() hint.Hint {
 }
 
 func (it BaseCreateDocumentsItem) Bytes() []byte {
-	bs := make([][]byte, 3)
-	bs[0] = it.keys.Bytes()
-	bs[1] = it.doc.Bytes()
-	bs[2] = it.cid.Bytes()
+	bs := make([][]byte, 2)
+	bs[0] = it.fileHash.Bytes()
+	bs[1] = it.cid.Bytes()
 
 	return util.ConcatBytesSlice(bs...)
 }
 
 func (it BaseCreateDocumentsItem) IsValid([]byte) error {
 
-	// empty key, duplicated key, threshold check
-	if err := it.keys.IsValid(nil); err != nil {
-		return err
-	}
-
-	if err := it.doc.IsValid(nil); err != nil {
+	if err := it.fileHash.IsValid(nil); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Keys return BaseCreateDocumentsItem's keys.
-func (it BaseCreateDocumentsItem) Keys() currency.Keys {
-	return it.keys
-}
-
-// Address get address from BaseCreateDocumentsItem's keys and return it.
-func (it BaseCreateDocumentsItem) Address() (base.Address, error) {
-	return currency.NewAddressFromKeys(it.keys)
-}
-
 // FileHash return BaseCreateDocumetsItem's owner address.
-func (it BaseCreateDocumentsItem) DocumentData() DocumentData {
-	return it.doc
+func (it BaseCreateDocumentsItem) FileHash() FileHash {
+	return it.fileHash
+}
+
+func (it BaseCreateDocumentsItem) Signers() []base.Address {
+	return it.signers
 }
 
 // FileData return BaseCreateDocumentsItem's fileData.

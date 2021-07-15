@@ -126,6 +126,7 @@ func (t *baseTestOperationProcessor) newStateKeys(a base.Address, keys Keys) sta
 	return su
 }
 
+/*
 func (t *baseTestOperationProcessor) newStateDocumentKeys(a base.Address, keys Keys) state.State {
 	key := StateKeyDocument(a)
 
@@ -138,6 +139,7 @@ func (t *baseTestOperationProcessor) newStateDocumentKeys(a base.Address, keys K
 
 	return su
 }
+*/
 
 func (t *baseTestOperationProcessor) newKey(pub key.Publickey, w uint) Key {
 	k, err := NewKey(pub, w)

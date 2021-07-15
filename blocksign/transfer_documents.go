@@ -25,8 +25,8 @@ type TransferDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	Sender() base.Address
-	Document() base.Address
+	DocumentId() DocId
+	Owner() base.Address
 	Receiver() base.Address
 	Currency() currency.CurrencyID
 	Rebuild() TransferDocumentsItem
@@ -103,7 +103,7 @@ func (fact TransferDocumentsFact) IsValid([]byte) error {
 		if r == fact.sender.String() {
 			return xerrors.Errorf("receiver is same with sender, %q", fact.sender)
 		}
-		k := it.Document().String()
+		k := it.DocumentId().String()
 		if _, found := foundAddrs[k]; found {
 			return xerrors.Errorf("duplicated document found, %s", k)
 		}

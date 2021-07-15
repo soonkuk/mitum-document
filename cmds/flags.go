@@ -15,6 +15,7 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 	"github.com/spikeekips/mitum/util/hint"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 )
 
@@ -198,4 +199,40 @@ func (v *CurrencyIDFlag) UnmarshalText(b []byte) error {
 
 func (v *CurrencyIDFlag) String() string {
 	return v.CID.String()
+}
+
+type DocIdFlag struct {
+	ID blocksign.DocId
+}
+
+func (v *DocIdFlag) UnmarshalText(b []byte) error {
+	if d, err := blocksign.NewDocIdFromString(string(b)); err != nil {
+		return xerrors.Errorf("invalid DocId string, %q: %w", string(b), err)
+	} else {
+		*v = DocIdFlag{ID: d}
+	}
+
+	return nil
+}
+
+func (v *DocIdFlag) String() string {
+	return v.ID.String()
+}
+
+type FileHashFlag struct {
+	FH blocksign.FileHash
+}
+
+func (v *FileHashFlag) UnmarshalText(b []byte) error {
+	fh := blocksign.FileHash(string(b))
+	if err := fh.IsValid(nil); err != nil {
+		return err
+	}
+	v.FH = fh
+
+	return nil
+}
+
+func (v *FileHashFlag) String() string {
+	return v.FH.String()
 }

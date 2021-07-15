@@ -1,5 +1,6 @@
 package digest
 
+/*
 import (
 	"net/http"
 	"strings"
@@ -235,3 +236,4 @@ func (hd *Handlers) buildDocumentOperationsHal(
 
 	return hal, nil
 }
+*/

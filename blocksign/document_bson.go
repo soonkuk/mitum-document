@@ -21,18 +21,18 @@ func (doc DocumentData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(doc.Hint()),
 		bson.M{
-			"filehash": doc.fileHash,
-			"creator":  doc.creator,
-			"owner":    doc.owner,
-			"signers":  doc.signers,
+			"filehash":   doc.fileHash,
+			"documentid": doc.id,
+			"creator":    doc.creator,
+			"signers":    doc.signers,
 		}),
 	)
 }
 
 type DocumentBSONUnpacker struct {
 	FH string              `bson:"filehash"`
-	CR []byte              `bson:"creator"`
-	OW base.AddressDecoder `bson:"owner"`
+	ID []byte              `bson:"documentid"`
+	CR base.AddressDecoder `bson:"creator"`
 	SG []byte              `bson:"signers"`
 }
 
@@ -42,5 +42,5 @@ func (doc *DocumentData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return doc.unpack(enc, udoc.FH, udoc.CR, udoc.OW, udoc.SG)
+	return doc.unpack(enc, udoc.FH, udoc.ID, udoc.CR, udoc.SG)
 }

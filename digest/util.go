@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -23,16 +24,16 @@ func IsAccountState(st state.State) (currency.Account, bool, error) {
 	return ac, true, nil
 }
 
-func IsDocumentState(st state.State) (currency.Account, bool, error) {
-	if !currency.IsStateDocumentKey(st.Key()) {
-		return currency.Account{}, false, nil
+func IsDocumentDataState(st state.State) (blocksign.DocumentData, bool, error) {
+	if !blocksign.IsStateDocumentDataKey(st.Key()) {
+		return blocksign.DocumentData{}, false, nil
 	}
 
-	ac, err := currency.LoadStateAccountValue(st)
+	doc, err := blocksign.StateDocumentDataValue(st)
 	if err != nil {
-		return currency.Account{}, false, err
+		return blocksign.DocumentData{}, false, err
 	}
-	return ac, true, nil
+	return doc, true, nil
 }
 
 func IsBalanceState(st state.State) (currency.Amount, bool, error) {

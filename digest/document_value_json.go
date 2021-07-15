@@ -1,5 +1,6 @@
 package digest
 
+/*
 import (
 	"encoding/json"
 
@@ -52,3 +53,4 @@ func (dv *DocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return nil
 	}
 }
+*/

@@ -1,5 +1,6 @@
 package digest
 
+/*
 import (
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -77,3 +78,4 @@ func (dv DocumentValue) SetFileData(filedata blocksign.FileData) DocumentValue {
 
 	return dv
 }
+*/

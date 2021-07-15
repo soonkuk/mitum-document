@@ -14,7 +14,6 @@ import (
 
 var (
 	StateKeyAccountSuffix        = ":account"
-	StateKeyDocumentSuffix       = ":document"
 	StateKeyBalanceSuffix        = ":balance"
 	StateKeyCurrencyDesignPrefix = "currencydesign:"
 )
@@ -87,14 +86,6 @@ func SetStateKeysValue(st state.State, v Keys) (state.State, error) {
 	} else {
 		return st.SetValue(uv)
 	}
-}
-
-func StateKeyDocument(a base.Address) string {
-	return fmt.Sprintf("%s%s", StateAddressKeyPrefix(a), StateKeyDocumentSuffix)
-}
-
-func IsStateDocumentKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyDocumentSuffix)
 }
 
 func StateKeyBalance(a base.Address, cid CurrencyID) string {

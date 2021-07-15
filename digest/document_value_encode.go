@@ -1,5 +1,6 @@
 package digest
 
+/*
 import (
 	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
@@ -29,3 +30,4 @@ func (dv *DocumentValue) unpack(enc encoder.Encoder, bac []byte, bfd []byte, hei
 
 	return nil
 }
+*/

@@ -15,11 +15,10 @@ type TransferDocumentCommand struct {
 	OperationFlags
 	Sender   AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
 	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Document AddressFlag    `arg:"" name:"document" help:"document address" required:""`
+	Document DocIdFlag      `arg:"" name:"document" help:"document address" required:""`
 	Receiver AddressFlag    `arg:"" name:"reciever" help:"reciever address" required:""`
 	Seal     FileLoad       `help:"seal" optional:""`
 	sender   base.Address
-	document base.Address
 	receiver base.Address
 }
 
@@ -69,11 +68,6 @@ func (cmd *TransferDocumentCommand) parseFlags() error {
 	} else {
 		cmd.sender = a
 	}
-	if a, err := cmd.Document.Encode(jenc); err != nil {
-		return xerrors.Errorf("invalid document format, %q: %w", cmd.Document.String(), err)
-	} else {
-		cmd.document = a
-	}
 	if a, err := cmd.Receiver.Encode(jenc); err != nil {
 		return xerrors.Errorf("invalid receiver format, %q: %w", cmd.Receiver.String(), err)
 	} else {
@@ -95,7 +89,7 @@ func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, erro
 		}
 	}
 
-	item := blocksign.NewTransferDocumentsItemSingleFile(cmd.document, cmd.receiver, cmd.Currency.CID)
+	item := blocksign.NewTransferDocumentsItemSingleFile(cmd.Document.ID, cmd.sender, cmd.receiver, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err

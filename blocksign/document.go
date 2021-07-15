@@ -3,10 +3,12 @@ package blocksign
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sort"
 
 	"golang.org/x/xerrors"
 
+	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
@@ -21,24 +23,22 @@ var (
 
 type DocumentData struct {
 	fileHash FileHash
-	creator  DocSign
-	owner    base.Address
+	id       DocId
+	creator  base.Address
 	signers  []DocSign
 }
 
-func NewDocumentData(fileHash FileHash, creator DocSign, owner base.Address, signers []DocSign) DocumentData {
+func NewDocumentData(fileHash FileHash, signers []DocSign) DocumentData {
 	doc := DocumentData{
 		fileHash: fileHash,
-		creator:  creator,
-		owner:    owner,
 		signers:  signers,
 	}
 
 	return doc
 }
 
-func MustNewDocumentData(fileHash FileHash, creator DocSign, owner base.Address, signers []DocSign) DocumentData {
-	doc := NewDocumentData(fileHash, creator, owner, signers)
+func MustNewDocumentData(fileHash FileHash, signers []DocSign) DocumentData {
+	doc := NewDocumentData(fileHash, signers)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -58,8 +58,8 @@ func (doc DocumentData) Bytes() []byte {
 	})
 
 	bs[0] = doc.fileHash.Bytes()
-	bs[1] = doc.creator.Bytes()
-	bs[2] = doc.owner.Bytes()
+	bs[1] = doc.id.Bytes()
+	bs[2] = doc.creator.Bytes()
 
 	for i := range doc.signers {
 		bs[i+3] = doc.signers[i].Bytes()
@@ -77,14 +77,14 @@ func (doc DocumentData) GenerateHash() valuehash.Hash {
 }
 
 func (doc DocumentData) IsEmpty() bool {
-	return len(doc.fileHash) < 1 || doc.creator.IsEmpty() || len(doc.owner.Raw()) < 1 || len(doc.signers) < 1
+	return len(doc.fileHash) < 1 || len(doc.signers) < 1
 }
 
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check([]isvalid.IsValider{
 		doc.fileHash,
+		doc.id,
 		doc.creator,
-		doc.owner,
 	}, nil, false); err != nil {
 		return xerrors.Errorf("invalid document data: %w", err)
 	}
@@ -105,12 +105,12 @@ func (doc DocumentData) FileHash() FileHash {
 	return doc.fileHash
 }
 
-func (doc DocumentData) Creator() DocSign {
-	return doc.creator
+func (doc DocumentData) DocumentId() DocId {
+	return doc.id
 }
 
-func (doc DocumentData) Owner() base.Address {
-	return doc.owner
+func (doc DocumentData) Creator() base.Address {
+	return doc.creator
 }
 
 func (doc DocumentData) Signers() []DocSign {
@@ -135,7 +135,7 @@ func (doc DocumentData) String() string {
 		signedBy = signedBy + ")"
 	*/
 
-	return fmt.Sprintf("%s:%s:%s", doc.String(), doc.fileHash.String(), doc.creator.String())
+	return fmt.Sprintf("%s:%s:%s", doc.fileHash.String(), doc.id.String(), doc.creator.String())
 }
 
 func (doc DocumentData) Equal(b DocumentData) bool {
@@ -145,10 +145,6 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	}
 
 	if !doc.creator.Equal(b.creator) {
-		return false
-	}
-
-	if !doc.owner.Equal(b.owner) {
 		return false
 	}
 
@@ -168,16 +164,16 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	return true
 }
 
-func (doc DocumentData) WithData(fileHash FileHash, creator DocSign, owner base.Address, signers []DocSign) DocumentData {
+func (doc DocumentData) WithData(fileHash FileHash, docId DocId, creator base.Address, signers []DocSign) DocumentData {
 	doc.fileHash = fileHash
+	doc.id = docId
 	doc.creator = creator
-	doc.owner = owner
 	doc.signers = signers
 	return doc
 }
 
 var (
-	FileHashType = hint.Type("mitum-blocksign-filehash")
+	FileHashType = hint.Type("mbs-filehash")
 	FileHashHint = hint.NewHint(FileHashType, "v0.0.1")
 )
 
@@ -210,81 +206,6 @@ func (fh FileHash) IsValid([]byte) error {
 func (fh FileHash) Equal(b FileHash) bool {
 	return fh == b
 }
-
-/*
-var (
-	DocSignType = hint.Type("mitum-blocksign-docsign")
-	DocSignHint = hint.NewHint(DocSignType, "v0.0.1")
-)
-
-type DocSign struct {
-	key       key.Publickey
-	signature key.Signature
-	signedAt  time.Time
-}
-
-func NewDocSign(key key.Publickey, signature key.Signature, signedAt time.Time) DocSign {
-	docsign := DocSign{
-		key:       key,
-		signature: signature,
-		signedAt:  signedAt,
-	}
-	return docsign
-}
-
-func MustNewDocSign(key key.Publickey, signature key.Signature, signedAt time.Time) DocSign {
-	docsign := NewDocSign(key, signature, signedAt)
-	if err := docsign.IsValid(nil); err != nil {
-		panic(err)
-	}
-	return docsign
-}
-
-func (ds DocSign) Bytes() []byte {
-	return util.ConcatBytesSlice(
-		ds.key.Bytes(),
-		ds.signature.Bytes(),
-		localtime.NewTime(ds.signedAt).Bytes(),
-	)
-}
-
-func (ds DocSign) String() string {
-	return fmt.Sprintf("%s:%s:%s", ds.key.String(), ds.signature.String(), ds.signedAt.String())
-}
-
-func (ds DocSign) Hint() hint.Hint {
-	return DocSignHint
-}
-
-func (ds DocSign) Hash() valuehash.Hash {
-	return ds.GenerateHash()
-}
-
-func (ds DocSign) GenerateHash() valuehash.Hash {
-	return valuehash.NewSHA256(ds.Bytes())
-}
-
-func (ds DocSign) IsValid([]byte) error {
-	return nil
-}
-
-func (ds DocSign) IsEmpty() bool {
-	return ds.signedAt.IsZero() || len(ds.signature) < 1 || ds.key.Bytes() == nil
-}
-
-func (ds DocSign) Equal(b DocSign) bool {
-	switch {
-	case ds.key != b.key:
-		return false
-	case !ds.signature.Equal(b.signature):
-		return false
-	case !ds.signedAt.Equal(b.signedAt):
-		return false
-	default:
-		return true
-	}
-}
-*/
 
 var (
 	DocSignsType = hint.Type("mitum-blocksign-docsign")
@@ -364,4 +285,83 @@ func (ds DocSign) Equal(b DocSign) bool {
 	}
 
 	return true
+}
+
+var (
+	DocIdType = hint.Type("mitum-blocksign-document-id")
+	DocIdHint = hint.NewHint(DocIdType, "v0.0.1")
+)
+
+type DocId struct {
+	idx currency.Big
+}
+
+func NewDocId(idx int64) DocId {
+	id := currency.NewBig(idx)
+	if !id.OverNil() {
+		return DocId{}
+	}
+	docId := DocId{
+		idx: id,
+	}
+	return docId
+}
+
+func MustNewDocId(idx int64) DocId {
+	docId := NewDocId(idx)
+	if err := docId.IsValid(nil); err != nil {
+		panic(err)
+	}
+	return docId
+}
+
+func NewDocIdFromString(s string) (DocId, error) {
+	i, ok := new(big.Int).SetString(s, 10)
+	if !ok {
+		return DocId{}, xerrors.Errorf("not proper DocId string, %q", s)
+	}
+	idx := currency.NewBigFromBigInt(i)
+	if !idx.OverNil() {
+		return DocId{}, nil
+	}
+	docId := DocId{
+		idx: idx,
+	}
+	return docId, nil
+}
+
+func (di DocId) Index() currency.Big {
+	return di.idx
+}
+
+func (di DocId) Bytes() []byte {
+	return di.idx.Bytes()
+}
+
+func (di DocId) Hash() valuehash.Hash {
+	return di.GenerateHash()
+}
+
+func (di DocId) GenerateHash() valuehash.Hash {
+	return valuehash.NewSHA256(di.Bytes())
+}
+
+func (di DocId) Hint() hint.Hint {
+	return DocIdHint
+}
+
+func (di DocId) IsValid([]byte) error {
+	return nil
+}
+
+func (di DocId) IsEmpty() bool {
+	return !di.idx.OverNil()
+}
+
+func (di DocId) String() string {
+	return di.idx.String()
+}
+
+func (di DocId) Equal(b DocId) bool {
+	return di.idx.Equal(b.idx)
 }

@@ -16,9 +16,9 @@ type TransferDocumentsItemSingleFile struct {
 	BaseTransferDocumentsItem
 }
 
-func NewTransferDocumentsItemSingleFile(sender base.Address, document base.Address, receiver base.Address, cid currency.CurrencyID) TransferDocumentsItemSingleFile {
+func NewTransferDocumentsItemSingleFile(document DocId, owner base.Address, receiver base.Address, cid currency.CurrencyID) TransferDocumentsItemSingleFile {
 	return TransferDocumentsItemSingleFile{
-		BaseTransferDocumentsItem: NewBaseTransferDocumentsItem(TransfersItemSingleDocumentHint, sender, document, receiver, cid),
+		BaseTransferDocumentsItem: NewBaseTransferDocumentsItem(TransfersItemSingleDocumentHint, document, owner, receiver, cid),
 	}
 }
 

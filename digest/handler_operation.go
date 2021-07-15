@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -246,27 +245,6 @@ func (hd *Handlers) buildOperationHal(va OperationValue) (Hal, error) {
 				keyHash := items[i].Keys().Hash().String()
 				hal = hal.AddLink(
 					fmt.Sprintf("new_account:%s", keyHash),
-					NewHalLink(h, nil).
-						SetProperty("key", keyHash).
-						SetProperty("address", address),
-				)
-			}
-		} else if t, ok := va.Operation().(blocksign.CreateDocuments); ok {
-			items := t.Fact().(blocksign.CreateDocumentsFact).Items()
-			for i := range items {
-				a, err := items[i].Address()
-				if err != nil {
-					return nil, err
-				}
-				address := a.String()
-
-				h, err := hd.combineURL(HandlerPathDocument, "address", address)
-				if err != nil {
-					return nil, err
-				}
-				keyHash := items[i].Keys().Hash().String()
-				hal = hal.AddLink(
-					fmt.Sprintf("new_document:%s", keyHash),
 					NewHalLink(h, nil).
 						SetProperty("key", keyHash).
 						SetProperty("address", address),

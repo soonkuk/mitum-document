@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -94,45 +95,44 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
-/*
-type FileDataDoc struct {
+type DocumentDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
-	sc blocksign.SignCode
-	ow base.Address
+	fh blocksign.FileHash
+	id blocksign.DocId
 }
 
-// NewFileDataDoc gets the State of FileData
-func NewFileDataDoc(st state.State, enc encoder.Encoder) (FileDataDoc, error) {
+// NewDocumentDoc gets the State of DocumentData
+func NewDocumentDoc(st state.State, enc encoder.Encoder) (DocumentDoc, error) {
 
-	var fd blocksign.FileData
-	if i, err := blocksign.StateFileDataValue(st); err != nil {
-		return FileDataDoc{}, xerrors.Errorf("FileDataDoc needs FileData state: %w", err)
+	var doc blocksign.DocumentData
+	if i, err := blocksign.StateDocumentDataValue(st); err != nil {
+		return DocumentDoc{}, xerrors.Errorf("DocumentDoc needs DocumentData state: %w", err)
 	} else {
-		fd = i
+		doc = i
 	}
 
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
 	if err != nil {
-		return FileDataDoc{}, err
+		return DocumentDoc{}, err
 	}
-	return FileDataDoc{
+	return DocumentDoc{
 		BaseDoc: b,
 		st:      st,
-		sc:      fd.SignCode(),
-		ow:      fd.Owner(),
+		fh:      doc.FileHash(),
+		id:      doc.DocumentId(),
 	}, nil
 }
 
-func (doc FileDataDoc) MarshalBSON() ([]byte, error) {
+func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 	m, err := doc.BaseDoc.M()
 	if err != nil {
 		return nil, err
 	}
-	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyFileDataSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentDataSuffix)-len(doc.id.String())-1]
 	m["address"] = address
+	m["documentid"] = doc.id.Index()
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)
 }
-*/

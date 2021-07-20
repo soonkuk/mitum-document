@@ -39,7 +39,7 @@ func (doc *DocumentData) unpack(
 		return err
 	}
 	// unpack signers
-	signers := make([]DocSign, len(bsg))
+	signers := make([]DocSign, len(hits))
 
 	for i := range hits {
 		s, ok := hits[i].(DocSign)
@@ -50,6 +50,22 @@ func (doc *DocumentData) unpack(
 		signers[i] = s
 	}
 	doc.signers = signers
+
+	return nil
+}
+
+func (ds *DocSign) unpack(
+	enc encoder.Encoder,
+	ad base.AddressDecoder, // address
+	sg bool, // signed
+) error {
+
+	a, err := ad.Encode(enc)
+	if err != nil {
+		return err
+	}
+	ds.address = a
+	ds.signed = sg
 
 	return nil
 }

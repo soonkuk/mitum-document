@@ -31,9 +31,9 @@ func (doc DocumentData) MarshalBSON() ([]byte, error) {
 
 type DocumentBSONUnpacker struct {
 	FH string              `bson:"filehash"`
-	ID []byte              `bson:"documentid"`
+	ID bson.Raw            `bson:"documentid"`
 	CR base.AddressDecoder `bson:"creator"`
-	SG []byte              `bson:"signers"`
+	SG bson.Raw            `bson:"signers"`
 }
 
 func (doc *DocumentData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {

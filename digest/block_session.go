@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/xerrors"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
@@ -29,10 +30,9 @@ type BlockSession struct {
 	opsTreeNodes    map[string]operation.FixedTreeNode
 	operationModels []mongo.WriteModel
 	accountModels   []mongo.WriteModel
-	// documentModels  []mongo.WriteModel
-	balanceModels      []mongo.WriteModel
-	documentDataModels []mongo.WriteModel
-	statesValue        *sync.Map
+	documentModels  []mongo.WriteModel
+	balanceModels   []mongo.WriteModel
+	statesValue     *sync.Map
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -90,18 +90,12 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 		return err
 	}
 
-	/*
-		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
-			return err
-		}
-	*/
-
 	if err := bs.writeModels(ctx, defaultColNameBalance, bs.balanceModels); err != nil {
 		return err
 	}
 
-	if len(bs.documentDataModels) > 0 {
-		if err := bs.writeModels(ctx, defaultColNameFileData, bs.documentDataModels); err != nil {
+	if len(bs.documentModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
 			return err
 		}
 	}
@@ -181,9 +175,8 @@ func (bs *BlockSession) prepareAccounts() error {
 	}
 
 	var accountModels []mongo.WriteModel
-	//var documentModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
-	var documentDataModels []mongo.WriteModel
+	var documentModels []mongo.WriteModel
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {
@@ -193,14 +186,7 @@ func (bs *BlockSession) prepareAccounts() error {
 				return err
 			}
 			accountModels = append(accountModels, j...)
-		/*
-			case currency.IsStateDocumentKey(st.Key()):
-				j, err := bs.handleDocumentState(st)
-				if err != nil {
-					return err
-				}
-				documentModels = append(documentModels, j...)
-		*/
+
 		case currency.IsStateBalanceKey(st.Key()):
 			j, err := bs.handleBalanceState(st)
 			if err != nil {
@@ -208,14 +194,12 @@ func (bs *BlockSession) prepareAccounts() error {
 			}
 			balanceModels = append(balanceModels, j...)
 
-		/*
-			case blocksign.IsStateDocumentDataKey(st.Key()):
-				if j, err := bs.handleFileDataState(st); err != nil {
-					return err
-				} else {
-					documentDataModels = append(documentDataModels, j...)
-				}
-		*/
+		case blocksign.IsStateDocumentDataKey(st.Key()):
+			if j, err := bs.handleDocumentState(st); err != nil {
+				return err
+			} else {
+				documentModels = append(documentModels, j...)
+			}
 
 		default:
 			continue
@@ -223,11 +207,11 @@ func (bs *BlockSession) prepareAccounts() error {
 	}
 
 	bs.accountModels = accountModels
-	//bs.documentModels = documentModels
+	bs.documentModels = documentModels
 	bs.balanceModels = balanceModels
 
-	if len(documentDataModels) > 0 {
-		bs.documentDataModels = documentDataModels
+	if len(documentModels) > 0 {
+		bs.documentModels = documentModels
 	}
 
 	return nil
@@ -263,15 +247,14 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 }
 
-/*
-func (bs *BlockSession) handleFileDataState(st state.State) ([]mongo.WriteModel, error) {
-	if doc, err := NewFileDataDoc(st, bs.st.database.Encoder()); err != nil {
+func (bs *BlockSession) handleDocumentState(st state.State) ([]mongo.WriteModel, error) {
+	if doc, err := NewDocumentDoc(st, bs.st.database.Encoder()); err != nil {
 		return nil, err
 	} else {
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 	}
 }
-*/
+
 func (bs *BlockSession) writeModels(ctx context.Context, col string, models []mongo.WriteModel) error {
 	started := time.Now()
 	defer func() {
@@ -321,7 +304,7 @@ func (bs *BlockSession) close() error {
 	bs.operationModels = nil
 	bs.accountModels = nil
 	bs.balanceModels = nil
-	bs.documentDataModels = nil
+	bs.documentModels = nil
 
 	return bs.st.Close()
 }

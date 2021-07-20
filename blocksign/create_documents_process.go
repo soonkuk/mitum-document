@@ -21,10 +21,11 @@ type CreateDocumentsItemProcessor struct {
 	sender base.Address
 	h      valuehash.Hash
 	item   CreateDocumentsItem
-	// nas  state.State   // new document account state
-	nds state.State // new document data state
-	// keys  currency.Keys // creator keys
-	docId DocId // new document id
+	nds    state.State // new document data state (key = address + document id)
+	ndxs   state.State // new document data exclusive state (key = filehash)
+	docId  DocId       // new document id
+	ndis   state.State // last documentid state
+
 }
 
 func (opp *CreateDocumentsItemProcessor) PreProcess(
@@ -42,23 +43,28 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		return err
 	case !found:
 		opp.docId = NewDocId(0)
+		opp.ndis = st
 	default:
 		v, err := StateLastDocumentIdValue(st)
 		if err != nil {
 			return err
 		}
-		v.idx.Add(currency.NewBig(1))
+		v.idx = v.idx.Add(currency.NewBig(1))
 		opp.docId = v
+		opp.ndis = st
 	}
 
-	// check existence of new document state with account address
-	if _, found, err := getState(StateKeyDocumentDataExcl(opp.item.FileHash())); err != nil {
+	// check existence of new document state with filehash
+	switch st, found, err := getState(StateKeyDocumentDataExcl(opp.item.FileHash())); {
+	case err != nil:
 		return err
-	} else if found {
+	case found:
 		return xerrors.Errorf("already registered, %q", opp.item.FileHash())
+	default:
+		opp.ndxs = st
 	}
 
-	// check existence of new document state with account address
+	// check existence of new document state with address and docId
 	switch st, found, err := getState(StateKeyDocumentData(opp.sender, opp.docId)); {
 	case err != nil:
 		return err
@@ -87,14 +93,21 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
 
-	sts := make([]state.State, 1)
+	sts := make([]state.State, 3)
+
+	// prepare document id state
+	nst, err := SetStateLastDocumentIdValue(opp.ndis, opp.docId)
+	if err != nil {
+		return nil, err
+	}
+	sts[0] = nst
 
 	signers := make([]DocSign, len(opp.item.Signers()))
 	for i := range opp.item.Signers() {
 		signers[i] = NewDocSign(opp.item.Signers()[i], false)
 	}
 
-	// document state with new document id
+	// document data with new document id
 	docData := DocumentData{
 		fileHash: opp.item.FileHash(),
 		id:       opp.docId,
@@ -102,10 +115,18 @@ func (opp *CreateDocumentsItemProcessor) Process(
 		signers:  signers,
 	}
 
-	if d, err := SetStateDocumentDataValue(opp.nds, docData); err != nil {
+	// prepare document data state
+	if dst, err := SetStateDocumentDataValue(opp.nds, docData); err != nil {
 		return nil, err
 	} else {
-		sts[0] = d
+		sts[1] = dst
+	}
+
+	// prepare document data exclusive state
+	if dxst, err := SetStateDocumentDataValue(opp.ndxs, docData); err != nil {
+		return nil, err
+	} else {
+		sts[2] = dxst
 	}
 
 	return sts, nil

@@ -6,11 +6,14 @@ import (
 	"math/big"
 	"sort"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/xerrors"
 
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
+	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
+	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
 	"github.com/spikeekips/mitum/util/valuehash"
@@ -208,8 +211,8 @@ func (fh FileHash) Equal(b FileHash) bool {
 }
 
 var (
-	DocSignsType = hint.Type("mitum-blocksign-docsign")
-	DocSignsHint = hint.NewHint(DocSignsType, "v0.0.1")
+	DocSignType = hint.Type("mitum-blocksign-docsign")
+	DocSignHint = hint.NewHint(DocSignType, "v0.0.1")
 )
 
 type DocSign struct {
@@ -258,7 +261,7 @@ func (ds DocSign) GenerateHash() valuehash.Hash {
 }
 
 func (ds DocSign) Hint() hint.Hint {
-	return DocSignsHint
+	return DocSignHint
 }
 
 func (ds DocSign) IsValid([]byte) error {
@@ -285,6 +288,63 @@ func (ds DocSign) Equal(b DocSign) bool {
 	}
 
 	return true
+}
+
+type DocSignJSONPacker struct {
+	jsonenc.HintedHead
+	AD base.Address `json:"address"`
+	SG bool         `json:"signed"`
+}
+
+func (ds DocSign) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocSignJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(ds.Hint()),
+		AD:         ds.address,
+		SG:         ds.signed,
+	})
+}
+
+type DocSignJSONUnpacker struct {
+	AD base.AddressDecoder `json:"address"`
+	SG bool                `json:"signed"`
+}
+
+func (ds *DocSign) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uds DocSignJSONUnpacker
+	if err := enc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SG)
+}
+
+type DocSignBSONPacker struct {
+	AD base.Address `bson:"address"`
+	SG bool         `bson:"signed"`
+}
+
+func (ds DocSign) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(ds.Hint()),
+		bson.M{
+			"address": ds.address,
+			"signed":  ds.signed,
+		}),
+	)
+}
+
+type DocSignBSONUnpacker struct {
+	AD base.AddressDecoder `bson:"address"`
+	SG bool                `bson:"signed"`
+}
+
+func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uds DocSignBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SG)
 }
 
 var (
@@ -364,4 +424,59 @@ func (di DocId) String() string {
 
 func (di DocId) Equal(b DocId) bool {
 	return di.idx.Equal(b.idx)
+}
+
+type DocIdJSONPacker struct {
+	jsonenc.HintedHead
+	ID currency.Big `json:"documentid"`
+}
+
+func (di DocId) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIdJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(di.Hint()),
+		ID:         di.idx,
+	})
+}
+
+type DocIdJSONUnpacker struct {
+	ID currency.Big `json:"documentid"`
+}
+
+func (di *DocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIdJSONUnpacker
+	if err := enc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	di.idx = udi.ID
+
+	return nil
+}
+
+type DocIdBSONPacker struct {
+	ID currency.Big `bson:"documentid"`
+}
+
+func (di DocId) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(di.Hint()),
+		bson.M{
+			"documentid": di.idx,
+		}),
+	)
+}
+
+type DocIdBSONUnpacker struct {
+	ID currency.Big `bson:"documentid"`
+}
+
+func (di *DocId) UnmarshalBSON(b []byte) error {
+	var udi DocIdBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	di.idx = udi.ID
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"golang.org/x/xerrors"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 )
 
@@ -15,9 +16,9 @@ var (
 )
 
 type AccountValue struct {
-	ac      currency.Account
-	balance []currency.Amount
-	// filedata       currency.FileData
+	ac             currency.Account
+	balance        []currency.Amount
+	document       []blocksign.DocumentData
 	height         base.Height
 	previousHeight base.Height
 }
@@ -52,6 +53,10 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
+func (va AccountValue) Document() []blocksign.DocumentData {
+	return va.document
+}
+
 func (va AccountValue) Height() base.Height {
 	return va.height
 }
@@ -78,6 +83,12 @@ func (va AccountValue) SetPreviousHeight(height base.Height) AccountValue {
 
 func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	va.balance = balance
+
+	return va
+}
+
+func (va AccountValue) SetDocument(document []blocksign.DocumentData) AccountValue {
+	va.document = document
 
 	return va
 }

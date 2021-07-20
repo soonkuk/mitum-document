@@ -3,6 +3,7 @@ package digest
 import (
 	"encoding/json"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
@@ -11,10 +12,10 @@ import (
 type AccountValueJSONPacker struct {
 	jsonenc.HintedHead
 	currency.AccountPackerJSON
-	BL []currency.Amount `json:"balance"`
-	// FD currency.FileData `json:"filedata"`
-	HT base.Height `json:"height"`
-	PT base.Height `json:"previous_height"`
+	BL []currency.Amount        `json:"balance"`
+	DM []blocksign.DocumentData `json:"document"`
+	HT base.Height              `json:"height"`
+	PT base.Height              `json:"previous_height"`
 }
 
 func (va AccountValue) MarshalJSON() ([]byte, error) {
@@ -22,17 +23,17 @@ func (va AccountValue) MarshalJSON() ([]byte, error) {
 		HintedHead:        jsonenc.NewHintedHead(va.Hint()),
 		AccountPackerJSON: va.ac.PackerJSON(),
 		BL:                va.balance,
-		// FD:                va.filedata,
-		HT: va.height,
-		PT: va.previousHeight,
+		DM:                va.document,
+		HT:                va.height,
+		PT:                va.previousHeight,
 	})
 }
 
 type AccountValueJSONUnpacker struct {
 	BL json.RawMessage `json:"balance"`
-	// FD json.RawMessage `json:"filedata"`
-	HT base.Height `json:"height"`
-	PT base.Height `json:"previous_height"`
+	DM json.RawMessage `json:"document"`
+	HT base.Height     `json:"height"`
+	PT base.Height     `json:"previous_height"`
 }
 
 func (va *AccountValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -42,7 +43,7 @@ func (va *AccountValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	}
 
 	ac := new(currency.Account)
-	if err := va.unpack(enc, nil, uva.BL, uva.HT, uva.PT); err != nil {
+	if err := va.unpack(enc, nil, uva.BL, uva.DM, uva.HT, uva.PT); err != nil {
 		return err
 	} else if err := ac.UnpackJSON(b, enc); err != nil {
 		return err

@@ -26,22 +26,25 @@ var (
 
 type DocumentData struct {
 	fileHash FileHash
-	id       DocId
+	info     DocInfo
 	creator  base.Address
+	owner    base.Address
 	signers  []DocSign
 }
 
-func NewDocumentData(fileHash FileHash, signers []DocSign) DocumentData {
+func NewDocumentData(fileHash FileHash, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
 	doc := DocumentData{
 		fileHash: fileHash,
+		creator:  creator,
+		owner:    owner,
 		signers:  signers,
 	}
 
 	return doc
 }
 
-func MustNewDocumentData(fileHash FileHash, signers []DocSign) DocumentData {
-	doc := NewDocumentData(fileHash, signers)
+func MustNewDocumentData(fileHash FileHash, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
+	doc := NewDocumentData(fileHash, creator, owner, signers)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -54,18 +57,18 @@ func (doc DocumentData) Hint() hint.Hint {
 }
 
 func (doc DocumentData) Bytes() []byte {
-	bs := make([][]byte, len(doc.signers)+3)
+	bs := make([][]byte, len(doc.signers)+4)
 
 	sort.Slice(doc.signers, func(i, j int) bool {
 		return bytes.Compare(doc.signers[i].Bytes(), doc.signers[j].Bytes()) < 0
 	})
 
 	bs[0] = doc.fileHash.Bytes()
-	bs[1] = doc.id.Bytes()
+	bs[1] = doc.info.Bytes()
 	bs[2] = doc.creator.Bytes()
-
+	bs[3] = doc.owner.Bytes()
 	for i := range doc.signers {
-		bs[i+3] = doc.signers[i].Bytes()
+		bs[i+4] = doc.signers[i].Bytes()
 	}
 
 	return util.ConcatBytesSlice(bs...)
@@ -86,8 +89,9 @@ func (doc DocumentData) IsEmpty() bool {
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check([]isvalid.IsValider{
 		doc.fileHash,
-		doc.id,
+		doc.info,
 		doc.creator,
+		doc.owner,
 	}, nil, false); err != nil {
 		return xerrors.Errorf("invalid document data: %w", err)
 	}
@@ -108,12 +112,16 @@ func (doc DocumentData) FileHash() FileHash {
 	return doc.fileHash
 }
 
-func (doc DocumentData) DocumentId() DocId {
-	return doc.id
+func (doc DocumentData) Info() DocInfo {
+	return doc.info
 }
 
 func (doc DocumentData) Creator() base.Address {
 	return doc.creator
+}
+
+func (doc DocumentData) Owner() base.Address {
+	return doc.owner
 }
 
 func (doc DocumentData) Signers() []DocSign {
@@ -138,7 +146,7 @@ func (doc DocumentData) String() string {
 		signedBy = signedBy + ")"
 	*/
 
-	return fmt.Sprintf("%s:%s:%s", doc.fileHash.String(), doc.id.String(), doc.creator.String())
+	return fmt.Sprintf("%s:%s:%s:%s", doc.fileHash.String(), doc.info.String(), doc.creator.String(), doc.owner.String())
 }
 
 func (doc DocumentData) Equal(b DocumentData) bool {
@@ -148,6 +156,10 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	}
 
 	if !doc.creator.Equal(b.creator) {
+		return false
+	}
+
+	if !doc.owner.Equal(b.owner) {
 		return false
 	}
 
@@ -167,10 +179,11 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	return true
 }
 
-func (doc DocumentData) WithData(fileHash FileHash, docId DocId, creator base.Address, signers []DocSign) DocumentData {
+func (doc DocumentData) WithData(fileHash FileHash, docInfo DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
 	doc.fileHash = fileHash
-	doc.id = docId
+	doc.info = docInfo
 	doc.creator = creator
+	doc.owner = owner
 	doc.signers = signers
 	return doc
 }
@@ -348,135 +361,157 @@ func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 }
 
 var (
-	DocIdType = hint.Type("mitum-blocksign-document-id")
-	DocIdHint = hint.NewHint(DocIdType, "v0.0.1")
+	DocInfoType = hint.Type("mitum-blocksign-document-info")
+	DocInfoHint = hint.NewHint(DocInfoType, "v0.0.1")
 )
 
-type DocId struct {
-	idx currency.Big
+type DocInfo struct {
+	idx      currency.Big
+	filehash FileHash
 }
 
-func NewDocId(idx int64) DocId {
+func NewDocInfo(idx int64, fh FileHash) DocInfo {
 	id := currency.NewBig(idx)
 	if !id.OverNil() {
-		return DocId{}
+		return DocInfo{}
 	}
-	docId := DocId{
-		idx: id,
+	docInfo := DocInfo{
+		idx:      id,
+		filehash: fh,
 	}
-	return docId
+	return docInfo
 }
 
-func MustNewDocId(idx int64) DocId {
-	docId := NewDocId(idx)
-	if err := docId.IsValid(nil); err != nil {
+func MustNewDocInfo(idx int64, fh FileHash) DocInfo {
+	docInfo := NewDocInfo(idx, fh)
+	if err := docInfo.IsValid(nil); err != nil {
 		panic(err)
 	}
-	return docId
+	return docInfo
 }
 
-func NewDocIdFromString(s string) (DocId, error) {
-	i, ok := new(big.Int).SetString(s, 10)
+func NewDocInfoFromString(id string, fh string) (DocInfo, error) {
+	i, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return DocId{}, xerrors.Errorf("not proper DocId string, %q", s)
+		return DocInfo{}, xerrors.Errorf("not proper DocInfo string, %q", id)
 	}
 	idx := currency.NewBigFromBigInt(i)
 	if !idx.OverNil() {
-		return DocId{}, nil
+		return DocInfo{}, nil
 	}
-	docId := DocId{
-		idx: idx,
+	docInfo := DocInfo{
+		idx:      idx,
+		filehash: FileHash(fh),
 	}
-	return docId, nil
+	return docInfo, nil
 }
 
-func (di DocId) Index() currency.Big {
+func (di DocInfo) Index() currency.Big {
 	return di.idx
 }
 
-func (di DocId) Bytes() []byte {
-	return di.idx.Bytes()
+func (di DocInfo) FileHash() FileHash {
+	return di.filehash
 }
 
-func (di DocId) Hash() valuehash.Hash {
+func (di DocInfo) Bytes() []byte {
+
+	return util.ConcatBytesSlice(di.idx.Bytes(), di.filehash.Bytes())
+}
+
+func (di DocInfo) Hash() valuehash.Hash {
 	return di.GenerateHash()
 }
 
-func (di DocId) GenerateHash() valuehash.Hash {
+func (di DocInfo) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(di.Bytes())
 }
 
-func (di DocId) Hint() hint.Hint {
-	return DocIdHint
+func (di DocInfo) Hint() hint.Hint {
+	return DocInfoHint
 }
 
-func (di DocId) IsValid([]byte) error {
+func (di DocInfo) IsValid([]byte) error {
 	return nil
 }
 
-func (di DocId) IsEmpty() bool {
-	return !di.idx.OverNil()
+func (di DocInfo) IsEmpty() bool {
+	return !di.idx.OverNil() || len(di.filehash) < 1
 }
 
-func (di DocId) String() string {
-	return di.idx.String()
+func (di DocInfo) String() string {
+	return fmt.Sprintf("%s:%s", di.idx.String(), di.filehash.String())
 }
 
-func (di DocId) Equal(b DocId) bool {
-	return di.idx.Equal(b.idx)
+func (di DocInfo) Equal(b DocInfo) bool {
+	return di.idx.Equal(b.idx) && di.filehash.Equal(b.filehash)
 }
 
-type DocIdJSONPacker struct {
+func (di DocInfo) WithData(idx currency.Big, fh FileHash) DocInfo {
+	di.idx = idx
+	di.filehash = fh
+	return di
+}
+
+type DocInfoJSONPacker struct {
 	jsonenc.HintedHead
 	ID currency.Big `json:"documentid"`
+	FH FileHash     `json:"filehash"`
 }
 
-func (di DocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di DocInfo) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocInfoJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		ID:         di.idx,
+		FH:         di.filehash,
 	})
 }
 
-type DocIdJSONUnpacker struct {
+type DocInfoJSONUnpacker struct {
 	ID currency.Big `json:"documentid"`
+	FH FileHash     `json:"filehash"`
 }
 
-func (di *DocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *DocInfo) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocInfoJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
 	di.idx = udi.ID
+	di.filehash = udi.FH
 
 	return nil
 }
 
-type DocIdBSONPacker struct {
+type DocInfoBSONPacker struct {
 	ID currency.Big `bson:"documentid"`
+	FH FileHash     `bson:"filehash"`
 }
 
-func (di DocId) MarshalBSON() ([]byte, error) {
+func (di DocInfo) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
 			"documentid": di.idx,
+			"filehash":   di.filehash,
 		}),
 	)
 }
 
-type DocIdBSONUnpacker struct {
+type DocInfoBSONUnpacker struct {
 	ID currency.Big `bson:"documentid"`
+	FH FileHash     `bson:"filehash"`
 }
 
-func (di *DocId) UnmarshalBSON(b []byte) error {
-	var udi DocIdBSONUnpacker
+func (di *DocInfo) UnmarshalBSON(b []byte) error {
+	var udi DocInfoBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
 	di.idx = udi.ID
+	di.filehash = udi.FH
 
 	return nil
 }

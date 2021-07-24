@@ -201,23 +201,25 @@ func (v *CurrencyIDFlag) String() string {
 	return v.CID.String()
 }
 
-type DocIdFlag struct {
-	ID blocksign.DocId
+/*
+type DocInfoFlag struct {
+	ID blocksign.DocInfo
 }
 
-func (v *DocIdFlag) UnmarshalText(b []byte) error {
-	if d, err := blocksign.NewDocIdFromString(string(b)); err != nil {
-		return xerrors.Errorf("invalid DocId string, %q: %w", string(b), err)
+func (v *DocInfoFlag) UnmarshalText(b []byte) error {
+	if d, err := blocksign.NewDocInfoFromString(string(b)); err != nil {
+		return xerrors.Errorf("invalid DocInfo string, %q: %w", string(b), err)
 	} else {
-		*v = DocIdFlag{ID: d}
+		*v = DocInfoFlag{ID: d}
 	}
 
 	return nil
 }
 
-func (v *DocIdFlag) String() string {
+func (v *DocInfoFlag) String() string {
 	return v.ID.String()
 }
+*/
 
 type FileHashFlag struct {
 	FH blocksign.FileHash

@@ -15,7 +15,7 @@ type TransferDocumentCommand struct {
 	OperationFlags
 	Sender   AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
 	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Document DocIdFlag      `arg:"" name:"document" help:"document address" required:""`
+	DocId    BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
 	Receiver AddressFlag    `arg:"" name:"reciever" help:"reciever address" required:""`
 	Seal     FileLoad       `help:"seal" optional:""`
 	sender   base.Address
@@ -89,7 +89,7 @@ func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, erro
 		}
 	}
 
-	item := blocksign.NewTransferDocumentsItemSingleFile(cmd.Document.ID, cmd.sender, cmd.receiver, cmd.Currency.CID)
+	item := blocksign.NewTransferDocumentsItemSingleFile(cmd.DocId.Big, cmd.sender, cmd.receiver, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err

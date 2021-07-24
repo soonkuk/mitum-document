@@ -12,34 +12,25 @@ import (
 )
 
 var (
-	StateKeyDocumentSuffix         = ":document"
-	StateKeyDocumentDataExclSuffix = ":documentDataExcl"
-	StateKeyDocumentDataSuffix     = ":documentData"
-	//StateKeyFileIDSuffix   = ":fileid"
-	//StateKeySignCodeSuffix = ":signcode"
-	//StateKeyOwnerSuffix    = ":owner"
-	StateKeyLastDocumentId = "lastId:document"
+	StateKeyDocumentsSuffix    = ":documents"
+	StateKeyDocumentDataSuffix = ":documentData"
+	StateKeyLastDocumentId     = "lastdocumentId"
 )
 
-/*
-func StateKeyDocument() string {
-	return fmt.Sprintf("%s%s", "lastestId", StateKeyDocumentSuffix)
-}
-*/
-func StateLastDocumentIdValue(st state.State) (DocId, error) {
+func StateLastDocumentIdValue(st state.State) (DocInfo, error) {
 	v := st.Value()
 	if v == nil {
-		return DocId{}, util.NotFoundError.Errorf("document id not found in State")
+		return DocInfo{}, util.NotFoundError.Errorf("document id not found in State")
 	}
 
-	if s, ok := v.Interface().(DocId); !ok {
-		return DocId{}, xerrors.Errorf("invalid document id value found, %T", v.Interface())
+	if s, ok := v.Interface().(DocInfo); !ok {
+		return DocInfo{}, xerrors.Errorf("invalid document id value found, %T", v.Interface())
 	} else {
 		return s, nil
 	}
 }
 
-func SetStateLastDocumentIdValue(st state.State, v DocId) (state.State, error) {
+func SetStateLastDocumentIdValue(st state.State, v DocInfo) (state.State, error) {
 	if uv, err := state.NewHintedValue(v); err != nil {
 		return nil, err
 	} else {
@@ -47,20 +38,8 @@ func SetStateLastDocumentIdValue(st state.State, v DocId) (state.State, error) {
 	}
 }
 
-func IsStateDocumentDataExclKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyDocumentDataExclSuffix)
-}
-
-func StateKeyDocumentDataExcl(fh FileHash) string {
+func StateKeyDocumentData(fh FileHash) string {
 	return fmt.Sprintf("%s%s", fh.String(), StateKeyDocumentDataSuffix)
-}
-
-func StateDocumentDataKeyPrefix(a base.Address, di DocId) string {
-	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), di)
-}
-
-func StateKeyDocumentData(a base.Address, di DocId) string {
-	return fmt.Sprintf("%s%s", StateDocumentDataKeyPrefix(a, di), StateKeyDocumentDataSuffix)
 }
 
 func IsStateDocumentDataKey(key string) bool {
@@ -88,103 +67,31 @@ func SetStateDocumentDataValue(st state.State, v DocumentData) (state.State, err
 	}
 }
 
-/*
-func StateFileIDKeyPrefix(a base.Address, fid FileID) string {
-	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), fid)
+func StateKeyDocuments(a base.Address) string {
+	return fmt.Sprintf("%s%s", currency.StateAddressKeyPrefix(a), StateKeyDocumentsSuffix)
 }
 
-func StateKeyFileID(a base.Address, fid FileID) string {
-	return fmt.Sprintf("%s%s", StateFileIDKeyPrefix(a, fid), StateKeyFileIDSuffix)
+func IsStateDocumentsKey(key string) bool {
+	return strings.HasSuffix(key, StateKeyDocumentsSuffix)
 }
 
-func IsStateFileIDKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyFileIDSuffix)
-}
-
-func StateFileIDValue(st state.State) (FileID, error) {
+func StateDocumentsValue(st state.State) (DocumentInventory, error) {
 	v := st.Value()
 	if v == nil {
-		return FileID(""), util.NotFoundError.Errorf("filedata not found in State")
+		return DocumentInventory{}, util.NotFoundError.Errorf("document inventory not found in State")
 	}
 
-	if s, ok := v.Interface().(FileID); !ok {
-		return FileID(""), xerrors.Errorf("invalid filedata value found, %T", v.Interface())
+	if s, ok := v.Interface().(DocumentInventory); !ok {
+		return DocumentInventory{}, xerrors.Errorf("invalid document inventory value found, %T", v.Interface())
 	} else {
 		return s, nil
 	}
 }
 
-func SetStateFileIDValue(st state.State, v FileID) (state.State, error) {
+func SetStateDocumentsValue(st state.State, v DocumentInventory) (state.State, error) {
 	if uv, err := state.NewHintedValue(v); err != nil {
 		return nil, err
 	} else {
 		return st.SetValue(uv)
 	}
 }
-
-func StateSignCodeKeyPrefix(a base.Address, sc SignCode) string {
-	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), sc)
-}
-
-func StateKeySignCode(a base.Address, sc SignCode) string {
-	return fmt.Sprintf("%s%s", StateSignCodeKeyPrefix(a, sc), StateKeySignCodeSuffix)
-}
-
-func IsStateSignCodeKey(key string) bool {
-	return strings.HasSuffix(key, StateKeySignCodeSuffix)
-}
-
-func StateSignCodeValue(st state.State) (SignCode, error) {
-	v := st.Value()
-	if v == nil {
-		return SignCode(""), util.NotFoundError.Errorf("filedata not found in State")
-	}
-
-	if s, ok := v.Interface().(SignCode); !ok {
-		return SignCode(""), xerrors.Errorf("invalid filedata value found, %T", v.Interface())
-	} else {
-		return s, nil
-	}
-}
-
-func SetStateSignCodeValue(st state.State, v SignCode) (state.State, error) {
-	if uv, err := state.NewHintedValue(v); err != nil {
-		return nil, err
-	} else {
-		return st.SetValue(uv)
-	}
-}
-
-func StateOwnerKeyPrefix(a base.Address, owner base.Address) string {
-	return fmt.Sprintf("%s-%s", currency.StateAddressKeyPrefix(a), owner)
-}
-
-func StateKeyOwner(a base.Address, owner base.Address) string {
-	return fmt.Sprintf("%s%s", StateOwnerKeyPrefix(a, owner), StateKeyOwnerSuffix)
-}
-
-func IsStateOwnerKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyOwnerSuffix)
-}
-
-func StateOwnerValue(st state.State) (base.Address, error) {
-	v := st.Value()
-	if v == nil {
-		return currency.EmptyAddress, util.NotFoundError.Errorf("filedata not fousnd in State")
-	}
-
-	if s, ok := v.Interface().(base.Address); !ok {
-		return currency.EmptyAddress, xerrors.Errorf("invalid filedata value found, %T", v.Interface())
-	} else {
-		return s, nil
-	}
-}
-
-func SetStateOwnerValue(st state.State, v base.Address) (state.State, error) {
-	if uv, err := state.NewHintedValue(v); err != nil {
-		return nil, err
-	} else {
-		return st.SetValue(uv)
-	}
-}
-*/

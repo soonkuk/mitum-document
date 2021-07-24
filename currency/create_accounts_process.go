@@ -131,6 +131,7 @@ func (opp *CreateAccountsProcessor) PreProcess(
 		return nil, err
 	} else {
 		opp.required = required
+		// sb AmountState의 add와 fee는 zero임.
 		opp.sb = sb
 	}
 
@@ -172,6 +173,8 @@ func (opp *CreateAccountsProcessor) Process( // nolint:dupl
 
 	for k := range opp.required {
 		rq := opp.required[k]
+		// Sub를 통해서 sb의 add를 -값으로 만듦. sender의 balance를 차감하기 위해서
+		// 수수료는 증가시킴. 수수료는 나중에 fee operation에서 한 꺼번에 처리함.
 		sts = append(sts, opp.sb[k].Sub(rq[0]).AddFee(rq[1]))
 	}
 

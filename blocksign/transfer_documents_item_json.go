@@ -8,8 +8,8 @@ import (
 
 type TransferDocumentsItemJSONPacker struct {
 	jsonenc.HintedHead
-	DM DocId               `json:"document"`
-	OW base.Address        `json:"owwner"`
+	DI currency.Big        `json:"documentid"`
+	OW base.Address        `json:"owner"`
 	RC base.Address        `json:"receiver"`
 	CI currency.CurrencyID `json:"currency"`
 }
@@ -17,7 +17,7 @@ type TransferDocumentsItemJSONPacker struct {
 func (it BaseTransferDocumentsItem) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(TransferDocumentsItemJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(it.Hint()),
-		DM:         it.documentId,
+		DI:         it.docId,
 		OW:         it.owner,
 		RC:         it.receiver,
 		CI:         it.cid,
@@ -25,7 +25,7 @@ func (it BaseTransferDocumentsItem) MarshalJSON() ([]byte, error) {
 }
 
 type BaseTransferDocumentsItemJSONUnpacker struct {
-	DM []byte              `json:"document"`
+	DI currency.Big        `json:"documentid"`
 	OW base.AddressDecoder `json:"owner"`
 	RC base.AddressDecoder `json:"receiver"`
 	CI string              `json:"currency"`
@@ -42,5 +42,5 @@ func (it *BaseTransferDocumentsItem) UnpackJSON(b []byte, enc *jsonenc.Encoder) 
 		return err
 	}
 
-	return it.unpack(enc, ht.H, uit.DM, uit.OW, uit.RC, uit.CI)
+	return it.unpack(enc, ht.H, uit.DI, uit.OW, uit.RC, uit.CI)
 }

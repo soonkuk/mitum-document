@@ -5,23 +5,24 @@ import (
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
+	"golang.org/x/xerrors"
 )
 
 type BaseTransferDocumentsItem struct {
-	hint       hint.Hint
-	documentId DocId        // document address
-	owner      base.Address // document owner
-	receiver   base.Address // document receiver
-	cid        currency.CurrencyID
+	hint     hint.Hint
+	docId    currency.Big // document id
+	owner    base.Address // document owner
+	receiver base.Address // document receiver
+	cid      currency.CurrencyID
 }
 
-func NewBaseTransferDocumentsItem(ht hint.Hint, documentId DocId, owner base.Address, receiver base.Address, cid currency.CurrencyID) BaseTransferDocumentsItem {
+func NewBaseTransferDocumentsItem(ht hint.Hint, docId currency.Big, owner base.Address, receiver base.Address, cid currency.CurrencyID) BaseTransferDocumentsItem {
 	return BaseTransferDocumentsItem{
-		hint:       ht,
-		documentId: documentId,
-		owner:      owner,
-		receiver:   receiver,
-		cid:        cid,
+		hint:     ht,
+		docId:    docId,
+		owner:    owner,
+		receiver: receiver,
+		cid:      cid,
 	}
 }
 
@@ -31,7 +32,7 @@ func (it BaseTransferDocumentsItem) Hint() hint.Hint {
 
 func (it BaseTransferDocumentsItem) Bytes() []byte {
 	bs := make([][]byte, 4)
-	bs[0] = it.documentId.Bytes()
+	bs[0] = it.docId.Bytes()
 	bs[1] = it.owner.Bytes()
 	bs[2] = it.receiver.Bytes()
 	bs[3] = it.cid.Bytes()
@@ -40,28 +41,16 @@ func (it BaseTransferDocumentsItem) Bytes() []byte {
 }
 
 func (it BaseTransferDocumentsItem) IsValid([]byte) error {
-	if err := it.documentId.IsValid(nil); err != nil {
+	if err := it.docId.IsValid(nil); err != nil {
 		return err
-	} else if err := it.owner.IsValid(nil); err != nil {
-		return err
-	} else if err := it.receiver.IsValid(nil); err != nil {
-		return err
-	} else if err := it.cid.IsValid(nil); err != nil {
-		return err
+		return xerrors.Errorf("empty amounts")
 	}
-
-	// TODO : empty check
-	/*
-		if n := len(it.amounts); n == 0 {
-			return xerrors.Errorf("empty amounts")
-		}
-	*/
 
 	return nil
 }
 
-func (it BaseTransferDocumentsItem) DocumentId() DocId {
-	return it.documentId
+func (it BaseTransferDocumentsItem) DocumentId() currency.Big {
+	return it.docId
 }
 
 func (it BaseTransferDocumentsItem) Owner() base.Address {

@@ -20,32 +20,105 @@ type TransferDocumentsItemProcessor struct {
 	cp   *currency.CurrencyPool
 	h    valuehash.Hash
 	item TransferDocumentsItem
-	dds  state.State // document filedata state
-	dd   DocumentData
+	// dinv   DocumentInventory
+	odinvs state.State // owner document inventory state
+	rdinvs state.State // receiver document inventory state
+	dds    state.State // document data state
+	di     DocInfo
+	dd     DocumentData
 }
 
 func (opp *TransferDocumentsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
-	// check existence of reciever account and get receiver keys
+	// check existence of reciever account
 	if _, found, err := getState(currency.StateKeyAccount(opp.item.Receiver())); err != nil {
 		return err
 	} else if !found {
 		return xerrors.Errorf("receiver account not found, %q", opp.item.Receiver())
 	}
 
-	if st, err := currency.ExistsState(StateKeyDocumentData(opp.item.Owner(), opp.item.DocumentId()), "document data", getState); err != nil {
+	// check existence of owner account
+	if _, found, err := getState(currency.StateKeyAccount(opp.item.Owner())); err != nil {
 		return err
+	} else if !found {
+		return xerrors.Errorf("owner account not found, %q", opp.item.Owner())
+	}
+
+	// check document id is greater than 0 and lesser than global last document id
+	switch st, found, err := getState(StateKeyLastDocumentId); {
+	case err != nil:
+		return err
+	case !found:
+		return xerrors.Errorf("Document is not registered")
+	default:
+		v, err := StateLastDocumentIdValue(st)
+		if err != nil {
+			return err
+		}
+		if opp.item.DocumentId().Sub(v.idx).OverZero() {
+			return xerrors.Errorf("Document Id is greater than last registered document id")
+		}
+	}
+
+	// get owner document inventory
+	if st, err := currency.ExistsState(StateKeyDocuments(opp.item.Owner()), "document inventory", getState); err != nil {
+		return err
+	} else {
+		dinv, err := StateDocumentsValue(st)
+		if err != nil {
+			return err
+		}
+		if !dinv.Exists(opp.item.DocumentId()) {
+			return xerrors.Errorf("document id not registered to account, %v", opp.item.DocumentId())
+		}
+		docInfo, err := dinv.Get(opp.item.DocumentId())
+		if err != nil {
+			return err
+		}
+		opp.di = docInfo
+
+		opp.odinvs = st
+	}
+
+	if st, err := currency.ExistsState(StateKeyDocumentData(opp.di.filehash), "document data", getState); err != nil {
+		return xerrors.Errorf("document data of filehash not found, %v", opp.di.filehash)
 	} else {
 		opp.dds = st
 	}
 
+	// check document data owner and replace owner with receiver
 	if dd, err := StateDocumentDataValue(opp.dds); err != nil {
 		return err
+	} else if !dd.Owner().Equal(opp.item.Owner()) {
+		return err
 	} else {
-		opp.dd = dd
+		ndd := dd.WithData(dd.FileHash(), dd.Info(), dd.Creator(), opp.item.Receiver(), dd.Signers())
+		opp.dd = ndd
 	}
+
+	// check receiver document inventory and update it.
+	dst, found, err := getState(StateKeyDocuments(opp.item.Receiver()))
+	if err != nil {
+		return err
+	} else if !found {
+		dinv := NewDocumentInventory(nil)
+		ndst, err := SetStateDocumentsValue(dst, dinv)
+		if err != nil {
+			return err
+		}
+		dst = ndst
+	} else {
+		dinv, err := StateDocumentsValue(dst)
+		if err != nil {
+			return err
+		}
+		if dinv.Exists(opp.di.Index()) {
+			return xerrors.Errorf("Document id already registered in receiver's document inventory, %v", opp.di.idx)
+		}
+	}
+	opp.rdinvs = dst
 
 	return nil
 }
@@ -54,21 +127,37 @@ func (opp *TransferDocumentsItemProcessor) Process(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
-	sts := make([]state.State, 1)
+	sts := make([]state.State, 3)
 
-	dst, found, err := getState(StateKeyDocumentData(opp.item.Receiver(), opp.dd.DocumentId()))
+	odinv, err := StateDocumentsValue(opp.odinvs)
 	if err != nil {
-		return nil, err
-	} else if found {
-		return nil, xerrors.Errorf("receiver already own document, %q", opp.dd.DocumentId())
+		return sts, err
 	}
-
-	st, err := SetStateDocumentDataValue(dst, opp.dd)
+	odinv.Romove(opp.di)
+	onst, err := SetStateDocumentsValue(opp.odinvs, odinv)
 	if err != nil {
 		return nil, err
 	}
+	sts[0] = onst
 
-	sts[0] = st
+	rdinv, err := StateDocumentsValue(opp.rdinvs)
+	if err != nil {
+		return sts, err
+	}
+	rdinv.Append(opp.di)
+
+	rnst, err := SetStateDocumentsValue(opp.rdinvs, rdinv)
+	if err != nil {
+		return nil, err
+	}
+	sts[1] = rnst
+
+	ndst, err := SetStateDocumentDataValue(opp.dds, opp.dd)
+	if err != nil {
+		return nil, err
+	}
+	sts[2] = ndst
+
 	return sts, nil
 }
 

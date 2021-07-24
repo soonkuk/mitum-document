@@ -10,21 +10,22 @@ import (
 func (doc *DocumentData) unpack(
 	enc encoder.Encoder,
 	filehash string, // filehash
-	id []byte,
+	di []byte,
 	cr base.AddressDecoder, // creator
+	ow base.AddressDecoder, // owner
 	bsg []byte, // signers
 ) error {
 
 	// unpack filehash
 	doc.fileHash = FileHash(filehash)
 
-	// unpack document id
-	if hinter, err := enc.Decode(id); err != nil {
+	// unpack document info
+	if hinter, err := enc.Decode(di); err != nil {
 		return err
-	} else if i, ok := hinter.(DocId); !ok {
-		return xerrors.Errorf("not DocId: %T", hinter)
+	} else if i, ok := hinter.(DocInfo); !ok {
+		return xerrors.Errorf("not DocInfo: %T", hinter)
 	} else {
-		doc.id = i
+		doc.info = i
 	}
 
 	// unpack creator
@@ -32,6 +33,13 @@ func (doc *DocumentData) unpack(
 		return err
 	} else {
 		doc.creator = a
+	}
+
+	// unpack owner
+	if a, err := ow.Encode(enc); err != nil {
+		return err
+	} else {
+		doc.owner = a
 	}
 
 	hits, err := enc.DecodeSlice(bsg)

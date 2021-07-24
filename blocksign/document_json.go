@@ -10,8 +10,9 @@ import (
 type DocumentJSONPacker struct {
 	jsonenc.HintedHead
 	FH FileHash     `json:"filehash"`
-	ID DocId        `json:"documentid"`
+	DI DocInfo      `json:"documentinfo"`
 	CR base.Address `json:"creator"`
+	OW base.Address `json:"owner"`
 	SG []DocSign    `json:"signers"`
 }
 
@@ -19,16 +20,18 @@ func (doc DocumentData) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(DocumentJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
 		FH:         doc.fileHash,
-		ID:         doc.id,
+		DI:         doc.info,
 		CR:         doc.creator,
+		OW:         doc.owner,
 		SG:         doc.signers,
 	})
 }
 
 type DocumentJSONUnpacker struct {
 	FH string              `json:"filehash"`
-	ID json.RawMessage     `json:"documentid"`
+	DI json.RawMessage     `json:"documentinfo"`
 	CR base.AddressDecoder `json:"creator"`
+	OW base.AddressDecoder `json:"owner"`
 	SG json.RawMessage     `json:"signers"`
 }
 
@@ -38,5 +41,5 @@ func (doc *DocumentData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return doc.unpack(enc, udoc.FH, udoc.ID, udoc.CR, udoc.SG)
+	return doc.unpack(enc, udoc.FH, udoc.DI, udoc.CR, udoc.OW, udoc.SG)
 }

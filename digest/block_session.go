@@ -31,6 +31,7 @@ type BlockSession struct {
 	operationModels []mongo.WriteModel
 	accountModels   []mongo.WriteModel
 	documentModels  []mongo.WriteModel
+	documentsModels []mongo.WriteModel
 	balanceModels   []mongo.WriteModel
 	statesValue     *sync.Map
 }
@@ -96,6 +97,12 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 
 	if len(bs.documentModels) > 0 {
 		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
+			return err
+		}
+	}
+
+	if len(bs.documentsModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameDocuments, bs.documentsModels); err != nil {
 			return err
 		}
 	}
@@ -177,6 +184,7 @@ func (bs *BlockSession) prepareAccounts() error {
 	var accountModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
 	var documentModels []mongo.WriteModel
+	var documentsModels []mongo.WriteModel
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {
@@ -195,23 +203,32 @@ func (bs *BlockSession) prepareAccounts() error {
 			balanceModels = append(balanceModels, j...)
 
 		case blocksign.IsStateDocumentDataKey(st.Key()):
-			if j, err := bs.handleDocumentState(st); err != nil {
+			if j, err := bs.handleDocumentDataState(st); err != nil {
 				return err
 			} else {
 				documentModels = append(documentModels, j...)
 			}
-
+		case blocksign.IsStateDocumentsKey(st.Key()):
+			if j, err := bs.handleDocumentsState(st); err != nil {
+				return err
+			} else {
+				documentsModels = append(documentsModels, j...)
+			}
 		default:
 			continue
 		}
 	}
 
 	bs.accountModels = accountModels
-	bs.documentModels = documentModels
 	bs.balanceModels = balanceModels
+	bs.documentsModels = documentsModels
 
 	if len(documentModels) > 0 {
 		bs.documentModels = documentModels
+	}
+
+	if len(documentsModels) > 0 {
+		bs.documentsModels = documentsModels
 	}
 
 	return nil
@@ -247,8 +264,16 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 }
 
-func (bs *BlockSession) handleDocumentState(st state.State) ([]mongo.WriteModel, error) {
+func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
 	if doc, err := NewDocumentDoc(st, bs.st.database.Encoder()); err != nil {
+		return nil, err
+	} else {
+		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+	}
+}
+
+func (bs *BlockSession) handleDocumentsState(st state.State) ([]mongo.WriteModel, error) {
+	if doc, err := NewDocumentsDoc(st, bs.st.database.Encoder()); err != nil {
 		return nil, err
 	} else {
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
@@ -305,6 +330,7 @@ func (bs *BlockSession) close() error {
 	bs.accountModels = nil
 	bs.balanceModels = nil
 	bs.documentModels = nil
+	bs.documentsModels = nil
 
 	return bs.st.Close()
 }

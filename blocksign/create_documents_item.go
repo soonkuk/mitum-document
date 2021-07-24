@@ -59,6 +59,5 @@ func (it BaseCreateDocumentsItem) Currency() currency.CurrencyID {
 }
 
 func (it BaseCreateDocumentsItem) Rebuild() CreateDocumentsItem {
-
 	return it
 }

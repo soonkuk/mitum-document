@@ -14,9 +14,10 @@ type CreateDocumentCommand struct {
 	*BaseCommand
 	OperationFlags
 	Sender   AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
 	FileHash string         `arg:"" name:"filehash" help:"filehash" required:""`
-	Signers  []AddressFlag  `name:"signers" help:"signers for document"`
+	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
+
+	Signers []AddressFlag `name:"signers" help:"signers for document"`
 	// Keys      []KeyFlag `name:"key" help:"key for new document account (ex: \"<public key>,<weight>\")" sep:"@"`
 	Seal   FileLoad `help:"seal" optional:""`
 	sender base.Address

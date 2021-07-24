@@ -12,10 +12,10 @@ import (
 type AccountValueJSONPacker struct {
 	jsonenc.HintedHead
 	currency.AccountPackerJSON
-	BL []currency.Amount        `json:"balance"`
-	DM []blocksign.DocumentData `json:"document"`
-	HT base.Height              `json:"height"`
-	PT base.Height              `json:"previous_height"`
+	BL []currency.Amount           `json:"balance"`
+	DM blocksign.DocumentInventory `json:"document"`
+	HT base.Height                 `json:"height"`
+	PT base.Height                 `json:"previous_height"`
 }
 
 func (va AccountValue) MarshalJSON() ([]byte, error) {

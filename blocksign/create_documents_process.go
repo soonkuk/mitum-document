@@ -17,14 +17,15 @@ func (op CreateDocuments) Process(
 }
 
 type CreateDocumentsItemProcessor struct {
-	cp     *currency.CurrencyPool
-	sender base.Address
-	h      valuehash.Hash
-	item   CreateDocumentsItem
-	nds    state.State // new document data state (key = address + document id)
-	ndxs   state.State // new document data exclusive state (key = filehash)
-	docId  DocId       // new document id
-	ndis   state.State // last documentid state
+	cp      *currency.CurrencyPool
+	sender  base.Address
+	h       valuehash.Hash
+	item    CreateDocumentsItem
+	nds     state.State       // new document data state (key = document filehash)
+	dinv    DocumentInventory // document inventory
+	ndinvs  state.State       // document inventory state (key = owner address)
+	docInfo DocInfo           // new document info
+	ndis    state.State       // last documentid state
 
 }
 
@@ -37,41 +38,47 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
+	// check existence of new document state with filehash
+	switch st, found, err := getState(StateKeyDocumentData(opp.item.FileHash())); {
+	case err != nil:
+		return err
+	case found:
+		return xerrors.Errorf("already registered, %q", opp.item.FileHash())
+	default:
+		opp.nds = st
+	}
+
 	// get global last document id
 	switch st, found, err := getState(StateKeyLastDocumentId); {
 	case err != nil:
 		return err
 	case !found:
-		opp.docId = NewDocId(0)
+		opp.docInfo = NewDocInfo(0, opp.item.FileHash())
 		opp.ndis = st
 	default:
 		v, err := StateLastDocumentIdValue(st)
 		if err != nil {
 			return err
 		}
-		v.idx = v.idx.Add(currency.NewBig(1))
-		opp.docId = v
+		d := v.WithData(v.idx.Add(currency.NewBig(1)), opp.item.FileHash())
+		opp.docInfo = d
 		opp.ndis = st
 	}
 
-	// check existence of new document state with filehash
-	switch st, found, err := getState(StateKeyDocumentDataExcl(opp.item.FileHash())); {
+	// check existence of document inventory state with address
+	switch st, found, err := getState(StateKeyDocuments(opp.sender)); {
 	case err != nil:
 		return err
-	case found:
-		return xerrors.Errorf("already registered, %q", opp.item.FileHash())
+	case !found:
+		opp.dinv = NewDocumentInventory(nil)
+		opp.ndinvs = st
 	default:
-		opp.ndxs = st
-	}
-
-	// check existence of new document state with address and docId
-	switch st, found, err := getState(StateKeyDocumentData(opp.sender, opp.docId)); {
-	case err != nil:
-		return err
-	case found:
-		return xerrors.Errorf("document id already registered, %q", opp.docId)
-	default:
-		opp.nds = st
+		dinv, err := StateDocumentsValue(st)
+		if err != nil {
+			return err
+		}
+		opp.dinv = dinv
+		opp.ndinvs = st
 	}
 
 	// check sigenrs account existence
@@ -96,7 +103,7 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	sts := make([]state.State, 3)
 
 	// prepare document id state
-	nst, err := SetStateLastDocumentIdValue(opp.ndis, opp.docId)
+	nst, err := SetStateLastDocumentIdValue(opp.ndis, opp.docInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +117,9 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	// document data with new document id
 	docData := DocumentData{
 		fileHash: opp.item.FileHash(),
-		id:       opp.docId,
+		info:     opp.docInfo,
 		creator:  opp.sender,
+		owner:    opp.sender,
 		signers:  signers,
 	}
 
@@ -122,11 +130,14 @@ func (opp *CreateDocumentsItemProcessor) Process(
 		sts[1] = dst
 	}
 
-	// prepare document data exclusive state
-	if dxst, err := SetStateDocumentDataValue(opp.ndxs, docData); err != nil {
+	opp.dinv.Append(opp.docInfo)
+	opp.dinv.Sort(true)
+
+	// prepare document inventory state
+	if dinvs, err := SetStateDocumentsValue(opp.ndinvs, opp.dinv); err != nil {
 		return nil, err
 	} else {
-		sts[2] = dxst
+		sts[2] = dinvs
 	}
 
 	return sts, nil
@@ -201,6 +212,7 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 	fact := opp.Fact().(CreateDocumentsFact)
 
 	var sts []state.State // nolint:prealloc
+
 	for i := range opp.ns {
 		if s, err := opp.ns[i].Process(getState, setState); err != nil {
 			return operation.NewBaseReasonError("failed to process create document item: %w", err)

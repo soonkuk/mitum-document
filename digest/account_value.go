@@ -18,7 +18,7 @@ var (
 type AccountValue struct {
 	ac             currency.Account
 	balance        []currency.Amount
-	document       []blocksign.DocumentData
+	document       blocksign.DocumentInventory
 	height         base.Height
 	previousHeight base.Height
 }
@@ -53,7 +53,7 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
-func (va AccountValue) Document() []blocksign.DocumentData {
+func (va AccountValue) Document() blocksign.DocumentInventory {
 	return va.document
 }
 
@@ -87,7 +87,7 @@ func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	return va
 }
 
-func (va AccountValue) SetDocument(document []blocksign.DocumentData) AccountValue {
+func (va AccountValue) SetDocument(document blocksign.DocumentInventory) AccountValue {
 	va.document = document
 
 	return va

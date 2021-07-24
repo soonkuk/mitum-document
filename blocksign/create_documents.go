@@ -21,9 +21,11 @@ var (
 
 var MaxCreateDocumentsItems uint = 10
 
+/*
 type FileDataItem interface {
 	DocumentData() DocumentData
 }
+*/
 
 type CreateDocumentsItem interface {
 	hint.Hinter

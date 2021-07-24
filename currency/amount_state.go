@@ -72,7 +72,10 @@ func (st AmountState) Merge(b state.State) (state.State, error) {
 	} else {
 		am = b
 	}
-
+	// 수수료 처리를 위해서 AmountState의 fee에 수수료는 더해주고
+	// state.state의 value에 들어갈 amount에 AmountState의 add값을 더해주는데
+	// add 값은 +가 될 수도 있고 -가 될 수도 있다.
+	// +면 가감이 되고 -면 차감이 된다.
 	return SetStateBalanceValue(
 		st.AddFee(b.(AmountState).fee),
 		am.WithBig(am.Big().Add(st.add)),

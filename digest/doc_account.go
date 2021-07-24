@@ -99,7 +99,7 @@ type DocumentDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
 	fh blocksign.FileHash
-	id blocksign.DocId
+	di blocksign.DocInfo
 }
 
 // NewDocumentDoc gets the State of DocumentData
@@ -120,7 +120,7 @@ func NewDocumentDoc(st state.State, enc encoder.Encoder) (DocumentDoc, error) {
 		BaseDoc: b,
 		st:      st,
 		fh:      doc.FileHash(),
-		id:      doc.DocumentId(),
+		di:      doc.Info(),
 	}, nil
 }
 
@@ -129,9 +129,39 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentDataSuffix)-len(doc.id.String())-1]
+	filehash := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentDataSuffix)-1]
+	m["filehash"] = filehash
+	m["documentid"] = doc.di.Index()
+	m["height"] = doc.st.Height()
+
+	return bsonenc.Marshal(m)
+}
+
+type DocumentsDoc struct {
+	mongodbstorage.BaseDoc
+	st state.State
+}
+
+// NewDocumentDoc gets the State of DocumentData
+func NewDocumentsDoc(st state.State, enc encoder.Encoder) (DocumentsDoc, error) {
+
+	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
+	if err != nil {
+		return DocumentsDoc{}, err
+	}
+	return DocumentsDoc{
+		BaseDoc: b,
+		st:      st,
+	}, nil
+}
+
+func (doc DocumentsDoc) MarshalBSON() ([]byte, error) {
+	m, err := doc.BaseDoc.M()
+	if err != nil {
+		return nil, err
+	}
+	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentsSuffix)]
 	m["address"] = address
-	m["documentid"] = doc.id.Index()
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)

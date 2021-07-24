@@ -6,6 +6,7 @@ import (
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
+	"golang.org/x/xerrors"
 )
 
 func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []byte, height, previousHeight base.Height) error {
@@ -33,21 +34,13 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []
 
 	va.balance = balance
 
-	hdm, err := enc.DecodeSlice(dm)
-	if err != nil {
+	if hinter, err := enc.Decode(dm); err != nil {
 		return err
+	} else if k, ok := hinter.(blocksign.DocumentInventory); !ok {
+		return xerrors.Errorf("not DocumentInventory: %T", hinter)
+	} else {
+		va.document = k
 	}
-
-	document := make([]blocksign.DocumentData, len(dm))
-	for i := range hdm {
-		j, ok := hdm[i].(blocksign.DocumentData)
-		if !ok {
-			return util.WrongTypeError.Errorf("expected blocksign.DocumentData, not %T", hbl[i])
-		}
-		document[i] = j
-	}
-
-	va.document = document
 
 	va.height = height
 	va.previousHeight = previousHeight

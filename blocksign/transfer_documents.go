@@ -25,7 +25,7 @@ type TransferDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	DocumentId() DocId
+	DocumentId() currency.Big
 	Owner() base.Address
 	Receiver() base.Address
 	Currency() currency.CurrencyID

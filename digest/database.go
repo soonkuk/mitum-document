@@ -29,6 +29,7 @@ var maxLimit int64 = 50
 var (
 	defaultColNameAccount   = "digest_ac"
 	defaultColNameDocument  = "digest_dm"
+	defaultColNameDocuments = "digest_dv"
 	defaultColNameBalance   = "digest_bl"
 	defaultColNameOperation = "digest_op"
 )
@@ -178,6 +179,7 @@ func (st *Database) clean() error {
 	for _, col := range []string{
 		defaultColNameAccount,
 		defaultColNameDocument,
+		defaultColNameDocuments,
 		defaultColNameBalance,
 		defaultColNameOperation,
 	} {
@@ -459,12 +461,24 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 			SetPreviousHeight(previousHeight)
 	}
 
-	// NOTE load document
-	switch docs, lastHeight, previousHeight, err := st.document(a); {
+	/*
+		// NOTE load document
+		switch docs, lastHeight, previousHeight, err := st.document(a); {
+		case err != nil:
+			return rs, false, err
+		default:
+			rs = rs.SetDocument(docs).
+				SetHeight(lastHeight).
+				SetPreviousHeight(previousHeight)
+		}
+	*/
+
+	// NOTE load documents
+	switch doc, lastHeight, previousHeight, err := st.documents(a); {
 	case err != nil:
 		return rs, false, err
 	default:
-		rs = rs.SetDocument(docs).
+		rs = rs.SetDocument(doc).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -570,10 +584,11 @@ func (st *Database) balance(a base.Address) ([]currency.Amount, base.Height, bas
 	return rs, true, nil
 }
 */
+/*
 func (st *Database) document(a base.Address) ([]blocksign.DocumentData, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	var dids []string
-	docm := map[blocksign.DocId]blocksign.DocumentData{}
+	docm := map[blocksign.DocInfo]blocksign.DocumentData{}
 	for {
 		filter := util.NewBSONFilter("address", currency.StateAddressKeyPrefix(a))
 		var q primitive.D
@@ -609,9 +624,9 @@ func (st *Database) document(a base.Address) ([]blocksign.DocumentData, base.Hei
 		if err != nil {
 			return nil, lastHeight, previousHeight, err
 		}
-		docm[i.DocumentId()] = i
+		docm[i.Info()] = i
 
-		dids = append(dids, i.DocumentId().String())
+		dids = append(dids, i.Info().String())
 
 		if h := sta.Height(); h > lastHeight {
 			lastHeight = h
@@ -626,6 +641,47 @@ func (st *Database) document(a base.Address) ([]blocksign.DocumentData, base.Hei
 		i++
 	}
 	return docs, lastHeight, previousHeight, nil
+}
+*/
+
+func (st *Database) documents(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
+	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
+	doc := blocksign.DocumentInventory{}
+	filter := util.NewBSONFilter("address", currency.StateAddressKeyPrefix(a))
+	q := filter.D()
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameDocuments,
+		q,
+		func(res *mongo.SingleResult) error {
+			i, err := loadDocument(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if xerrors.Is(err, util.NotFoundError) {
+
+			return blocksign.NewDocumentInventory([]blocksign.DocInfo{}), lastHeight, previousHeight, nil
+		}
+	}
+
+	i, err := blocksign.StateDocumentsValue(sta)
+	if err != nil {
+		return blocksign.DocumentInventory{}, lastHeight, previousHeight, err
+	}
+	doc = i
+
+	if h := sta.Height(); h > lastHeight {
+		lastHeight = h
+		previousHeight = sta.PreviousHeight()
+	}
+
+	return doc, lastHeight, previousHeight, nil
 }
 
 func loadLastBlock(st *Database) (base.Height, bool, error) {

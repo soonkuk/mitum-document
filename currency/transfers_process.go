@@ -28,6 +28,7 @@ func (opp *TransfersItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
+	// check receiver account
 	if _, err := existsState(StateKeyAccount(opp.item.Receiver()), "receiver", getState); err != nil {
 		return err
 	}

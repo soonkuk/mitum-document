@@ -33,18 +33,20 @@ var (
 	HandlerPathNodeInfo                   = `/`
 	HandlerPathCurrencies                 = `/currency`
 	HandlerPathCurrency                   = `/currency/{currencyid:.*}`
+	HandlerPathDocuments                  = `/block/documents`
+	HandlerPathDocument                   = `/block/document/{documentid:[0-9]+}`
 	HandlerPathManifests                  = `/block/manifests`
 	HandlerPathOperations                 = `/block/operations`
 	HandlerPathOperation                  = `/block/operation/{hash:(?i)[0-9a-z][0-9a-z]+}`
 	HandlerPathBlockByHeight              = `/block/{height:[0-9]+}`
 	HandlerPathBlockByHash                = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}`
+	HandlerPathDocumentsByHeight          = `/block/{height:[0-9]+}/documents`
 	HandlerPathOperationsByHeight         = `/block/{height:[0-9]+}/operations`
 	HandlerPathManifestByHeight           = `/block/{height:[0-9]+}/manifest`
 	HandlerPathManifestByHash             = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}/manifest`
-	HandlerPathAccount                    = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}`             // revive:disable-line:line-length-limit
-	HandlerPathAccountOperations          = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/operations`  // revive:disable-line:line-length-limit
-	HandlerPathDocument                   = `/document/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}`            // revive:disable-line:line-length-limit
-	HandlerPathDocumentOperations         = `/document/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/operations` // revive:disable-line:line-length-limit
+	HandlerPathAccount                    = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}`            // revive:disable-line:line-length-limit
+	HandlerPathAccountOperations          = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/operations` // revive:disable-line:line-length-limit
+	HandlerPathAccountDocuments           = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/documents`  // revive:disable-line:line-length-limit
 	HandlerPathOperationBuildFactTemplate = `/builder/operation/fact/template/{fact:[\w][\w\-]*}`
 	HandlerPathOperationBuildFact         = `/builder/operation/fact`
 	HandlerPathOperationBuildSign         = `/builder/operation/sign`
@@ -56,16 +58,20 @@ var RateLimitHandlerMap = map[string]string{
 	"node-info":                       HandlerPathNodeInfo,
 	"currencies":                      HandlerPathCurrencies,
 	"currency":                        HandlerPathCurrency,
+	"documents":                       HandlerPathDocuments,
+	"document":                        HandlerPathDocument,
 	"block-manifests":                 HandlerPathManifests,
 	"block-operations":                HandlerPathOperations,
 	"block-operation":                 HandlerPathOperation,
 	"block-by-height":                 HandlerPathBlockByHeight,
 	"block-by-hash":                   HandlerPathBlockByHash,
+	"block-documents-by-height":       HandlerPathDocumentsByHeight,
 	"block-operations-by-height":      HandlerPathOperationsByHeight,
 	"block-manifest-by-height":        HandlerPathManifestByHeight,
 	"block-manifest-by-hash":          HandlerPathManifestByHash,
 	"account":                         HandlerPathAccount,
 	"account-operations":              HandlerPathAccountOperations,
+	"account-documents":               HandlerPathAccountDocuments,
 	"builder-operation-fact-template": HandlerPathOperationBuildFactTemplate,
 	"builder-operation-fact":          HandlerPathOperationBuildFact,
 	"builder-operation-sign":          HandlerPathOperationBuildSign,
@@ -161,11 +167,17 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathCurrency, hd.handleCurrency, true).
 		Methods(http.MethodOptions, "GET")
+	_ = hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
+		Methods(http.MethodOptions, "GET")
+	_ = hd.setHandler(HandlerPathDocument, hd.handleDocument, true).
+		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathOperations, hd.handleOperations, true).
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathOperation, hd.handleOperation, true).
+		Methods(http.MethodOptions, "GET")
+	_ = hd.setHandler(HandlerPathDocumentsByHeight, hd.handleDocumentsByHeight, true).
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathOperationsByHeight, hd.handleOperationsByHeight, true).
 		Methods(http.MethodOptions, "GET")
@@ -181,10 +193,8 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathAccountOperations, hd.handleAccountOperations, true).
 		Methods(http.MethodOptions, "GET")
-	//_ = hd.setHandler(HandlerPathDocument, hd.handleDocument, true).
-	//	Methods(http.MethodOptions, "GET")
-	//_ = hd.setHandler(HandlerPathDocumentOperations, hd.handleDocumentOperations, true).
-	//	Methods(http.MethodOptions, "GET")
+	_ = hd.setHandler(HandlerPathAccountDocuments, hd.handleAccountDocuments, true).
+		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathOperationBuildFactTemplate, hd.handleOperationBuildFactTemplate, true).
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathOperationBuildFact, hd.handleOperationBuildFact, false).

@@ -24,7 +24,7 @@ func IsAccountState(st state.State) (currency.Account, bool, error) {
 	return ac, true, nil
 }
 
-func IsDocumentDataState(st state.State) (blocksign.DocumentData, bool, error) {
+func IsDocumentState(st state.State) (blocksign.DocumentData, bool, error) {
 	if !blocksign.IsStateDocumentDataKey(st.Key()) {
 		return blocksign.DocumentData{}, false, nil
 	}
@@ -69,6 +69,23 @@ func parseHashFromPath(s string) (valuehash.Hash, error) {
 	h := valuehash.NewBytesFromString(s)
 	if err := h.IsValid(nil); err != nil {
 		return nil, err
+	}
+
+	return h, nil
+}
+
+func parseDocIdFromPath(s string) (currency.Big, error) {
+	s = strings.TrimSpace(s)
+	if len(s) < 1 {
+		return currency.Big{}, xerrors.Errorf("empty id")
+	}
+
+	h, err := currency.NewBigFromString(s)
+	if err != nil {
+		return currency.Big{}, err
+	}
+	if err := h.IsValid(nil); err != nil {
+		return currency.Big{}, err
 	}
 
 	return h, nil

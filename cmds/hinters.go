@@ -59,7 +59,7 @@ var types = []hint.Type{
 	digest.NodeInfoType,
 	digest.BaseHalType,
 	digest.AccountValueType,
-	// digest.DocumentValueType,
+	digest.DocumentValueType,
 	digest.OperationValueType,
 }
 
@@ -106,7 +106,7 @@ var hinters = []hint.Hinter{
 	blocksign.TransferDocuments{},
 	blocksign.TransfersItemSingleDocumentHinter,
 	digest.AccountValue{},
-	// digest.DocumentValue{},
+	digest.DocumentValue{},
 	digest.BaseHal{},
 	digest.NodeInfo{},
 	digest.OperationValue{},

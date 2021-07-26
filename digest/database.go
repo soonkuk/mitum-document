@@ -427,6 +427,119 @@ func (st *Database) Operations(
 	)
 }
 
+func (st *Database) DocumentsByAddress(
+	address base.Address,
+	reverse bool,
+	offset string,
+	limit int64,
+	callback func(currency.Big /* document id */, DocumentValue) (bool, error),
+) error {
+	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
+	if err != nil {
+		return err
+	}
+
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).Add("index", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+
+			va, err := loadDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.Document().Info().Index(), va)
+		},
+		opt,
+	)
+}
+
+func (st *Database) Document(
+	i currency.Big, /* document id */
+) (DocumentValue, bool /* exists */, error) {
+
+	var va DocumentValue
+	if err := st.database.Client().GetByFilter(
+		defaultColNameDocument,
+		util.NewBSONFilter("documentid", i).D(),
+		func(res *mongo.SingleResult) error {
+
+			i, err := loadDocument(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+
+			va = i
+
+			return nil
+		},
+	); err != nil {
+		if xerrors.Is(err, util.NotFoundError) {
+			return DocumentValue{}, false, nil
+		}
+
+		return DocumentValue{}, false, err
+	}
+	return va, true, nil
+}
+
+func (st *Database) Documents(
+	filter bson.M,
+	reverse bool,
+	limit int64,
+	callback func(currency.Big /* documentid */, DocumentValue) (bool, error),
+) error {
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).Add("index", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+
+			va, err := loadDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.doc.Info().Index(), va)
+		},
+		opt,
+	)
+}
+
 // Account returns AccountValue.
 func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, error) {
 	var rs AccountValue
@@ -474,7 +587,7 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 	*/
 
 	// NOTE load documents
-	switch doc, lastHeight, previousHeight, err := st.documents(a); {
+	switch doc, lastHeight, previousHeight, err := st.documentList(a); {
 	case err != nil:
 		return rs, false, err
 	default:
@@ -644,7 +757,8 @@ func (st *Database) document(a base.Address) ([]blocksign.DocumentData, base.Hei
 }
 */
 
-func (st *Database) documents(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
+// documentList return document invetory by address
+func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	doc := blocksign.DocumentInventory{}
 	filter := util.NewBSONFilter("address", currency.StateAddressKeyPrefix(a))
@@ -654,7 +768,7 @@ func (st *Database) documents(a base.Address) (blocksign.DocumentInventory, base
 		defaultColNameDocuments,
 		q,
 		func(res *mongo.SingleResult) error {
-			i, err := loadDocument(res.Decode, st.database.Encoders())
+			i, err := loadDocuments(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -719,6 +833,36 @@ func buildOffset(height base.Height, index uint64) string {
 
 func buildOperationsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
 	filter := bson.M{"addresses": bson.M{"$in": []string{currency.StateAddressKeyPrefix(address)}}}
+	if len(offset) > 0 {
+		height, index, err := parseOffset(offset)
+		if err != nil {
+			return nil, err
+		}
+
+		if reverse {
+			filter["$or"] = []bson.M{
+				{"height": bson.M{"$lt": height}},
+				{"$and": []bson.M{
+					{"height": height},
+					{"index": bson.M{"$lt": index}},
+				}},
+			}
+		} else {
+			filter["$or"] = []bson.M{
+				{"height": bson.M{"$gt": height}},
+				{"$and": []bson.M{
+					{"height": height},
+					{"index": bson.M{"$gt": index}},
+				}},
+			}
+		}
+	}
+
+	return filter, nil
+}
+
+func buildDocumentsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
+	filter := bson.M{"owner": bson.M{"$in": []string{currency.StateAddressKeyPrefix(address)}}}
 	if len(offset) > 0 {
 		height, index, err := parseOffset(offset)
 		if err != nil {

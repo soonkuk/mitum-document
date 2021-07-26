@@ -65,7 +65,22 @@ func loadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 	}
 }
 
-func loadDocument(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
+func loadDocument(decoder func(interface{}) error, encs *encoder.Encoders) (DocumentValue, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return DocumentValue{}, err
+	}
+
+	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
+		return DocumentValue{}, err
+	} else if va, ok := hinter.(DocumentValue); !ok {
+		return DocumentValue{}, xerrors.Errorf("not DocumentValue : %T", hinter)
+	} else {
+		return va, nil
+	}
+}
+
+func loadDocuments(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
 	var b bson.Raw
 	if err := decoder(&b); err != nil {
 		return nil, err
@@ -74,11 +89,24 @@ func loadDocument(decoder func(interface{}) error, encs *encoder.Encoders) (stat
 	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
 		return nil, err
 	} else if st, ok := hinter.(state.State); !ok {
-		return nil, xerrors.Errorf("Document load error when cast hinter to state.State : %T", hinter)
+		return nil, xerrors.Errorf("not DocumentValue : %T", hinter)
 	} else {
 		return st, nil
 	}
 }
+
+/*
+func loadDocumentId(decoder func(interface{}) error) (currency.Big, error) {
+	var doc struct {
+		ID currency.Big `bson:"id"`
+	}
+
+	if err := decoder(&doc); err != nil {
+		return currency.Big{}, err
+	}
+	return doc.ID, nil
+}
+*/
 
 /*
 

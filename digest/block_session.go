@@ -265,10 +265,14 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 }
 
 func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
-	if doc, err := NewDocumentDoc(st, bs.st.database.Encoder()); err != nil {
+	doc, err := blocksign.StateDocumentDataValue(st)
+	if err != nil {
+		return nil, err
+	}
+	if ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
 		return nil, err
 	} else {
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 	}
 }
 

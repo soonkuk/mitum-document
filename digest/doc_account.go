@@ -42,21 +42,6 @@ func (doc AccountDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
-/*
-func NewDocumentDoc(rs DocumentValue, enc encoder.Encoder) (AccountDoc, error) {
-	b, err := mongodbstorage.NewBaseDoc(nil, rs, enc)
-	if err != nil {
-		return AccountDoc{}, err
-	}
-
-	return AccountDoc{
-		BaseDoc: b,
-		address: currency.StateAddressKeyPrefix(rs.ac.Address()),
-		height:  rs.height,
-	}, nil
-}
-*/
-
 type BalanceDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
@@ -90,48 +75,6 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	address := doc.st.Key()[:len(doc.st.Key())-len(currency.StateKeyBalanceSuffix)-len(doc.am.Currency())-1]
 	m["address"] = address
 	m["currency"] = doc.am.Currency().String()
-	m["height"] = doc.st.Height()
-
-	return bsonenc.Marshal(m)
-}
-
-type DocumentDoc struct {
-	mongodbstorage.BaseDoc
-	st state.State
-	fh blocksign.FileHash
-	di blocksign.DocInfo
-}
-
-// NewDocumentDoc gets the State of DocumentData
-func NewDocumentDoc(st state.State, enc encoder.Encoder) (DocumentDoc, error) {
-
-	var doc blocksign.DocumentData
-	if i, err := blocksign.StateDocumentDataValue(st); err != nil {
-		return DocumentDoc{}, xerrors.Errorf("DocumentDoc needs DocumentData state: %w", err)
-	} else {
-		doc = i
-	}
-
-	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
-	if err != nil {
-		return DocumentDoc{}, err
-	}
-	return DocumentDoc{
-		BaseDoc: b,
-		st:      st,
-		fh:      doc.FileHash(),
-		di:      doc.Info(),
-	}, nil
-}
-
-func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
-	m, err := doc.BaseDoc.M()
-	if err != nil {
-		return nil, err
-	}
-	filehash := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentDataSuffix)-1]
-	m["filehash"] = filehash
-	m["documentid"] = doc.di.Index()
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)

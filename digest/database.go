@@ -491,6 +491,7 @@ func (st *Database) Document(
 
 			return nil
 		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
 		if xerrors.Is(err, util.NotFoundError) {
 			return DocumentValue{}, false, nil

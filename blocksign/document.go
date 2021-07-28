@@ -303,6 +303,10 @@ func (ds DocSign) Equal(b DocSign) bool {
 	return true
 }
 
+func (ds *DocSign) SetSigned() {
+	ds.signed = true
+}
+
 type DocSignJSONPacker struct {
 	jsonenc.HintedHead
 	AD base.Address `json:"address"`

@@ -40,7 +40,7 @@ type OperationProcessor struct {
 func NewOperationProcessor(cp *currency.CurrencyPool) *OperationProcessor {
 	return &OperationProcessor{
 		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
-			return c.Str("module", "mitum-currency-operations-processor")
+			return c.Str("module", "mitum-blocksign-operations-processor")
 		}),
 		processorHintSet: hint.NewHintmap(),
 		cp:               cp,
@@ -118,9 +118,10 @@ func (opr *OperationProcessor) PreProcess(op state.Processor) (state.Processor, 
 func (opr *OperationProcessor) Process(op state.Processor) error {
 	switch op.(type) {
 	case *CreateDocumentsProcessor,
-		*TransferDocumentsProcessor:
+		*TransferDocumentsProcessor,
+		*SignDocumentsProcessor:
 		return opr.process(op)
-	case CreateDocuments, TransferDocuments:
+	case CreateDocuments, TransferDocuments, SignDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -138,6 +139,8 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *CreateDocumentsProcessor:
 		sp = t
 	case *TransferDocumentsProcessor:
+		sp = t
+	case *SignDocumentsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -160,6 +163,9 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 		didtype = DuplicationTypeSender
 	case TransferDocuments:
 		did = t.Fact().(TransferDocumentsFact).Sender().String()
+		didtype = DuplicationTypeSender
+	case SignDocuments:
+		did = t.Fact().(SignDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	default:
 		return nil
@@ -237,7 +243,8 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 
 	switch t := op.(type) {
 	case CreateDocuments,
-		TransferDocuments:
+		TransferDocuments,
+		SignDocuments:
 		return nil, false, xerrors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil

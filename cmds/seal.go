@@ -4,6 +4,7 @@ type SealCommand struct {
 	Send                  SendCommand                  `cmd:"" name:"send" help:"send seal to remote mitum node"`
 	CreateAccount         CreateAccountCommand         `cmd:"" name:"create-account" help:"create new account"`
 	CreateDocument        CreateDocumentCommand        `cmd:"" name:"create-document" help:"create new document"`
+	SignDocument          SignDocumentCommand          `cmd:"" name:"sign-document" help:"sign document"`
 	Transfer              TransferCommand              `cmd:"" name:"transfer" help:"transfer big"`
 	TransferDocument      TransferDocumentCommand      `cmd:"" name:"transfer-document" help:"transfer document"`
 	KeyUpdater            KeyUpdaterCommand            `cmd:"" name:"key-updater" help:"update keys"`
@@ -18,6 +19,7 @@ func NewSealCommand() SealCommand {
 		Send:                  NewSendCommand(),
 		CreateAccount:         NewCreateAccountCommand(),
 		CreateDocument:        NewCreateDocumentCommand(),
+		SignDocument:          NewSignDocumentCommand(),
 		Transfer:              NewTransferCommand(),
 		TransferDocument:      NewTransferDocumentCommand(),
 		KeyUpdater:            NewKeyUpdaterCommand(),

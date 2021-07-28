@@ -7,27 +7,23 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 )
 
-func (it *BaseCreateDocumentsItem) unpack(
+func (it *BaseSignDocumentsItem) unpack(
 	enc encoder.Encoder,
 	ht hint.Hint,
-	bfh string,
-	bsg []base.AddressDecoder,
+	di currency.Big,
+	ow base.AddressDecoder,
 	scid string,
 
 ) error {
 	it.hint = ht
 
-	signers := make([]base.Address, len(bsg))
+	it.id = di
 
-	for i := range bsg {
-		if a, err := bsg[i].Encode(enc); err != nil {
-			return err
-		} else {
-			signers[i] = a
-		}
+	a, err := ow.Encode(enc)
+	if err != nil {
+		return err
 	}
-	it.signers = signers
-	it.fileHash = FileHash(bfh)
+	it.owner = a
 	it.cid = currency.CurrencyID(scid)
 
 	return nil

@@ -103,7 +103,7 @@ func (div DocumentInventory) Get(id currency.Big) (DocInfo, error) {
 			return div.documents[i], nil
 		}
 	}
-	return DocInfo{}, xerrors.Errorf("Document not found in DocumentInventory, %v", id)
+	return DocInfo{}, xerrors.Errorf("Document not found in Owner's DocumentInventory, %v", id)
 }
 
 func (div *DocumentInventory) Append(d DocInfo) error {

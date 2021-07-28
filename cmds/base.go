@@ -156,6 +156,8 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(blocksign.TransferDocuments{}, blocksign.NewTransferDocumentsProcessor(cp)); err != nil {
 		return nil, err
+	} else if _, err := opr.SetProcessor(blocksign.SignDocuments{}, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
+		return nil, err
 	}
 
 	threshold, err := base.NewThreshold(uint(len(suffrage.Nodes())), policy.ThresholdRatio())
@@ -210,6 +212,7 @@ func InitializeProposalProcessor(ctx context.Context, opr *processor.OperationPr
 		currency.CurrencyRegister{},
 		blocksign.CreateDocuments{},
 		blocksign.TransferDocuments{},
+		blocksign.SignDocuments{},
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

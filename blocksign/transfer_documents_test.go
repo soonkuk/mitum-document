@@ -15,22 +15,23 @@ import (
 
 type testTransferDocuments struct {
 	suite.Suite
-	cid currency.CurrencyID
+	cid   currency.CurrencyID
+	docId currency.Big
+	fh    FileHash
 }
 
 func (t *testTransferDocuments) SetupSuite() {
 	t.cid = currency.CurrencyID("SHOWME")
-	// t.sc = SignCode("ABCD")
-	// t.fee = NewBig(1)
+	t.fh = FileHash("ABCD")
+	t.docId = currency.NewBig(0)
 }
 
 func (t *testTransferDocuments) TestNew() {
 	s := MustAddress(util.UUID().String())
 	r := MustAddress(util.UUID().String())
-	d := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
-	items := []TransferDocumentsItem{NewTransferDocumentsItemSingleFile(d, r, t.cid)}
+	items := []TransferDocumentsItem{NewTransferDocumentsItemSingleFile(t.docId, s, r, t.cid)}
 	fact := NewTransferDocumentsFact(token, s, items)
 
 	var fs []operation.FactSign
@@ -58,12 +59,11 @@ func (t *testTransferDocuments) TestNew() {
 func (t *testTransferDocuments) TestDuplicatedDocuments() {
 	s := MustAddress(util.UUID().String())
 	r := MustAddress(util.UUID().String())
-	d := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
 	items := []TransferDocumentsItem{
-		NewTransferDocumentsItemSingleFile(d, r, t.cid),
-		NewTransferDocumentsItemSingleFile(d, r, t.cid),
+		NewTransferDocumentsItemSingleFile(t.docId, s, r, t.cid),
+		NewTransferDocumentsItemSingleFile(t.docId, s, r, t.cid),
 	}
 	fact := NewTransferDocumentsFact(token, s, items)
 
@@ -82,11 +82,10 @@ func (t *testTransferDocuments) TestDuplicatedDocuments() {
 
 func (t *testTransferDocuments) TestReceiverSameWithSender() {
 	s := MustAddress(util.UUID().String())
-	d := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
 	items := []TransferDocumentsItem{
-		NewTransferDocumentsItemSingleFile(d, s, t.cid),
+		NewTransferDocumentsItemSingleFile(t.docId, s, s, t.cid),
 	}
 	fact := NewTransferDocumentsFact(token, s, items)
 
@@ -106,12 +105,11 @@ func (t *testTransferDocuments) TestReceiverSameWithSender() {
 func (t *testTransferDocuments) TestOverSizeMemo() {
 	s := MustAddress(util.UUID().String())
 	r := MustAddress(util.UUID().String())
-	d := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
 
 	items := []TransferDocumentsItem{
-		NewTransferDocumentsItemSingleFile(d, r, t.cid),
+		NewTransferDocumentsItemSingleFile(t.docId, s, r, t.cid),
 	}
 	fact := NewTransferDocumentsFact(token, s, items)
 

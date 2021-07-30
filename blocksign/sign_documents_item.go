@@ -46,6 +46,10 @@ func (it BaseSignDocumentsItem) IsValid([]byte) error {
 		return err
 	}
 
+	if err := it.cid.IsValid(nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 

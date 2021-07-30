@@ -76,12 +76,12 @@ func (div DocumentInventory) Equal(b DocumentInventory) bool {
 	return true
 }
 
-func (div DocumentInventory) Sort(ascending bool) {
+func (div *DocumentInventory) Sort(ascending bool) {
 	sort.Slice(div.documents, func(i, j int) bool {
 		if ascending {
-			return div.documents[i].idx.Sub(div.documents[j].idx).OverZero()
+			return div.documents[j].idx.Sub(div.documents[i].idx).OverZero()
 		}
-		return div.documents[j].idx.Sub(div.documents[i].idx).OverZero()
+		return div.documents[i].idx.Sub(div.documents[j].idx).OverZero()
 	})
 }
 
@@ -107,6 +107,9 @@ func (div DocumentInventory) Get(id currency.Big) (DocInfo, error) {
 }
 
 func (div *DocumentInventory) Append(d DocInfo) error {
+	if err := d.IsValid(nil); err != nil {
+		return err
+	}
 	if div.Exists(d.Index()) {
 		return xerrors.Errorf("document id %v already exists in document inventory", d.idx)
 	}
@@ -123,6 +126,7 @@ func (div *DocumentInventory) Romove(d DocInfo) error {
 			div.documents[i] = div.documents[len(div.documents)-1]
 			div.documents[len(div.documents)-1] = DocInfo{}
 			div.documents = div.documents[:len(div.documents)-1]
+			return nil
 		}
 	}
 	return nil

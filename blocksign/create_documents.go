@@ -96,10 +96,16 @@ func (fact CreateDocumentsFact) IsValid([]byte) error {
 		return err
 	}
 
+	fhmap := map[string]bool{}
 	for i := range fact.items {
 		if err := fact.items[i].IsValid(nil); err != nil {
 			return err
 		}
+		_, found := fhmap[fact.items[i].FileHash().String()]
+		if found {
+			return xerrors.Errorf("duplicated filehash, %v", fact.items[i].FileHash())
+		}
+		fhmap[fact.items[i].FileHash().String()] = true
 	}
 
 	if !fact.h.Equal(fact.GenerateHash()) {

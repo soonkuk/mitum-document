@@ -14,26 +14,24 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type testTransferDocumentsItemSingleFile struct {
+type testSignDocumentsItemSingleFile struct {
 	suite.Suite
 	cid   currency.CurrencyID
 	docId currency.Big
-	fh    FileHash
 }
 
-func (t *testTransferDocumentsItemSingleFile) SetupSuite() {
+func (t *testSignDocumentsItemSingleFile) SetupSuite() {
 	t.cid = currency.CurrencyID("SHOWME")
-	t.fh = FileHash("ABCD")
 	t.docId = currency.NewBig(0)
 }
 
-func (t *testTransferDocumentsItemSingleFile) TestNew() {
+func (t *testSignDocumentsItemSingleFile) TestNew() {
 	s := MustAddress(util.UUID().String())
-	r := MustAddress(util.UUID().String())
+	g := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
-	items := []TransferDocumentsItem{NewTransferDocumentsItemSingleFile(t.docId, s, r, t.cid)}
-	fact := NewTransferDocumentsFact(token, s, items)
+	items := []SignDocumentItem{NewSignDocumentsItemSingleFile(t.docId, s, t.cid)}
+	fact := NewSignDocumentsFact(token, g, items)
 
 	var fs []operation.FactSign
 
@@ -48,7 +46,7 @@ func (t *testTransferDocumentsItemSingleFile) TestNew() {
 		fs = append(fs, operation.NewBaseFactSign(pk.Publickey(), sig))
 	}
 
-	tf, err := NewTransferDocuments(fact, fs, "")
+	tf, err := NewSignDocuments(fact, fs, "")
 	t.NoError(err)
 
 	t.NoError(tf.IsValid(nil))
@@ -57,18 +55,18 @@ func (t *testTransferDocumentsItemSingleFile) TestNew() {
 	t.Implements((*operation.Operation)(nil), tf)
 }
 
-func (t *testTransferDocumentsItemSingleFile) TestZeroBig() {
+func (t *testSignDocumentsItemSingleFile) TestZeroBig() {
 	s := MustAddress(util.UUID().String())
-	r := MustAddress(util.UUID().String())
+	g := MustAddress(util.UUID().String())
 
 	token := util.UUID().Bytes()
 	cid := currency.CurrencyID("")
-	items := []TransferDocumentsItem{NewTransferDocumentsItemSingleFile(t.docId, s, r, cid)}
+	items := []SignDocumentItem{NewSignDocumentsItemSingleFile(t.docId, s, cid)}
 
 	err := items[0].IsValid(nil)
 	t.Contains(err.Error(), "invalid length of currency id")
 
-	fact := NewTransferDocumentsFact(token, s, items)
+	fact := NewSignDocumentsFact(token, g, items)
 
 	pk := key.MustNewBTCPrivatekey()
 	sig, err := operation.NewFactSignature(pk, fact, nil)
@@ -76,18 +74,18 @@ func (t *testTransferDocumentsItemSingleFile) TestZeroBig() {
 
 	fs := []operation.FactSign{operation.NewBaseFactSign(pk.Publickey(), sig)}
 
-	tfd, err := NewTransferDocuments(fact, fs, "")
+	tfd, err := NewSignDocuments(fact, fs, "")
 	t.NoError(err)
 
 	err = tfd.IsValid(nil)
 	t.Contains(err.Error(), "invalid length of currency id")
 }
 
-func TestTransferDocumentsItemSingleFile(t *testing.T) {
-	suite.Run(t, new(testTransferDocumentsItemSingleFile))
+func TestSignDocumentsItemSingleFile(t *testing.T) {
+	suite.Run(t, new(testSignDocumentsItemSingleFile))
 }
 
-func testTransferDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.TestingSuite {
+func testSignDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.TestingSuite {
 	t := new(baseTestOperationEncode)
 
 	docId0 := currency.NewBig(0)
@@ -95,14 +93,14 @@ func testTransferDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.Testin
 	t.enc = enc
 	t.newObject = func() interface{} {
 		s := MustAddress(util.UUID().String())
-		r := MustAddress(util.UUID().String())
+		g := MustAddress(util.UUID().String())
 
 		token := util.UUID().Bytes()
-		items := []TransferDocumentsItem{
-			NewTransferDocumentsItemSingleFile(docId0, s, r, currency.CurrencyID("SHOWME")),
-			NewTransferDocumentsItemSingleFile(docId1, s, r, currency.CurrencyID("FINDME")),
+		items := []SignDocumentItem{
+			NewSignDocumentsItemSingleFile(docId0, s, currency.CurrencyID("SHOWME")),
+			NewSignDocumentsItemSingleFile(docId1, s, currency.CurrencyID("FINDME")),
 		}
-		fact := NewTransferDocumentsFact(token, s, items)
+		fact := NewSignDocumentsFact(token, g, items)
 
 		var fs []operation.FactSign
 
@@ -117,20 +115,20 @@ func testTransferDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.Testin
 			fs = append(fs, operation.NewBaseFactSign(pk.Publickey(), sig))
 		}
 
-		tfd, err := NewTransferDocuments(fact, fs, util.UUID().String())
+		tfd, err := NewSignDocuments(fact, fs, util.UUID().String())
 		t.NoError(err)
 
 		return tfd
 	}
 
 	t.compare = func(a, b interface{}) {
-		ta := a.(TransferDocuments)
-		tb := b.(TransferDocuments)
+		ta := a.(SignDocuments)
+		tb := b.(SignDocuments)
 
 		t.Equal(ta.Memo, tb.Memo)
 
-		fact := ta.Fact().(TransferDocumentsFact)
-		ufact := tb.Fact().(TransferDocumentsFact)
+		fact := ta.Fact().(SignDocumentsFact)
+		ufact := tb.Fact().(SignDocumentsFact)
 
 		t.True(fact.sender.Equal(ufact.sender))
 		t.Equal(len(fact.Items()), len(ufact.Items()))
@@ -140,7 +138,6 @@ func testTransferDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.Testin
 			b := ufact.Items()[i]
 			t.True(a.DocumentId().Equal(b.DocumentId()))
 			t.True(a.Owner().Equal(b.Owner()))
-			t.True(a.Receiver().Equal(b.Receiver()))
 			t.True(a.Currency().Equal(b.Currency()))
 		}
 
@@ -149,10 +146,10 @@ func testTransferDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.Testin
 	return t
 }
 
-func TestTransferDocumentsItemSingleleFiEncodeJSON(t *testing.T) {
-	suite.Run(t, testTransferDocumentsItemSingleFileEncode(jsonenc.NewEncoder()))
+func TestSignDocumentsItemSingleleFiEncodeJSON(t *testing.T) {
+	suite.Run(t, testSignDocumentsItemSingleFileEncode(jsonenc.NewEncoder()))
 }
 
-func TestTransferDocumentssItemSingleFileEncodeBSON(t *testing.T) {
-	suite.Run(t, testTransferDocumentsItemSingleFileEncode(bsonenc.NewEncoder()))
+func TestSignDocumentssItemSingleFileEncodeBSON(t *testing.T) {
+	suite.Run(t, testSignDocumentsItemSingleFileEncode(bsonenc.NewEncoder()))
 }

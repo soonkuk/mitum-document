@@ -90,10 +90,17 @@ func (fact SignDocumentsFact) IsValid([]byte) error {
 		return err
 	}
 
+	// check duplicated document
+	foundDocId := map[string]bool{}
 	for i := range fact.items {
 		if err := fact.items[i].IsValid(nil); err != nil {
 			return err
 		}
+		k := fact.items[i].DocumentId().String()
+		if _, found := foundDocId[k]; found {
+			return xerrors.Errorf("duplicated document found, %s", k)
+		}
+		foundDocId[k] = true
 	}
 
 	if !fact.h.Equal(fact.GenerateHash()) {

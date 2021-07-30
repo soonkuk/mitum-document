@@ -91,9 +91,8 @@ func (fact TransferDocumentsFact) IsValid([]byte) error {
 		return err
 	}
 
-	// check duplicated document
-	// check receiver same with sender
-	foundAddrs := map[string]struct{}{}
+	// check receiver same with sender and duplicated document id
+	foundDocId := map[string]bool{}
 	for i := range fact.items {
 		it := fact.items[i]
 		if err := it.IsValid(nil); err != nil {
@@ -104,15 +103,10 @@ func (fact TransferDocumentsFact) IsValid([]byte) error {
 			return xerrors.Errorf("receiver is same with sender, %q", fact.sender)
 		}
 		k := it.DocumentId().String()
-		if _, found := foundAddrs[k]; found {
+		if _, found := foundDocId[k]; found {
 			return xerrors.Errorf("duplicated document found, %s", k)
 		}
-		switch a := k; {
-		case (a == fact.sender.String()):
-			return xerrors.Errorf("document address is same with sender, %q", fact.sender)
-		default:
-			foundAddrs[a] = struct{}{}
-		}
+		foundDocId[k] = true
 	}
 
 	if !fact.h.Equal(fact.GenerateHash()) {

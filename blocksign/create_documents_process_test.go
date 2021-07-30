@@ -67,13 +67,11 @@ func (t *testCreateDocumentsOperation) TestNormalCase() {
 	}
 
 	// sender account
-	sa, st := t.newAccount(true, balance)
-	// document account
-	na, _ := t.newAccount(false, nil)
-	// owner account
-	oa := sa
+	sa, st0 := t.newAccount(true, balance)
+	// signer account
+	sga, st1 := t.newAccount(true, balance)
 
-	pool, _ := t.statepool(st)
+	pool, _ := t.statepool(st0, st1)
 
 	fee := currency.NewBig(1)
 	feeer := currency.NewFixedFeeer(sa.Address, fee)
@@ -84,20 +82,19 @@ func (t *testCreateDocumentsOperation) TestNormalCase() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
-	fd := NewFileData(sc, oa.Address)
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{sga.Address}, cid)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	t.NoError(opr.Process(cd))
 
 	// check updated state
-	// new document account state
+	// new documents state
 	var ns state.State
-	// new document filedata state
-	var fds state.State
+	// new document data state
+	var nds state.State
 	// sender balance state
 	var sb state.State
 	for _, stu := range pool.Updates() {
@@ -112,25 +109,11 @@ func (t *testCreateDocumentsOperation) TestNormalCase() {
 			} else {
 				continue
 			}
-		} else if (currency.IsStateDocumentKey(stu.Key())) && (stu.Key() == currency.StateKeyDocument(na.Address)) {
+		} else if (IsStateDocumentsKey(stu.Key())) && (stu.Key() == StateKeyDocuments(sa.Address)) {
 			ns = stu.GetState()
-		} else if (IsStateFileDataKey(stu.Key())) && (stu.Key() == StateKeyFileData(na.Address)) {
-			fds = stu.GetState()
+		} else if (IsStateDocumentDataKey(stu.Key())) && (stu.Key() == StateKeyDocumentData(fh)) {
+			nds = stu.GetState()
 		}
-	}
-
-	address, err := currency.NewAddressFromKeys(na.Keys())
-	t.NoError(err)
-	uac := ns.Value().Interface().(currency.Account)
-	t.True(address.Equal(uac.Address()))
-
-	ukeys := uac.Keys()
-
-	t.Equal(len(oa.Keys().Keys()), len(ukeys.Keys()))
-	t.Equal(oa.Keys().Threshold(), ukeys.Threshold())
-	for i := range oa.Keys().Keys() {
-		t.Equal(oa.Keys().Keys()[i].Weight(), ukeys.Keys()[i].Weight())
-		t.True(oa.Keys().Keys()[i].Key().Equal(ukeys.Keys()[i].Key()))
 	}
 
 	t.NotNil(sb)
@@ -140,12 +123,16 @@ func (t *testCreateDocumentsOperation) TestNormalCase() {
 
 	t.Equal(fee, sb.(currency.AmountState).Fee())
 
-	nfd, _ := StateFileDataValue(fds)
-	t.True(nfd.SignCode().Equal(fd.SignCode()))
-	t.True(nfd.Owner().Equal(fd.Owner()))
+	ndd, _ := StateDocumentDataValue(nds)
+	t.True(ndd.FileHash().Equal(fh))
+	t.True(ndd.Creator().Equal(sa.Address))
+	t.True(ndd.Owner().Equal(sa.Address))
+
+	ndinv, _ := StateDocumentsValue(ns)
+	t.True(ndinv.Documents()[0].FileHash().Equal(fh))
 }
 
-func (t *testCreateDocumentsOperation) TestOwnerAccountsNotExist() {
+func (t *testCreateDocumentsOperation) TestSignerAccountsNotExist() {
 	cid := currency.CurrencyID("FINDME")
 	feeAmount := int64(1)
 
@@ -153,8 +140,7 @@ func (t *testCreateDocumentsOperation) TestOwnerAccountsNotExist() {
 		currency.NewAmount(currency.NewBig(33), cid),
 	}
 	sa, st := t.newAccount(true, balance)
-	oa, _ := t.newAccount(false, nil)
-	na, _ := t.newAccount(false, nil)
+	sga, _ := t.newAccount(false, nil)
 
 	pool, _ := t.statepool(st)
 	fee := currency.NewBig(feeAmount)
@@ -166,17 +152,17 @@ func (t *testCreateDocumentsOperation) TestOwnerAccountsNotExist() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{sga.Address}, cid)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	err := opr.Process(cd)
 
 	var oper operation.ReasonError
 	t.True(xerrors.As(err, &oper))
-	t.Contains(err.Error(), "key of Owner does not exist")
+	t.Contains(err.Error(), "signer account not found")
 }
 
 func (t *testCreateDocumentsOperation) TestDocumentAlreadyExists() {
@@ -187,34 +173,32 @@ func (t *testCreateDocumentsOperation) TestDocumentAlreadyExists() {
 		currency.NewAmount(currency.NewBig(33), cid),
 	}
 
-	sa, sta := t.newAccount(true, balance)
+	sa0, st0 := t.newAccount(true, balance)
+	sa1, st1 := t.newAccount(true, balance)
 
-	sc := SignCode("ABCD")
-	oa := sa
+	fh := FileHash("ABCD")
+	doc := NewDocumentData(fh, sa1.Address, sa1.Address, []DocSign{})
 
-	filedata := NewFileData(sc, oa.Address)
+	nds := t.newStateDocumentData(doc)
 
-	na, stb := t.newDocument(true, filedata)
-
-	pool, _ := t.statepool(sta, stb)
+	pool, _ := t.statepool(st0, st1, []state.State{nds})
 
 	fee := currency.NewBig(feeAmount)
-	feeer := currency.NewFixedFeeer(sa.Address, fee)
+	feeer := currency.NewFixedFeeer(sa1.Address, fee)
 
 	cp := currency.NewCurrencyPool()
-	t.NoError(cp.Set(t.newCurrencyDesignState(cid, currency.NewBig(99), sa.Address, feeer)))
+	t.NoError(cp.Set(t.newCurrencyDesignState(cid, currency.NewBig(99), sa0.Address, feeer)))
 
 	opr := t.processor(cp, pool)
 
-	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
-	cd := t.newOperation(sa.Address, items, sa.Privs())
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid)}
+	cd := t.newOperation(sa0.Address, items, sa0.Privs())
 
 	err := opr.Process(cd)
 
 	var oper operation.ReasonError
 	t.True(xerrors.As(err, &oper))
-	t.Contains(err.Error(), "key of Document already exists")
+	t.Contains(err.Error(), "document filehash already registered")
 }
 
 func (t *testCreateDocumentsOperation) TestSameSenders() {
@@ -225,13 +209,10 @@ func (t *testCreateDocumentsOperation) TestSameSenders() {
 		currency.NewAmount(currency.NewBig(33), cid),
 	}
 
-	sa, sta := t.newAccount(true, balance)
-	oa := sa
+	sa, sta0 := t.newAccount(true, balance)
+	sga, sta1 := t.newAccount(true, balance)
 
-	na0, _ := t.newAccount(false, nil)
-	na1, _ := t.newAccount(false, nil)
-
-	pool, _ := t.statepool(sta)
+	pool, _ := t.statepool(sta0, sta1)
 
 	fee := currency.NewBig(feeAmount)
 	feeer := currency.NewFixedFeeer(sa.Address, fee)
@@ -241,23 +222,18 @@ func (t *testCreateDocumentsOperation) TestSameSenders() {
 
 	opr := t.processor(cp, pool)
 
-	sc := SignCode("ABCD")
+	fh0 := FileHash("ABCD")
+	fh1 := FileHash("EFGH")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na0.Keys(), sc, oa.Address, cid)}
+	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh0, []base.Address{sga.Address}, cid)}
 	cd0 := t.newOperation(sa.Address, items0, sa.Privs())
-	err := opr.Process(cd0)
+	t.NoError(opr.Process(cd0))
 
-	items1 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na1.Keys(), sc, oa.Address, cid)}
+	items1 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh1, []base.Address{sga.Address}, cid)}
 	cd1 := t.newOperation(sa.Address, items1, sa.Privs())
 
-	raddresses, _ := cd1.Fact().(CreateDocumentsFact).Addresses()
-	addresses := []base.Address{na1.Address, sa.Address}
-	for i := range raddresses {
-		t.True(addresses[i].Equal(raddresses[i]))
-	}
-
-	err = opr.Process(cd1)
+	err := opr.Process(cd1)
 	t.Contains(err.Error(), "violates only one sender")
 }
 
@@ -269,11 +245,55 @@ func (t *testCreateDocumentsOperation) TestSameSendersWithInvalidOperation() {
 		currency.NewAmount(currency.NewBig(33), cid),
 	}
 
-	sa, sta := t.newAccount(true, balance)
-	oa := sa
+	sa, sta0 := t.newAccount(true, balance)
+	sga, sta1 := t.newAccount(true, balance)
 
-	na0, _ := t.newAccount(false, nil)
-	na1, _ := t.newAccount(false, nil)
+	pool, _ := t.statepool(sta0, sta1)
+
+	fee := currency.NewBig(feeAmount)
+	feeer := currency.NewFixedFeeer(sa.Address, fee)
+
+	cp := currency.NewCurrencyPool()
+	t.NoError(cp.Set(t.newCurrencyDesignState(cid, currency.NewBig(99), sa.Address, feeer)))
+
+	opr := t.processor(cp, pool)
+
+	fh0 := FileHash("ABCD")
+	fh1 := FileHash("ABCD")
+
+	// insert invalid operation, under threshold signing. It can not be counted
+	// to sender checking.
+	{
+		items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh0, []base.Address{sga.Address}, cid)}
+		cd := t.newOperation(sa.Address, items, []key.Privatekey{key.MustNewBTCPrivatekey()})
+		err := opr.Process(cd)
+
+		var oper operation.ReasonError
+		t.True(xerrors.As(err, &oper))
+	}
+
+	// create document of na(document account) with oa(owner) which is sent from sa(sender)
+	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh0, []base.Address{sga.Address}, cid)}
+	cd0 := t.newOperation(sa.Address, items0, sa.Privs())
+	t.NoError(opr.Process(cd0))
+
+	items1 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh1, []base.Address{sga.Address}, cid)}
+	cd1 := t.newOperation(sa.Address, items1, sa.Privs())
+
+	err := opr.Process(cd1)
+	t.Contains(err.Error(), "violates only one sender")
+}
+
+func (t *testCreateDocumentsOperation) TestSignerSameWithOwner() {
+	cid := currency.CurrencyID("FINDME")
+	feeAmount := int64(1)
+
+	balance := []currency.Amount{
+		currency.NewAmount(currency.NewBig(33), cid),
+	}
+
+	sa, sta := t.newAccount(true, balance)
+	sga := sa
 
 	pool, _ := t.statepool(sta)
 
@@ -285,62 +305,18 @@ func (t *testCreateDocumentsOperation) TestSameSendersWithInvalidOperation() {
 
 	opr := t.processor(cp, pool)
 
-	sc := SignCode("ABCD")
-
-	// insert invalid operation, under threshold signing. It can not be counted
-	// to sender checking.
-	{
-		items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na0.Keys(), sc, sa.Address, cid)}
-		cd := t.newOperation(sa.Address, items, []key.Privatekey{key.MustNewBTCPrivatekey()})
-		err := opr.Process(cd)
-
-		var oper operation.ReasonError
-		t.True(xerrors.As(err, &oper))
-	}
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na0.Keys(), sc, oa.Address, cid)}
-	cd0 := t.newOperation(sa.Address, items0, sa.Privs())
-	err := opr.Process(cd0)
+	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{sga.Address}, cid)}
+	cd := t.newOperation(sa.Address, items0, sa.Privs())
+	err := opr.Process(cd)
 
-	items1 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na1.Keys(), sc, oa.Address, cid)}
-	cd1 := t.newOperation(sa.Address, items1, sa.Privs())
-
-	raddresses, _ := cd1.Fact().(CreateDocumentsFact).Addresses()
-	addresses := []base.Address{na1.Address, sa.Address}
-	for i := range raddresses {
-		t.True(addresses[i].Equal(raddresses[i]))
-	}
-
-	err = opr.Process(cd1)
-	t.Contains(err.Error(), "violates only one sender")
+	err = opr.Process(cd)
+	t.Contains(err.Error(), "signer account is same with document creator")
 }
 
-func (t *testCreateDocumentsOperation) TestSameDocumentAddress() {
-	cid := currency.CurrencyID("FINDME")
-
-	balance := []currency.Amount{
-		currency.NewAmount(currency.NewBig(33), cid),
-	}
-
-	sa, _ := t.newAccount(true, balance)
-	oa := sa
-
-	na, _ := t.newAccount(false, nil)
-
-	sc0 := SignCode("ABCD")
-	sc1 := SignCode("DCBA")
-
-	it0 := NewCreateDocumentsItemSingleFile(na.Keys(), sc0, oa.Address, cid)
-	it1 := NewCreateDocumentsItemSingleFile(na.Keys(), sc1, oa.Address, cid)
-
-	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{it0, it1}
-	t.Panicsf(func() { t.newOperation(sa.Address, items, sa.Privs()) }, "duplicated acocunt Keys found")
-
-}
-
-func (t *testCreateDocumentsOperation) TestSameDocumentAddressInMultipleOperations() {
+func (t *testCreateDocumentsOperation) TestDuplicatedSigner() {
 	cid := currency.CurrencyID("FINDME")
 	feeAmount := int64(1)
 
@@ -348,13 +324,10 @@ func (t *testCreateDocumentsOperation) TestSameDocumentAddressInMultipleOperatio
 		currency.NewAmount(currency.NewBig(33), cid),
 	}
 
-	sa, sta := t.newAccount(true, balance)
-	sb, stb := t.newAccount(true, balance)
-	oa := sa
+	sa, sta0 := t.newAccount(true, balance)
+	sga, sta1 := t.newAccount(true, balance)
 
-	na, _ := t.newAccount(false, nil)
-
-	pool, _ := t.statepool(sta, stb)
+	pool, _ := t.statepool(sta0, sta1)
 
 	fee := currency.NewBig(feeAmount)
 	feeer := currency.NewFixedFeeer(sa.Address, fee)
@@ -364,18 +337,15 @@ func (t *testCreateDocumentsOperation) TestSameDocumentAddressInMultipleOperatio
 
 	opr := t.processor(cp, pool)
 
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
-	cd0 := t.newOperation(sa.Address, items0, sa.Privs())
-	err := opr.Process(cd0)
+	items0 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{sga.Address, sga.Address}, cid)}
+	cd := t.newOperation(sa.Address, items0, sa.Privs())
+	err := opr.Process(cd)
 
-	items1 := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
-	cd1 := t.newOperation(sb.Address, items1, sb.Privs())
-
-	err = opr.Process(cd1)
-	t.Contains(err.Error(), "new address already processed")
+	err = opr.Process(cd)
+	t.Contains(err.Error(), "duplicated signer")
 }
 
 func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
@@ -388,9 +358,6 @@ func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
 	}
 
 	sa, st := t.newAccount(true, balance)
-	na0, _ := t.newAccount(false, nil)
-	na1, _ := t.newAccount(false, nil)
-	oa := sa
 
 	pool, _ := t.statepool(st)
 
@@ -405,24 +372,22 @@ func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
 
 	opr := t.processor(cp, pool)
 
-	sc0 := SignCode("ABCD")
-	sc1 := SignCode("EFGH")
-	fd0 := NewFileData(sc0, oa.Address)
-	fd1 := NewFileData(sc1, oa.Address)
+	fh0 := FileHash("ABCD")
+	fh1 := FileHash("EFGH")
 
 	items := []CreateDocumentsItem{
-		NewCreateDocumentsItemSingleFile(na0.Keys(), sc0, oa.Address, cid0),
-		NewCreateDocumentsItemSingleFile(na1.Keys(), sc1, oa.Address, cid1),
+		NewCreateDocumentsItemSingleFile(fh0, []base.Address{}, cid0),
+		NewCreateDocumentsItemSingleFile(fh1, []base.Address{}, cid1),
 	}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	t.NoError(opr.Process(cd))
 
 	// check updated state
-	// new document account state
-	var ns0, ns1 state.State
-	// new document filedata state
-	var fds0, fds1 state.State
+	// new documents state
+	var ns state.State
+	// new document data state
+	var dds0, dds1 state.State
 	// sender balance state
 	sb := map[currency.CurrencyID]state.State{}
 	for _, stu := range pool.Updates() {
@@ -437,47 +402,23 @@ func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
 			} else {
 				continue
 			}
-		} else if currency.IsStateDocumentKey(stu.Key()) {
-			if stu.Key() == currency.StateKeyDocument(na0.Address) {
-				ns0 = stu.GetState()
-			} else if stu.Key() == currency.StateKeyDocument(na1.Address) {
-				ns1 = stu.GetState()
+		} else if IsStateDocumentsKey(stu.Key()) {
+			if stu.Key() == StateKeyDocuments(sa.Address) {
+				ns = stu.GetState()
 			}
-		} else if IsStateFileDataKey(stu.Key()) {
-			if stu.Key() == StateKeyFileData(na0.Address) {
-				fds0 = stu.GetState()
-			} else if stu.Key() == StateKeyFileData(na1.Address) {
-				fds1 = stu.GetState()
+		} else if IsStateDocumentDataKey(stu.Key()) {
+			if stu.Key() == StateKeyDocumentData(fh0) {
+				dds0 = stu.GetState()
+			} else if stu.Key() == StateKeyDocumentData(fh1) {
+				dds1 = stu.GetState()
 			}
 		}
 	}
 
-	address0, err := currency.NewAddressFromKeys(na0.Keys())
-	t.NoError(err)
-	address1, err := currency.NewAddressFromKeys(na1.Keys())
-	t.NoError(err)
+	udinv := ns.Value().Interface().(DocumentInventory)
 
-	uac0 := ns0.Value().Interface().(currency.Account)
-	t.True(address0.Equal(uac0.Address()))
-
-	uac1 := ns1.Value().Interface().(currency.Account)
-	t.True(address1.Equal(uac1.Address()))
-
-	ukeys0 := uac0.Keys()
-	ukeys1 := uac1.Keys()
-
-	t.Equal(len(oa.Keys().Keys()), len(ukeys0.Keys()))
-	t.Equal(len(oa.Keys().Keys()), len(ukeys1.Keys()))
-	t.Equal(oa.Keys().Threshold(), ukeys0.Threshold())
-	t.Equal(oa.Keys().Threshold(), ukeys1.Threshold())
-	for i := range na0.Keys().Keys() {
-		t.Equal(oa.Keys().Keys()[i].Weight(), ukeys0.Keys()[i].Weight())
-		t.True(oa.Keys().Keys()[i].Key().Equal(ukeys0.Keys()[i].Key()))
-	}
-	for i := range na1.Keys().Keys() {
-		t.Equal(oa.Keys().Keys()[i].Weight(), ukeys1.Keys()[i].Weight())
-		t.True(oa.Keys().Keys()[i].Key().Equal(ukeys1.Keys()[i].Key()))
-	}
+	t.True(fh0.Equal(udinv.Documents()[0].FileHash()))
+	t.True(fh1.Equal(udinv.Documents()[1].FileHash()))
 
 	t.Equal(len(balance), len(sb))
 
@@ -490,13 +431,15 @@ func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
 	t.Equal(fee0, sb[cid0].(currency.AmountState).Fee())
 	t.Equal(fee1, sb[cid1].(currency.AmountState).Fee())
 
-	nfd0, _ := StateFileDataValue(fds0)
-	t.True(nfd0.SignCode().Equal(fd0.SignCode()))
-	t.True(nfd0.Owner().Equal(fd0.Owner()))
+	ndd0, _ := StateDocumentDataValue(dds0)
+	t.True(ndd0.FileHash().Equal(fh0))
+	t.True(ndd0.Creator().Equal(sa.Address))
+	t.True(ndd0.Owner().Equal(sa.Address))
 
-	nfd1, _ := StateFileDataValue(fds1)
-	t.True(nfd1.SignCode().Equal(fd1.SignCode()))
-	t.True(nfd1.Owner().Equal(fd1.Owner()))
+	ndd1, _ := StateDocumentDataValue(dds1)
+	t.True(ndd1.FileHash().Equal(fh1))
+	t.True(ndd1.Creator().Equal(sa.Address))
+	t.True(ndd1.Owner().Equal(sa.Address))
 }
 
 func (t *testCreateDocumentsOperation) TestInSufficientBalanceForFee() {
@@ -514,10 +457,6 @@ func (t *testCreateDocumentsOperation) TestInSufficientBalanceForFee() {
 
 	// sender account
 	sa, st := t.newAccount(true, balance)
-	// document account
-	na, _ := t.newAccount(false, nil)
-	// owner account
-	oa := sa
 
 	pool, _ := t.statepool(st)
 
@@ -530,10 +469,10 @@ func (t *testCreateDocumentsOperation) TestInSufficientBalanceForFee() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	err := opr.Process(cd)
@@ -556,10 +495,6 @@ func (t *testCreateDocumentsOperation) TestUnknownCurrencyID() {
 
 	// sender account
 	sa, st := t.newAccount(true, balance)
-	// document account
-	na, _ := t.newAccount(false, nil)
-	// owner account
-	oa := sa
 
 	pool, _ := t.statepool(st)
 
@@ -572,10 +507,10 @@ func (t *testCreateDocumentsOperation) TestUnknownCurrencyID() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid1)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid1)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	err := opr.Process(cd)
@@ -594,8 +529,6 @@ func (t *testCreateDocumentsOperation) TestEmptyCurrency() {
 		currency.NewAmount(currency.NewBig(33), cid0),
 	}
 	sa, st := t.newAccount(true, balance)
-	oa, _ := t.newAccount(false, nil)
-	na, _ := t.newAccount(false, nil)
 
 	pool, _ := t.statepool(st)
 	fee := currency.NewBig(feeAmount)
@@ -608,10 +541,10 @@ func (t *testCreateDocumentsOperation) TestEmptyCurrency() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid1)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid1)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	err := opr.Process(cd)
@@ -625,11 +558,10 @@ func (t *testCreateDocumentsOperation) TestSenderBalanceNotExist() {
 	cid := currency.CurrencyID("FINDME")
 	feeAmount := int64(1)
 
-	sa, st := t.newAccount(true, nil)
-	na, _ := t.newAccount(false, nil)
-	oa := sa
+	sa, st1 := t.newAccount(true, nil)
+	sga, st2 := t.newAccount(true, nil)
 
-	pool, _ := t.statepool(st)
+	pool, _ := t.statepool(st1, st2)
 
 	fee := currency.NewBig(feeAmount)
 	feeer := currency.NewFixedFeeer(sa.Address, fee)
@@ -640,10 +572,10 @@ func (t *testCreateDocumentsOperation) TestSenderBalanceNotExist() {
 	opr := t.processor(cp, pool)
 
 	// filedata
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document of na(document account) with oa(owner) which is sent from sa(sender)
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(na.Keys(), sc, oa.Address, cid)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{sga.Address}, cid)}
 	cd := t.newOperation(sa.Address, items, sa.Privs())
 
 	err := opr.Process(cd)

@@ -37,6 +37,16 @@ func (it BaseCreateDocumentsItem) Bytes() []byte {
 
 func (it BaseCreateDocumentsItem) IsValid([]byte) error {
 
+	/*
+		signers := map[string]bool{}
+		for i := range it.signers {
+			_, found := signers[it.signers[i].String()]
+			if found {
+				return xerrors.Errorf("duplicated signer, %v", it.signers[i])
+			}
+			signers[it.signers[i].String()] = true
+		}
+	*/
 	if err := it.fileHash.IsValid(nil); err != nil {
 		return err
 	}

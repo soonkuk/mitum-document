@@ -15,7 +15,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type testTransferDocumentsOperations struct {
+type testSignDocumentsOperations struct {
 	baseTestOperationProcessor
 	cid   currency.CurrencyID
 	docid currency.Big
@@ -23,16 +23,16 @@ type testTransferDocumentsOperations struct {
 	fee   currency.Big
 }
 
-func (t *testTransferDocumentsOperations) SetupSuite() {
+func (t *testSignDocumentsOperations) SetupSuite() {
 	t.cid = currency.CurrencyID("SHOWME")
 	t.docid = currency.NewBig(0)
 	t.fh = FileHash("ABCD")
 	t.fee = currency.NewBig(3)
 }
 
-func (t *testTransferDocumentsOperations) processor(cp *currency.CurrencyPool, pool *storage.Statepool) prprocessor.OperationProcessor {
+func (t *testSignDocumentsOperations) processor(cp *currency.CurrencyPool, pool *storage.Statepool) prprocessor.OperationProcessor {
 	copr, err := NewOperationProcessor(cp).
-		SetProcessor(TransferDocuments{}, NewTransferDocumentsProcessor(cp))
+		SetProcessor(SignDocuments{}, NewSignDocumentsProcessor(cp))
 	t.NoError(err)
 
 	if pool == nil {
@@ -42,14 +42,22 @@ func (t *testTransferDocumentsOperations) processor(cp *currency.CurrencyPool, p
 	return copr.New(pool)
 }
 
-func (t *testTransferDocumentsOperations) newTransferDocumentsItem(docid currency.Big, owner base.Address, receiver base.Address, cid currency.CurrencyID) TransferDocumentsItem {
+func (t *testSignDocumentsOperations) newSignDocumentsItem(
+	docid currency.Big,
+	owner base.Address,
+	cid currency.CurrencyID,
+) SignDocumentItem {
 
-	return NewTransferDocumentsItemSingleFile(docid, owner, receiver, cid)
+	return NewSignDocumentsItemSingleFile(docid, owner, cid)
 }
 
-func (t *testTransferDocumentsOperations) newTransferDocument(sender base.Address, keys []key.Privatekey, items []TransferDocumentsItem) TransferDocuments {
+func (t *testSignDocumentsOperations) newSignDocument(
+	sender base.Address,
+	keys []key.Privatekey,
+	items []SignDocumentItem,
+) SignDocuments {
 	token := util.UUID().Bytes()
-	fact := NewTransferDocumentsFact(token, sender, items)
+	fact := NewSignDocumentsFact(token, sender, items)
 
 	var fs []operation.FactSign
 	for _, pk := range keys {
@@ -59,7 +67,7 @@ func (t *testTransferDocumentsOperations) newTransferDocument(sender base.Addres
 		fs = append(fs, operation.NewBaseFactSign(pk.Publickey(), sig))
 	}
 
-	tfd, err := NewTransferDocuments(fact, fs, "")
+	tfd, err := NewSignDocuments(fact, fs, "")
 	t.NoError(err)
 
 	t.NoError(tfd.IsValid(nil))
@@ -67,50 +75,50 @@ func (t *testTransferDocumentsOperations) newTransferDocument(sender base.Addres
 	return tfd
 }
 
-func (t *testTransferDocumentsOperations) newTestDocumentData(ca base.Address) DocumentData {
-	doc := NewDocumentData(t.fh, ca, ca, []DocSign{})
+func (t *testSignDocumentsOperations) newTestDocumentData(ca base.Address, ga base.Address) DocumentData {
+	var doc DocumentData
+	if ga == nil {
+		doc = NewDocumentData(t.fh, ca, ca, []DocSign{})
+	} else {
+		doc = NewDocumentData(t.fh, ca, ca, []DocSign{{address: ga, signed: false}})
+	}
 	doc = doc.WithData(doc.FileHash(), DocInfo{idx: t.docid, filehash: t.fh}, doc.Creator(), doc.Owner(), doc.Signers())
 	return doc
 }
 
-func (t *testTransferDocumentsOperations) newTestBalance() []currency.Amount {
+func (t *testSignDocumentsOperations) newTestBalance() []currency.Amount {
 	return []currency.Amount{currency.NewAmount(currency.NewBig(33), t.cid)}
 }
 
-func (t *testTransferDocumentsOperations) newTestFixedFeeer(sa base.Address) currency.FixedFeeer {
+func (t *testSignDocumentsOperations) newTestFixedFeeer(sa base.Address) currency.FixedFeeer {
 	return currency.NewFixedFeeer(sa, t.fee)
 }
-func (t *testTransferDocumentsOperations) TestNormalCase() {
+func (t *testSignDocumentsOperations) TestNormalCase() {
 	balance := t.newTestBalance()
-	sa, sta := t.newAccount(true, balance)
-	ra, stb := t.newAccount(true, balance)
-	dd := t.newTestDocumentData(sa.Address)
+	sa, sta := t.newAccount(true, balance) // sender, signer
+	ca, stb := t.newAccount(true, balance) // creator, owner
+	dd := t.newTestDocumentData(ca.Address, sa.Address)
 
-	sts := t.newStateDocument(sa.Address, dd)
+	sts := t.newStateDocument(ca.Address, dd)
 	pool, _ := t.statepool(sta, stb, sts)
 
-	feeer := t.newTestFixedFeeer(sa.Address)
+	feeer := t.newTestFixedFeeer(ca.Address)
 
 	cp := currency.NewCurrencyPool()
 	t.NoError(cp.Set(t.newCurrencyDesignState(t.cid, currency.NewBig(99), NewTestAddress(), feeer)))
 
 	opr := t.processor(cp, pool)
 
-	items := []TransferDocumentsItem{t.newTransferDocumentsItem(t.docid, sa.Address, ra.Address, t.cid)}
-	tfd := t.newTransferDocument(sa.Address, sa.Privs(), items)
+	items := []SignDocumentItem{t.newSignDocumentsItem(t.docid, ca.Address, t.cid)}
+	tfd := t.newSignDocument(sa.Address, sa.Privs(), items)
 
 	t.NoError(opr.Process(tfd))
 
 	// check updated state
-	// owner documents state
-	var ons state.State
-	// receiver documents state
-	var rns state.State
 	// document data state
 	var dds state.State
 	// sender balance state
 	var sb state.State
-
 	for _, stu := range pool.Updates() {
 		if currency.IsStateBalanceKey(stu.Key()) {
 			st := stu.GetState()
@@ -123,10 +131,6 @@ func (t *testTransferDocumentsOperations) TestNormalCase() {
 			} else {
 				continue
 			}
-		} else if (IsStateDocumentsKey(stu.Key())) && (stu.Key() == StateKeyDocuments(sa.Address)) {
-			ons = stu.GetState()
-		} else if (IsStateDocumentsKey(stu.Key())) && (stu.Key() == StateKeyDocuments(ra.Address)) {
-			rns = stu.GetState()
 		} else if (IsStateDocumentDataKey(stu.Key())) && (stu.Key() == StateKeyDocumentData(t.fh)) {
 			dds = stu.GetState()
 		}
@@ -139,38 +143,31 @@ func (t *testTransferDocumentsOperations) TestNormalCase() {
 
 	t.Equal(t.fee, sb.(currency.AmountState).Fee())
 
-	usdoc := ons.Value().Interface().(DocumentInventory)
-	t.True(!usdoc.Exists(t.docid))
-
-	urdoc := rns.Value().Interface().(DocumentInventory)
-
-	t.True(t.fh.Equal(urdoc.Documents()[0].FileHash()))
-	t.True(t.docid.Equal(urdoc.Documents()[0].Index()))
-
 	ndd, _ := StateDocumentDataValue(dds)
 	t.True(ndd.FileHash().Equal(t.fh))
-	t.True(ndd.Creator().Equal(sa.Address))
-	t.True(ndd.Owner().Equal(ra.Address))
+	t.True(ndd.Creator().Equal(ca.Address))
+	t.True(ndd.Signers()[0].Address().Equal(sa.Address))
+	t.True(ndd.Signers()[0].Signed() == true)
 }
 
-func (t *testTransferDocumentsOperations) TestSenderNotExist() {
+func (t *testSignDocumentsOperations) TestSenderNotExist() {
 	balance := t.newTestBalance()
-	sa, _ := t.newAccount(false, nil)
-	ra, sta := t.newAccount(true, balance)
-	dd := t.newTestDocumentData(sa.Address)
+	sa, _ := t.newAccount(false, nil)     // sender, signer
+	ca, st := t.newAccount(true, balance) // creator, owner
+	dd := t.newTestDocumentData(ca.Address, sa.Address)
 
-	sts := t.newStateDocument(sa.Address, dd)
-	pool, _ := t.statepool(sta, sts)
+	sts := t.newStateDocument(ca.Address, dd)
+	pool, _ := t.statepool(st, sts)
 
-	feeer := t.newTestFixedFeeer(sa.Address)
+	feeer := t.newTestFixedFeeer(ca.Address)
 
 	cp := currency.NewCurrencyPool()
 	t.NoError(cp.Set(t.newCurrencyDesignState(t.cid, currency.NewBig(99), NewTestAddress(), feeer)))
 
 	opr := t.processor(cp, pool)
 
-	items := []TransferDocumentsItem{t.newTransferDocumentsItem(t.docid, sa.Address, ra.Address, t.cid)}
-	tfd := t.newTransferDocument(sa.Address, sa.Privs(), items)
+	items := []SignDocumentItem{t.newSignDocumentsItem(t.docid, ca.Address, t.cid)}
+	tfd := t.newSignDocument(sa.Address, sa.Privs(), items)
 
 	err := opr.Process(tfd)
 
@@ -179,40 +176,66 @@ func (t *testTransferDocumentsOperations) TestSenderNotExist() {
 	t.Contains(err.Error(), "does not exist")
 }
 
-func (t *testTransferDocumentsOperations) TestReceiverNotExist() {
+func (t *testSignDocumentsOperations) TestOwnerNotExist() {
 	balance := t.newTestBalance()
-	sa, sta := t.newAccount(true, balance)
-	ra, _ := t.newAccount(false, nil)
-	dd := t.newTestDocumentData(sa.Address)
+	sa, st := t.newAccount(true, balance) // sender, signer
+	ca, _ := t.newAccount(false, nil)     // creator, owner
+	dd := t.newTestDocumentData(ca.Address, sa.Address)
 
-	sts := t.newStateDocument(sa.Address, dd)
-	pool, _ := t.statepool(sta, sts)
+	sts := t.newStateDocument(ca.Address, dd)
+	pool, _ := t.statepool(st, sts)
 
-	feeer := t.newTestFixedFeeer(sa.Address)
+	feeer := t.newTestFixedFeeer(ca.Address)
 
 	cp := currency.NewCurrencyPool()
 	t.NoError(cp.Set(t.newCurrencyDesignState(t.cid, currency.NewBig(99), NewTestAddress(), feeer)))
 
 	opr := t.processor(cp, pool)
 
-	items := []TransferDocumentsItem{t.newTransferDocumentsItem(t.docid, sa.Address, ra.Address, t.cid)}
-	tfd := t.newTransferDocument(sa.Address, sa.Privs(), items)
+	items := []SignDocumentItem{t.newSignDocumentsItem(t.docid, ca.Address, t.cid)}
+	tfd := t.newSignDocument(sa.Address, sa.Privs(), items)
 
 	err := opr.Process(tfd)
 
 	var oper operation.ReasonError
 	t.True(xerrors.As(err, &oper))
-	t.Contains(err.Error(), "receiver account not found")
+	t.Contains(err.Error(), "does not exist")
 }
 
-func (t *testTransferDocumentsOperations) TestInsufficientBalanceForFee() {
-	balance := []currency.Amount{currency.NewAmount(currency.NewBig(2), t.cid)}
-	sa, sta := t.newAccount(true, balance)
-	ra, stb := t.newAccount(true, balance)
-	dd := t.newTestDocumentData(sa.Address)
+func (t *testSignDocumentsOperations) TestSenderNotExistInSignersList() {
+	balance := t.newTestBalance()
+	sa, sta := t.newAccount(true, balance) // sender, signer
+	ca, stb := t.newAccount(true, balance) // creator, owner
+	dd := t.newTestDocumentData(ca.Address, nil)
 
-	sts := t.newStateDocument(sa.Address, dd)
+	sts := t.newStateDocument(ca.Address, dd)
 	pool, _ := t.statepool(sta, stb, sts)
+
+	feeer := t.newTestFixedFeeer(ca.Address)
+
+	cp := currency.NewCurrencyPool()
+	t.NoError(cp.Set(t.newCurrencyDesignState(t.cid, currency.NewBig(99), NewTestAddress(), feeer)))
+
+	opr := t.processor(cp, pool)
+
+	items := []SignDocumentItem{t.newSignDocumentsItem(t.docid, ca.Address, t.cid)}
+	tfd := t.newSignDocument(sa.Address, sa.Privs(), items)
+
+	err := opr.Process(tfd)
+
+	var oper operation.ReasonError
+	t.True(xerrors.As(err, &oper))
+	t.Contains(err.Error(), "sender not found in document Signers")
+}
+
+func (t *testSignDocumentsOperations) TestInsufficientBalanceForFee() {
+	balance := []currency.Amount{currency.NewAmount(currency.NewBig(2), t.cid)}
+	sa, st := t.newAccount(true, balance) // sender, signer
+	ca, _ := t.newAccount(true, balance)  // creator, owner
+	dd := t.newTestDocumentData(ca.Address, sa.Address)
+
+	sts := t.newStateDocument(ca.Address, dd)
+	pool, _ := t.statepool(st, sts)
 
 	feeer := t.newTestFixedFeeer(sa.Address)
 
@@ -221,8 +244,8 @@ func (t *testTransferDocumentsOperations) TestInsufficientBalanceForFee() {
 
 	opr := t.processor(cp, pool)
 
-	items := []TransferDocumentsItem{t.newTransferDocumentsItem(t.docid, sa.Address, ra.Address, t.cid)}
-	tfd := t.newTransferDocument(sa.Address, sa.Privs(), items)
+	items := []SignDocumentItem{t.newSignDocumentsItem(t.docid, ca.Address, t.cid)}
+	tfd := t.newSignDocument(sa.Address, sa.Privs(), items)
 
 	err := opr.Process(tfd)
 
@@ -231,27 +254,27 @@ func (t *testTransferDocumentsOperations) TestInsufficientBalanceForFee() {
 	t.Contains(err.Error(), "insufficient balance")
 }
 
-func (t *testTransferDocumentsOperations) TestMultipleItemsWithFee() {
+func (t *testSignDocumentsOperations) TestMultipleItemsWithFee() {
 	cid0 := currency.CurrencyID("SHOWME")
 	cid1 := currency.CurrencyID("FINDME")
 	balance0 := currency.NewAmount(currency.NewBig(33), cid0)
 	balance1 := currency.NewAmount(currency.NewBig(33), cid1)
 	sa, sta := t.newAccount(true, []currency.Amount{balance0, balance1})
-	ra0, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	ra1, stc := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	dd0 := t.newTestDocumentData(sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), sa.Address, sa.Address, []DocSign{})
+	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
+
+	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
+	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
-	sts0 := t.newStateDocument(sa.Address, dd0)
+	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
-	sts1 := t.newStateDocument(sa.Address, dd1)
+	sts1 := t.newStateDocument(ca.Address, dd1)
 	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
 	sts1[1] = nst
 	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
 
-	pool, _ := t.statepool(sta, stb, stc, sts)
+	pool, _ := t.statepool(sta, stb, sts)
 
 	feeer := t.newTestFixedFeeer(sa.Address)
 
@@ -262,15 +285,15 @@ func (t *testTransferDocumentsOperations) TestMultipleItemsWithFee() {
 	opr := t.processor(cp, pool)
 
 	token := util.UUID().Bytes()
-	items := []TransferDocumentsItem{
-		t.newTransferDocumentsItem(t.docid, sa.Address, ra0.Address, cid0),
-		t.newTransferDocumentsItem(currency.NewBig(1), sa.Address, ra1.Address, cid1),
+	items := []SignDocumentItem{
+		t.newSignDocumentsItem(t.docid, ca.Address, cid0),
+		t.newSignDocumentsItem(currency.NewBig(1), ca.Address, cid1),
 	}
-	fact := NewTransferDocumentsFact(token, sa.Address, items)
+	fact := NewSignDocumentsFact(token, sa.Address, items)
 	sig, err := operation.NewFactSignature(sa.Privs()[0], fact, nil)
 	t.NoError(err)
 	fs := []operation.FactSign{operation.NewBaseFactSign(sa.Privs()[0].Publickey(), sig)}
-	tfd, err := NewTransferDocuments(fact, fs, "")
+	tfd, err := NewSignDocuments(fact, fs, "")
 	t.NoError(err)
 
 	err = opr.Process(tfd)
@@ -294,27 +317,27 @@ func (t *testTransferDocumentsOperations) TestMultipleItemsWithFee() {
 	t.Equal(t.fee, nst1.(currency.AmountState).Fee())
 }
 
-func (t *testTransferDocumentsOperations) TestInsufficientMultipleItemsWithFee() {
+func (t *testSignDocumentsOperations) TestInsufficientMultipleItemsWithFee() {
 	cid0 := currency.CurrencyID("SHOWME")
 	cid1 := currency.CurrencyID("FINDME")
 	balance0 := currency.NewAmount(currency.NewBig(10), cid0)
 	balance1 := currency.NewAmount(currency.NewBig(10), cid1)
 	sa, sta := t.newAccount(true, []currency.Amount{balance0, balance1})
-	ra0, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	ra1, stc := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	dd0 := t.newTestDocumentData(sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), sa.Address, sa.Address, []DocSign{})
+	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
+
+	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
+	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
-	sts0 := t.newStateDocument(sa.Address, dd0)
+	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
-	sts1 := t.newStateDocument(sa.Address, dd1)
+	sts1 := t.newStateDocument(ca.Address, dd1)
 	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
 	sts1[1] = nst
 	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
 
-	pool, _ := t.statepool(sta, stb, stc, sts)
+	pool, _ := t.statepool(sta, stb, sts)
 
 	fee0 := currency.NewBig(11)
 	fee1 := currency.NewBig(3)
@@ -328,15 +351,15 @@ func (t *testTransferDocumentsOperations) TestInsufficientMultipleItemsWithFee()
 	opr := t.processor(cp, pool)
 
 	token := util.UUID().Bytes()
-	items := []TransferDocumentsItem{
-		t.newTransferDocumentsItem(t.docid, sa.Address, ra0.Address, cid0),
-		t.newTransferDocumentsItem(currency.NewBig(1), sa.Address, ra1.Address, cid1),
+	items := []SignDocumentItem{
+		t.newSignDocumentsItem(t.docid, ca.Address, cid0),
+		t.newSignDocumentsItem(currency.NewBig(1), ca.Address, cid1),
 	}
-	fact := NewTransferDocumentsFact(token, sa.Address, items)
+	fact := NewSignDocumentsFact(token, sa.Address, items)
 	sig, err := operation.NewFactSignature(sa.Privs()[0], fact, nil)
 	t.NoError(err)
 	fs := []operation.FactSign{operation.NewBaseFactSign(sa.Privs()[0].Publickey(), sig)}
-	tfd, err := NewTransferDocuments(fact, fs, "")
+	tfd, err := NewSignDocuments(fact, fs, "")
 	t.NoError(err)
 
 	err = opr.Process(tfd)
@@ -346,27 +369,27 @@ func (t *testTransferDocumentsOperations) TestInsufficientMultipleItemsWithFee()
 	t.Contains(err.Error(), "insufficient balance")
 }
 
-func (t *testTransferDocumentsOperations) TestSameSenders() {
+func (t *testSignDocumentsOperations) TestSameSenders() {
 	cid0 := currency.CurrencyID("SHOWME")
 	cid1 := currency.CurrencyID("FINDME")
 	balance0 := currency.NewAmount(currency.NewBig(33), cid0)
 	balance1 := currency.NewAmount(currency.NewBig(33), cid1)
 	sa, sta := t.newAccount(true, []currency.Amount{balance0, balance1})
-	ra0, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	ra1, stc := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
-	dd0 := t.newTestDocumentData(sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), sa.Address, sa.Address, []DocSign{})
+	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
+
+	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
+	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
-	sts0 := t.newStateDocument(sa.Address, dd0)
+	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
-	sts1 := t.newStateDocument(sa.Address, dd1)
+	sts1 := t.newStateDocument(ca.Address, dd1)
 	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
 	sts1[1] = nst
 	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
 
-	pool, _ := t.statepool(sta, stb, stc, sts)
+	pool, _ := t.statepool(sta, stb, sts)
 
 	feeer := t.newTestFixedFeeer(sa.Address)
 
@@ -376,17 +399,17 @@ func (t *testTransferDocumentsOperations) TestSameSenders() {
 
 	opr := t.processor(cp, pool)
 
-	items0 := []TransferDocumentsItem{
-		t.newTransferDocumentsItem(t.docid, sa.Address, ra0.Address, cid0),
+	items0 := []SignDocumentItem{
+		t.newSignDocumentsItem(t.docid, ca.Address, cid0),
 	}
-	tfd0 := t.newTransferDocument(sa.Address, sa.Privs(), items0)
+	tfd0 := t.newSignDocument(sa.Address, sa.Privs(), items0)
 
 	t.NoError(opr.Process(tfd0))
 
-	items1 := []TransferDocumentsItem{
-		t.newTransferDocumentsItem(currency.NewBig(1), sa.Address, ra1.Address, cid1),
+	items1 := []SignDocumentItem{
+		t.newSignDocumentsItem(currency.NewBig(1), ca.Address, cid1),
 	}
-	tfd1 := t.newTransferDocument(sa.Address, sa.Privs(), items1)
+	tfd1 := t.newSignDocument(sa.Address, sa.Privs(), items1)
 
 	err = opr.Process(tfd1)
 
@@ -395,51 +418,6 @@ func (t *testTransferDocumentsOperations) TestSameSenders() {
 	t.Contains(err.Error(), "violates only one sender")
 }
 
-func (t *testTransferDocumentsOperations) TestUnderThreshold() {
-	spk := key.MustNewBTCPrivatekey()
-	rpk := key.MustNewBTCPrivatekey()
-
-	skey := t.newKey(spk.Publickey(), 50)
-	rkey := t.newKey(rpk.Publickey(), 50)
-	skeys, _ := currency.NewKeys([]currency.Key{skey, rkey}, 100)
-	rkeys, _ := currency.NewKeys([]currency.Key{rkey}, 50)
-
-	pks := []key.Privatekey{spk}
-	sender, _ := currency.NewAddressFromKeys(skeys)
-	receiver, _ := currency.NewAddressFromKeys(rkeys)
-
-	// set sender state
-	balance := currency.NewAmount(currency.NewBig(33), t.cid)
-	dd := t.newTestDocumentData(sender)
-	std := t.newStateDocument(sender, dd)
-
-	var sts []state.State
-	sts = append(sts, std...)
-	sts = append(sts,
-		t.newStateBalance(sender, balance.Big(), balance.Currency()),
-		t.newStateBalance(receiver, balance.Big(), balance.Currency()),
-		t.newStateKeys(sender, skeys),
-		t.newStateKeys(receiver, rkeys),
-	)
-
-	pool, _ := t.statepool(sts)
-	feeer := currency.NewFixedFeeer(sender, currency.ZeroBig)
-
-	cp := currency.NewCurrencyPool()
-	t.NoError(cp.Set(t.newCurrencyDesignState(t.cid, currency.NewBig(99), NewTestAddress(), feeer)))
-
-	opr := t.processor(cp, pool)
-
-	items := []TransferDocumentsItem{t.newTransferDocumentsItem(t.docid, sender, receiver, t.cid)}
-	tfd := t.newTransferDocument(sender, pks, items)
-
-	err := opr.Process(tfd)
-
-	var oper operation.ReasonError
-	t.True(xerrors.As(err, &oper))
-	t.Contains(err.Error(), "not passed threshold")
-}
-
-func TestTransferDocumentsOperations(t *testing.T) {
-	suite.Run(t, new(testTransferDocumentsOperations))
+func TestSignDocumentsOperations(t *testing.T) {
+	suite.Run(t, new(testSignDocumentsOperations))
 }

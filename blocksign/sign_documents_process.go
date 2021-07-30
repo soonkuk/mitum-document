@@ -38,7 +38,12 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	fmt.Println("gggggggggggggggggggggggggggggggggggggggggg1")
+	// check existence of owner account
+	if _, found, err := getState(currency.StateKeyAccount(opp.item.Owner())); err != nil {
+		return err
+	} else if !found {
+		return xerrors.Errorf("owner does not exist, %q", opp.item.Owner())
+	}
 
 	// check existence of document inventory state with owner address
 	switch st, found, err := getState(StateKeyDocuments(opp.item.Owner())); {
@@ -79,21 +84,22 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		return xerrors.Errorf("Owner not matched with owner in document, %v", opp.item.Owner())
 	}
 
+	if len(dd.Signers()) < 1 {
+		return xerrors.Errorf("sender not found in document Signers, %v", opp.sender)
+	}
 	// check signer exist in document data signers
 	for i := range dd.Signers() {
+		fmt.Println(dd.Signers()[i].Address())
+		fmt.Println(opp.sender)
 		if dd.Signers()[i].Address().Equal(opp.sender) {
 			dd.Signers()[i].SetSigned()
 			break
 		}
-		if i == len(dd.Signers())-1 {
+		if i == (len(dd.Signers()) - 1) {
 			return xerrors.Errorf("sender not found in document Signers, %v", opp.sender)
 		}
 	}
 
-	fmt.Println("###################################")
-	fmt.Println("###################################")
-	fmt.Println("###################################")
-	fmt.Println(dd.signers)
 	// update document data state
 	st, err := SetStateDocumentDataValue(opp.nds, dd)
 	if err != nil {

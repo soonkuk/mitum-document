@@ -19,26 +19,31 @@ type testCreateDocumentsSingleFile struct {
 }
 
 func (t *testCreateDocumentsSingleFile) TestNew() {
-	// document private key
-	docPrvk := key.MustNewBTCPrivatekey()
 	// owner private key
 	ownerPrvk := key.MustNewBTCPrivatekey()
 
-	// document key(pubkey, weight)
-	docKey, err := currency.NewKey(docPrvk.Publickey(), 100)
-	t.NoError(err)
 	// owner key
 	ownerKey, err := currency.NewKey(ownerPrvk.Publickey(), 100)
 	t.NoError(err)
 
-	// document keys(keys, threshold)
-	docKeys, _ := currency.NewKeys([]currency.Key{docKey}, 100)
 	// owner keys
 	ownerKeys, _ := currency.NewKeys([]currency.Key{ownerKey}, 100)
 	// owner address calculated from owner keys
 	owner, _ := currency.NewAddressFromKeys(ownerKeys)
 	// sender address is same with owner address
 	sender := owner
+
+	// signer private key
+	signerPrvk := key.MustNewBTCPrivatekey()
+
+	// signer key
+	signerKey, err := currency.NewKey(signerPrvk.Publickey(), 100)
+	t.NoError(err)
+
+	// signer keys
+	signerKeys, _ := currency.NewKeys([]currency.Key{signerKey}, 100)
+	// owner address calculated from owner keys
+	signer, _ := currency.NewAddressFromKeys(signerKeys)
 
 	// random token
 	token := util.UUID().Bytes()
@@ -47,10 +52,10 @@ func (t *testCreateDocumentsSingleFile) TestNew() {
 	cid := currency.CurrencyID("SHOWME")
 
 	// uploaderSignCode for document
-	sc := SignCode("ABCD")
+	fh := FileHash("ABCD")
 
 	// create document item
-	item := NewCreateDocumentsItemSingleFile(docKeys, sc, owner, cid)
+	item := NewCreateDocumentsItemSingleFile(fh, []base.Address{signer}, cid)
 	// create document fact
 	fact := NewCreateDocumentsFact(token, sender, []CreateDocumentsItem{item})
 
@@ -73,26 +78,19 @@ func (t *testCreateDocumentsSingleFile) TestNew() {
 
 	ufact := cd.Fact().(CreateDocumentsFact)
 	// compare filedata from created document's fact with original filedata
-	t.Equal(sc, ufact.Items()[0].SignCode())
-	t.Equal(owner, ufact.Items()[0].Owner())
+	t.Equal(fh, ufact.Items()[0].FileHash())
+	t.Equal(signer, ufact.Items()[0].Signers()[0])
 
 }
 
-func (t *testCreateDocumentsSingleFile) TestEmptyFileData() {
-	// document private key
-	docPrvk := key.MustNewBTCPrivatekey()
+func (t *testCreateDocumentsSingleFile) TestEmptyFileHash() {
 	// owner private key
 	ownerPrvk := key.MustNewBTCPrivatekey()
 
-	// document key(pubkey, weight)
-	docKey, err := currency.NewKey(docPrvk.Publickey(), 100)
-	t.NoError(err)
 	// owner key
 	ownerKey, err := currency.NewKey(ownerPrvk.Publickey(), 100)
 	t.NoError(err)
 
-	// document keys(keys, threshold)
-	docKeys, _ := currency.NewKeys([]currency.Key{docKey}, 100)
 	// owner keys
 	ownerKeys, _ := currency.NewKeys([]currency.Key{ownerKey}, 100)
 	// owner address calculated from owner keys
@@ -106,12 +104,11 @@ func (t *testCreateDocumentsSingleFile) TestEmptyFileData() {
 	// currency id
 	cid := currency.CurrencyID("SHOWME")
 
-	// Empty FileData
-	esc := SignCode("")
-	eow := currency.EmptyAddress
+	// Empty FileHash
+	efh := FileHash("")
 
 	// create document item
-	item := NewCreateDocumentsItemSingleFile(docKeys, esc, eow, cid)
+	item := NewCreateDocumentsItemSingleFile(efh, []base.Address{}, cid)
 	// create document fact
 	fact := NewCreateDocumentsFact(token, sender, []CreateDocumentsItem{item})
 
@@ -128,7 +125,7 @@ func (t *testCreateDocumentsSingleFile) TestEmptyFileData() {
 	t.NoError(err)
 
 	err = cd.IsValid(nil)
-	t.Contains(err.Error(), "empty filedata")
+	t.Contains(err.Error(), "empty fileHash")
 }
 
 func TestCreateDocumentsSingleFile(t *testing.T) {
@@ -140,29 +137,36 @@ func testCreateDocumentsSingleFileEncode(enc encoder.Encoder) suite.TestingSuite
 
 	t.enc = enc
 	t.newObject = func() interface{} {
-		// document private key
-		docPrvk := key.MustNewBTCPrivatekey()
 		// owner private key
 		ownerPrvk := key.MustNewBTCPrivatekey()
-
-		docKey, err := currency.NewKey(docPrvk.Publickey(), 100)
-		t.NoError(err)
 		ownerKey, err := currency.NewKey(ownerPrvk.Publickey(), 100)
-		t.NoError(err)
-		docKeys, err := currency.NewKeys([]currency.Key{docKey}, 100)
 		t.NoError(err)
 		ownerKeys, err := currency.NewKeys([]currency.Key{ownerKey}, 100)
 		t.NoError(err)
-
 		owner, _ := currency.NewAddressFromKeys(ownerKeys)
+
+		signerPrvk0 := key.MustNewBTCPrivatekey()
+		sigenrKey0, err := currency.NewKey(signerPrvk0.Publickey(), 100)
+		t.NoError(err)
+		signerKeys0, err := currency.NewKeys([]currency.Key{sigenrKey0}, 100)
+		t.NoError(err)
+		signer0, _ := currency.NewAddressFromKeys(signerKeys0)
+
+		signerPrvk1 := key.MustNewBTCPrivatekey()
+		sigenrKey1, err := currency.NewKey(signerPrvk1.Publickey(), 100)
+		t.NoError(err)
+		signerKeys1, err := currency.NewKeys([]currency.Key{sigenrKey1}, 100)
+		t.NoError(err)
+		signer1, _ := currency.NewAddressFromKeys(signerKeys1)
+
 		sender := owner
 
 		cid := currency.CurrencyID("SHOWME")
 
 		// uploaderSignCode for document
-		sc := SignCode("signcode")
+		fh := FileHash("ABCD")
 		// FileData for document
-		item := NewCreateDocumentsItemSingleFile(docKeys, sc, owner, cid)
+		item := NewCreateDocumentsItemSingleFile(fh, []base.Address{signer0, signer1}, cid)
 		fact := NewCreateDocumentsFact(util.UUID().Bytes(), sender, []CreateDocumentsItem{item})
 
 		var fs []operation.FactSign
@@ -193,18 +197,12 @@ func testCreateDocumentsSingleFileEncode(enc encoder.Encoder) suite.TestingSuite
 			a := fact.Items()[i]
 			b := ufact.Items()[i]
 
-			t.True(a.Keys().Hash().Equal(b.Keys().Hash()))
-			for i := range a.Keys().Keys() {
-				t.Equal(a.Keys().Keys()[i].Bytes(), b.Keys().Keys()[i].Bytes())
+			t.True(a.FileHash().Equal(b.FileHash()))
+			for i := range a.Signers() {
+				t.Equal(a.Signers()[i].Bytes(), b.Signers()[i].Bytes())
 			}
 
-			t.Equal(a.Keys().Threshold(), b.Keys().Threshold())
-			asc := a.SignCode()
-			bsc := b.SignCode()
-			aowner := a.Owner()
-			bowner := b.Owner()
-			t.True(asc.Equal(bsc))
-			t.True(aowner.Equal(bowner))
+			t.True(a.Currency().Equal(b.Currency()))
 		}
 	}
 

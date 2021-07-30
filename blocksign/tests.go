@@ -67,6 +67,8 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(currency.Transfers{})
 	_ = t.Encs.TestAddHinter(CreateDocuments{})
 	_ = t.Encs.TestAddHinter(CreateDocumentsFact{})
+	_ = t.Encs.TestAddHinter(SignDocuments{})
+	_ = t.Encs.TestAddHinter(SignDocumentsFact{})
 	_ = t.Encs.TestAddHinter(TransferDocuments{})
 	_ = t.Encs.TestAddHinter(TransferDocumentsFact{})
 	_ = t.Encs.TestAddHinter(currency.KeyUpdaterFact{})
@@ -78,7 +80,11 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicyUpdaterFact{})
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicyUpdater{})
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicy{})
+	_ = t.Encs.TestAddHinter(DocSign{})
+	_ = t.Encs.TestAddHinter(DocInfo{})
+	_ = t.Encs.TestAddHinter(DocId{})
 	_ = t.Encs.TestAddHinter(DocumentData{})
+	_ = t.Encs.TestAddHinter(DocumentInventory{})
 
 	t.cid = currency.CurrencyID("SEEME")
 }
@@ -121,19 +127,6 @@ func (t *baseTestOperationProcessor) statepool(s ...[]state.State) (*storage.Sta
 
 func (t *baseTestOperationProcessor) newStateKeys(a base.Address, keys currency.Keys) state.State {
 	key := currency.StateKeyAccount(a)
-
-	ac, err := currency.NewAccount(a, keys)
-	t.NoError(err)
-
-	value, _ := state.NewHintedValue(ac)
-	su, err := state.NewStateV0(key, value, base.NilHeight)
-	t.NoError(err)
-
-	return su
-}
-
-func (t *baseTestOperationProcessor) newStateDocumentKeys(a base.Address, keys currency.Keys) state.State {
-	key := currency.StateKeyDocument(a)
 
 	ac, err := currency.NewAccount(a, keys)
 	t.NoError(err)
@@ -189,23 +182,41 @@ func (t *baseTestOperationProcessor) newStateBalance(a base.Address, big currenc
 	return su
 }
 
-func (t *baseTestOperationProcessor) newDocument(exists bool, docData DocumentData) (*account, []state.State) {
-	ac := t.baseTest.newAccount()
+func (t *baseTestOperationProcessor) newStateDocumentId(doc DocId) state.State {
+	value, _ := state.NewHintedValue(doc)
+	su, err := state.NewStateV0(StateKeyLastDocumentId, value, base.NilHeight)
+	t.NoError(err)
 
-	if !exists {
-		return ac, nil
-	}
-
-	var sts []state.State
-	sts = append(sts, t.newStateDocumentKeys(ac.Address, ac.Keys()))
-
-	sts = append(sts, t.newStateDocumentData(ac.Address, docData))
-
-	return ac, sts
+	return su
 }
 
-func (t *baseTestOperationProcessor) newStateDocumentData(a base.Address, docData DocumentData) state.State {
-	key := StateKeyDocumentData(a)
+func (t *baseTestOperationProcessor) newStateDocuments(a base.Address, doc DocInfo) state.State {
+	key := StateKeyDocuments(a)
+
+	docinv := NewDocumentInventory([]DocInfo{doc})
+
+	value, _ := state.NewHintedValue(docinv)
+	su, err := state.NewStateV0(key, value, base.NilHeight)
+	t.NoError(err)
+
+	return su
+}
+
+func (t *baseTestOperationProcessor) newStateDocument(a base.Address, docData DocumentData) []state.State {
+
+	var sts []state.State
+
+	sts = append(sts, t.newStateDocumentId(DocId{idx: docData.Info().Index()}))
+
+	sts = append(sts, t.newStateDocuments(a, docData.Info()))
+
+	sts = append(sts, t.newStateDocumentData(docData))
+
+	return sts
+}
+
+func (t *baseTestOperationProcessor) newStateDocumentData(docData DocumentData) state.State {
+	key := StateKeyDocumentData(docData.FileHash())
 	value, _ := state.NewHintedValue(docData)
 	su, err := state.NewStateV0(key, value, base.NilHeight)
 	t.NoError(err)

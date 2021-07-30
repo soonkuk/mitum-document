@@ -17,11 +17,9 @@ func (op TransferDocuments) Process(
 }
 
 type TransferDocumentsItemProcessor struct {
-	cp   *currency.CurrencyPool
-	h    valuehash.Hash
-	item TransferDocumentsItem
-	// dinv   DocumentInventory
-	odinvs state.State // owner document inventory state
+	cp     *currency.CurrencyPool
+	h      valuehash.Hash
+	item   TransferDocumentsItem
 	rdinvs state.State // receiver document inventory state
 	dds    state.State // document data state
 	di     DocInfo
@@ -46,7 +44,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 		return xerrors.Errorf("owner account not found, %q", opp.item.Owner())
 	}
 
-	// check document id is greater than 0 and lesser than global last document id
+	// check document id is lesser than or equal to global last document id
 	switch st, found, err := getState(StateKeyLastDocumentId); {
 	case err != nil:
 		return err
@@ -62,7 +60,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 		}
 	}
 
-	// get owner document inventory
+	// get owner document inventory by document id and get filehash
 	if st, err := currency.ExistsState(StateKeyDocuments(opp.item.Owner()), "document inventory", getState); err != nil {
 		return err
 	} else {
@@ -79,16 +77,17 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 		}
 		opp.di = docInfo
 
-		opp.odinvs = st
+		// sopp.odinvs = st
 	}
 
+	// get document data state by filehash
 	if st, err := currency.ExistsState(StateKeyDocumentData(opp.di.filehash), "document data", getState); err != nil {
 		return xerrors.Errorf("document data of filehash not found, %v", opp.di.filehash)
 	} else {
 		opp.dds = st
 	}
 
-	// check document data owner and replace owner with receiver
+	// replace document data owner with receiver
 	if dd, err := StateDocumentDataValue(opp.dds); err != nil {
 		return err
 	} else if !dd.Owner().Equal(opp.item.Owner()) {
@@ -98,7 +97,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 		opp.dd = ndd
 	}
 
-	// check receiver document inventory and update it.
+	// get receiver document inventory state.
 	dst, found, err := getState(StateKeyDocuments(opp.item.Receiver()))
 	if err != nil {
 		return err
@@ -127,36 +126,15 @@ func (opp *TransferDocumentsItemProcessor) Process(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
-	sts := make([]state.State, 3)
+	sts := make([]state.State, 2)
 
-	odinv, err := StateDocumentsValue(opp.odinvs)
-	if err != nil {
-		return sts, err
-	}
-	odinv.Romove(opp.di)
-	onst, err := SetStateDocumentsValue(opp.odinvs, odinv)
-	if err != nil {
-		return nil, err
-	}
-	sts[0] = onst
-
-	rdinv, err := StateDocumentsValue(opp.rdinvs)
-	if err != nil {
-		return sts, err
-	}
-	rdinv.Append(opp.di)
-
-	rnst, err := SetStateDocumentsValue(opp.rdinvs, rdinv)
-	if err != nil {
-		return nil, err
-	}
-	sts[1] = rnst
+	sts[0] = opp.rdinvs
 
 	ndst, err := SetStateDocumentDataValue(opp.dds, opp.dd)
 	if err != nil {
 		return nil, err
 	}
-	sts[2] = ndst
+	sts[1] = ndst
 
 	return sts, nil
 }
@@ -164,6 +142,8 @@ func (opp *TransferDocumentsItemProcessor) Process(
 type TransferDocumentsProcessor struct {
 	cp *currency.CurrencyPool
 	TransferDocuments
+	odinv    DocumentInventory
+	odinvs   state.State
 	sb       map[currency.CurrencyID]currency.AmountState
 	ns       []*TransferDocumentsItemProcessor
 	required map[currency.CurrencyID][2]currency.Big
@@ -233,13 +213,62 @@ func (opp *TransferDocumentsProcessor) Process( // nolint:dupl
 ) error {
 	fact := opp.Fact().(TransferDocumentsFact)
 
+	// get owner document inventory state and document inventory value
+	if st, err := currency.ExistsState(StateKeyDocuments(fact.Sender()), "document inventory", getState); err != nil {
+		return err
+	} else {
+		dinv, err := StateDocumentsValue(st)
+		if err != nil {
+			return err
+		}
+		opp.odinv = dinv
+		opp.odinvs = st
+	}
+
+	rdinvs := map[string]state.State{}
 	var sts []state.State // nolint:prealloc
 	for i := range opp.ns {
 		if s, err := opp.ns[i].Process(getState, setState); err != nil {
 			return operation.NewBaseReasonError("failed to process transfer document item: %w", err)
 		} else {
-			sts = append(sts, s...)
+			sts = append(sts, s[1])
+			doc, err := StateDocumentDataValue(s[1])
+			if err != nil {
+				return err
+			}
+			opp.odinv.Romove(doc.Info())
+
+			ra := s[0].Key()[:len(s[0].Key())-len(StateKeyDocumentsSuffix)]
+			if _, found := rdinvs[ra]; !found {
+				rdinvs[ra] = s[0]
+			}
+
+			rdinv, err := StateDocumentsValue(rdinvs[ra])
+			if err != nil {
+				return err
+			}
+
+			rdinv.Append(doc.Info())
+			rdinv.Sort(true)
+			nst, err := SetStateDocumentsValue(rdinvs[ra], rdinv)
+			if err != nil {
+				return err
+			}
+			rdinvs[ra] = nst
 		}
+	}
+
+	opp.odinv.Sort(true)
+	// set owner document inventory state value
+	onst, err := SetStateDocumentsValue(opp.odinvs, opp.odinv)
+	if err != nil {
+		return err
+	}
+	sts = append(sts, onst)
+
+	for k := range rdinvs {
+		rnst := rdinvs[k]
+		sts = append(sts, rnst)
 	}
 
 	for k := range opp.required {

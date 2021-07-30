@@ -36,14 +36,11 @@ func (t *testDocumentData) TestNew() {
 	sKeys, _ := currency.NewKeys([]currency.Key{sKey}, 100)
 	aSigner, _ := currency.NewAddressFromKeys(sKeys)
 
-	cDocSign := MustNewDocSign(aCreator, true)
 	sDocSigns := []DocSign{MustNewDocSign(aSigner, true)}
 
-	a := MustNewDocumentData(fh, cDocSign, aOwner, sDocSigns)
-	t.Equal(a, a.WithData(fh, cDocSign, aOwner, sDocSigns))
-
+	a := MustNewDocumentData(fh, aCreator, aOwner, sDocSigns)
 	t.Equal(a.FileHash(), FileHash("ABCD"))
-	t.Equal(a.Creator(), cDocSign)
+	t.Equal(a.Creator(), aCreator)
 	t.Equal(a.Owner(), aOwner)
 	t.Equal(a.Signers(), sDocSigns)
 }
@@ -73,10 +70,11 @@ func testDocumentDataEncode(enc encoder.Encoder) suite.TestingSuite {
 		sKeys, _ := currency.NewKeys([]currency.Key{sKey}, 100)
 		aSigner, _ := currency.NewAddressFromKeys(sKeys)
 
-		cDocSign := MustNewDocSign(aCreator, true)
 		sDocSigns := []DocSign{MustNewDocSign(aSigner, true)}
 
-		a := MustNewDocumentData(fh, cDocSign, aOwner, sDocSigns)
+		a := MustNewDocumentData(fh, aCreator, aOwner, sDocSigns)
+		doc := NewDocInfo(0, fh)
+		a = a.WithData(a.FileHash(), doc, a.Creator(), a.Owner(), a.Signers())
 
 		t.NoError(a.IsValid(nil))
 

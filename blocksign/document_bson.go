@@ -6,16 +6,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-/*
 type DocumentBSONPacker struct {
-	FH FileHash              `bson:"filehash"`
-	CR base.AddressDecoder   `bson:"creator"`
-	CD bson.Raw              `bson:"createdby"`
-	OW base.AddressDecoder   `bson:"owner"`
-	SG []base.AddressDecoder `bson:"signers"`
-	SD bson.Raw              `bson:"signedby"`
+	FH FileHash            `bson:"filehash"`
+	CR base.AddressDecoder `bson:"creator"`
+	CD bson.Raw            `bson:"createdby"`
+	OW base.AddressDecoder `bson:"owner"`
+	SG []DocSign           `bson:"signers"`
 }
-*/
 
 func (doc DocumentData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(

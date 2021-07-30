@@ -52,7 +52,7 @@ func (doc *DocumentData) unpack(
 	for i := range hits {
 		s, ok := hits[i].(DocSign)
 		if !ok {
-			xerrors.Errorf("not DocSign : %T", s)
+			return xerrors.Errorf("not DocSign : %T", s)
 		}
 
 		signers[i] = s

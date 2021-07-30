@@ -89,7 +89,6 @@ func (doc DocumentData) IsEmpty() bool {
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check([]isvalid.IsValider{
 		doc.fileHash,
-		doc.info,
 		doc.creator,
 		doc.owner,
 	}, nil, false); err != nil {
@@ -216,6 +215,9 @@ func (fh FileHash) GenerateHash() valuehash.Hash {
 }
 
 func (fh FileHash) IsValid([]byte) error {
+	if len(fh) < 1 {
+		return xerrors.Errorf("empty fileHash")
+	}
 	return nil
 }
 
@@ -301,6 +303,10 @@ func (ds DocSign) Equal(b DocSign) bool {
 	}
 
 	return true
+}
+
+func (ds *DocSign) Signed() bool {
+	return ds.signed
 }
 
 func (ds *DocSign) SetSigned() {
@@ -436,6 +442,12 @@ func (di DocInfo) Hint() hint.Hint {
 }
 
 func (di DocInfo) IsValid([]byte) error {
+	if err := di.idx.IsValid(nil); err != nil {
+		return err
+	} else if err := di.filehash.IsValid(nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -473,7 +485,7 @@ func (di DocInfo) MarshalJSON() ([]byte, error) {
 
 type DocInfoJSONUnpacker struct {
 	ID currency.Big `json:"documentid"`
-	FH FileHash     `json:"filehash"`
+	FH string       `json:"filehash"`
 }
 
 func (di *DocInfo) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -483,7 +495,7 @@ func (di *DocInfo) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	}
 
 	di.idx = udi.ID
-	di.filehash = udi.FH
+	di.filehash = FileHash(udi.FH)
 
 	return nil
 }
@@ -505,7 +517,7 @@ func (di DocInfo) MarshalBSON() ([]byte, error) {
 
 type DocInfoBSONUnpacker struct {
 	ID currency.Big `bson:"documentid"`
-	FH FileHash     `bson:"filehash"`
+	FH string       `bson:"filehash"`
 }
 
 func (di *DocInfo) UnmarshalBSON(b []byte) error {
@@ -515,7 +527,151 @@ func (di *DocInfo) UnmarshalBSON(b []byte) error {
 	}
 
 	di.idx = udi.ID
-	di.filehash = udi.FH
+	di.filehash = FileHash(udi.FH)
+
+	return nil
+}
+
+var (
+	DocIdType = hint.Type("mitum-blocksign-document-id")
+	DocIdHint = hint.NewHint(DocIdType, "v0.0.1")
+)
+
+type DocId struct {
+	idx currency.Big
+}
+
+func NewDocId(idx int64) DocId {
+	id := currency.NewBig(idx)
+	if !id.OverNil() {
+		return DocId{}
+	}
+	docId := DocId{
+		idx: id,
+	}
+	return docId
+}
+
+func MustNewDocId(idx int64) DocId {
+	docId := NewDocId(idx)
+	if err := docId.IsValid(nil); err != nil {
+		panic(err)
+	}
+	return docId
+}
+
+func NewDocIdFromString(id string) (DocId, error) {
+	i, ok := new(big.Int).SetString(id, 10)
+	if !ok {
+		return DocId{}, xerrors.Errorf("not proper DocId string, %q", id)
+	}
+	idx := currency.NewBigFromBigInt(i)
+	if !idx.OverNil() {
+		return DocId{}, nil
+	}
+	docId := DocId{
+		idx: idx,
+	}
+	return docId, nil
+}
+
+func (di DocId) Index() currency.Big {
+	return di.idx
+}
+
+func (di DocId) Bytes() []byte {
+
+	return di.idx.Bytes()
+}
+
+func (di DocId) Hash() valuehash.Hash {
+	return di.GenerateHash()
+}
+
+func (di DocId) GenerateHash() valuehash.Hash {
+	return valuehash.NewSHA256(di.Bytes())
+}
+
+func (di DocId) Hint() hint.Hint {
+	return DocIdHint
+}
+
+func (di DocId) IsValid([]byte) error {
+	if err := di.idx.IsValid(nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (di DocId) IsEmpty() bool {
+	return !di.idx.OverNil()
+}
+
+func (di DocId) String() string {
+	return di.idx.String()
+}
+
+func (di DocId) Equal(b DocInfo) bool {
+	return di.idx.Equal(b.idx)
+}
+
+func (di DocId) WithData(idx currency.Big) DocId {
+	di.idx = idx
+	return di
+}
+
+type DocIdJSONPacker struct {
+	jsonenc.HintedHead
+	ID currency.Big `json:"documentid"`
+}
+
+func (di DocId) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocInfoJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(di.Hint()),
+		ID:         di.idx,
+	})
+}
+
+type DocIdJSONUnpacker struct {
+	ID currency.Big `json:"documentid"`
+}
+
+func (di *DocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocInfoJSONUnpacker
+	if err := enc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	di.idx = udi.ID
+
+	return nil
+}
+
+type DocIdBSONPacker struct {
+	ID currency.Big `bson:"documentid"`
+}
+
+func (di DocId) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(di.Hint()),
+		bson.M{
+			"documentid": di.idx,
+		}),
+	)
+}
+
+type DocIdBSONUnpacker struct {
+	ID currency.Big `bson:"documentid"`
+}
+
+func (di *DocId) UnmarshalBSON(b []byte) error {
+	var udi DocInfoBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	di.idx = udi.ID
 
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
-	"golang.org/x/xerrors"
 )
 
 type BaseTransferDocumentsItem struct {
@@ -43,7 +42,12 @@ func (it BaseTransferDocumentsItem) Bytes() []byte {
 func (it BaseTransferDocumentsItem) IsValid([]byte) error {
 	if err := it.docId.IsValid(nil); err != nil {
 		return err
-		return xerrors.Errorf("empty amounts")
+	} else if err := it.owner.IsValid(nil); err != nil {
+		return err
+	} else if err := it.receiver.IsValid(nil); err != nil {
+		return err
+	} else if err := it.cid.IsValid(nil); err != nil {
+		return err
 	}
 
 	return nil

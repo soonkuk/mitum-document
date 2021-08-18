@@ -6,9 +6,8 @@
 #### Features,
 
 * account: account address and keypair is not same.
-* document: document also has address and keypair like account, but used for document data.
-* filedata: actual data stored in document.
-* simple transaction: create document, transfer document.
+* documentData: actual data stored in document.
+* simple transaction: create document, transfer document, sign document.
 * supports multiple keypairs: *btc*, *ethereum*, *stellar* keypairs.
 * *mongodb*: as mitum does, *mongodb* is the primary storage.
 

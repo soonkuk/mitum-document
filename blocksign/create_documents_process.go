@@ -98,11 +98,10 @@ func (opp *CreateDocumentsItemProcessor) Process(
 
 	// document data with new document id
 	docData := DocumentData{
-		fileHash: opp.item.FileHash(),
-		info:     opp.docInfo,
-		creator:  opp.sender,
-		owner:    opp.sender,
-		signers:  signers,
+		info:    opp.docInfo,
+		creator: opp.sender,
+		owner:   opp.sender,
+		signers: signers,
 	}
 
 	// prepare document data state
@@ -199,7 +198,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 		if err := c.PreProcess(getState, setState); err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}
-		if i < len(fact.items) {
+		if i < len(fact.items)-1 {
 			opp.docId = opp.docId.WithData(opp.docId.idx.Add(currency.NewBig(1)))
 		}
 		ns[i] = c

@@ -122,6 +122,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 		address = a
 	}
 
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
@@ -131,7 +132,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, reverse)
+		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -161,12 +162,18 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 func (hd *Handlers) handleAccountOperationsInGroup(
 	address base.Address,
 	offset string,
+	limit int64,
 	reverse bool,
 ) ([]byte, bool, error) {
-	limit := hd.itemsLimiter("account-operations")
+	var l int64
+	if limit < 0 {
+		l = hd.itemsLimiter("account-operations")
+	} else {
+		l = limit
+	}
 	var vas []Hal
 	if err := hd.database.OperationsByAddress(
-		address, true, reverse, offset, limit,
+		address, true, reverse, offset, l,
 		func(_ valuehash.Hash, va OperationValue) (bool, error) {
 			hal, err := hd.buildOperationHal(va)
 			if err != nil {

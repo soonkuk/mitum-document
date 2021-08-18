@@ -9,15 +9,11 @@ import (
 
 func (doc *DocumentData) unpack(
 	enc encoder.Encoder,
-	filehash string, // filehash
 	di []byte,
 	cr base.AddressDecoder, // creator
 	ow base.AddressDecoder, // owner
 	bsg []byte, // signers
 ) error {
-
-	// unpack filehash
-	doc.fileHash = FileHash(filehash)
 
 	// unpack document info
 	if hinter, err := enc.Decode(di); err != nil {

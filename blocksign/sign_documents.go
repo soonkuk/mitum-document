@@ -122,6 +122,14 @@ func (fact SignDocumentsFact) Items() []SignDocumentItem {
 	return fact.items
 }
 
+func (fact SignDocumentsFact) Addresses() ([]base.Address, error) {
+	as := make([]base.Address, 1)
+
+	as[0] = fact.Sender()
+
+	return as, nil
+}
+
 func (fact SignDocumentsFact) Rebulild() SignDocumentsFact {
 	items := make([]SignDocumentItem, len(fact.items))
 	for i := range fact.items {

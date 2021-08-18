@@ -2,6 +2,7 @@ package digest
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/soonkuk/mitum-data/blocksign"
@@ -89,6 +90,14 @@ func parseDocIdFromPath(s string) (currency.Big, error) {
 	}
 
 	return h, nil
+}
+
+func parseLimitQuery(s string) int64 {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return int64(-1)
+	}
+	return n
 }
 
 func parseOffsetQuery(s string) string {

@@ -127,6 +127,31 @@ func (fact CreateDocumentsFact) Items() []CreateDocumentsItem {
 	return fact.items
 }
 
+func (fact CreateDocumentsFact) Signers() []base.Address {
+	var as []base.Address
+	for i := range fact.items {
+		a := fact.items[i].Signers()
+		if len(a) > 0 {
+			as = append(as, a...)
+		}
+	}
+
+	return as
+}
+
+func (fact CreateDocumentsFact) Addresses() ([]base.Address, error) {
+	var as []base.Address
+
+	signers := fact.Signers()
+	if len(signers) > 0 {
+		copy(as, signers)
+	}
+
+	as = append(as, fact.Sender())
+
+	return as, nil
+}
+
 func (fact CreateDocumentsFact) Rebulild() CreateDocumentsFact {
 	items := make([]CreateDocumentsItem, len(fact.items))
 	for i := range fact.items {

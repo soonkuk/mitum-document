@@ -93,7 +93,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 	} else if !dd.Owner().Equal(opp.item.Owner()) {
 		return err
 	} else {
-		ndd := dd.WithData(dd.FileHash(), dd.Info(), dd.Creator(), opp.item.Receiver(), dd.Signers())
+		ndd := dd.WithData(dd.Info(), dd.Creator(), opp.item.Receiver(), dd.Signers())
 		opp.dd = ndd
 	}
 

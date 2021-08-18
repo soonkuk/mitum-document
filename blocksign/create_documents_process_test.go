@@ -176,8 +176,12 @@ func (t *testCreateDocumentsOperation) TestDocumentAlreadyExists() {
 	sa0, st0 := t.newAccount(true, balance)
 	sa1, st1 := t.newAccount(true, balance)
 
-	fh := FileHash("ABCD")
-	doc := NewDocumentData(fh, sa1.Address, sa1.Address, []DocSign{})
+	info := DocInfo{
+		idx:      currency.NewBig(0),
+		filehash: FileHash("ABCD"),
+	}
+
+	doc := NewDocumentData(info, sa1.Address, sa1.Address, []DocSign{})
 
 	nds := t.newStateDocumentData(doc)
 
@@ -191,7 +195,7 @@ func (t *testCreateDocumentsOperation) TestDocumentAlreadyExists() {
 
 	opr := t.processor(cp, pool)
 
-	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid)}
+	items := []CreateDocumentsItem{NewCreateDocumentsItemSingleFile(FileHash("ABCD"), []base.Address{}, cid)}
 	cd := t.newOperation(sa0.Address, items, sa0.Privs())
 
 	err := opr.Process(cd)

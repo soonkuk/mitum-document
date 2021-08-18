@@ -77,12 +77,13 @@ func (t *testSignDocumentsOperations) newSignDocument(
 
 func (t *testSignDocumentsOperations) newTestDocumentData(ca base.Address, ga base.Address) DocumentData {
 	var doc DocumentData
+	info := DocInfo{idx: t.docid, filehash: t.fh}
+
 	if ga == nil {
-		doc = NewDocumentData(t.fh, ca, ca, []DocSign{})
+		doc = NewDocumentData(info, ca, ca, []DocSign{})
 	} else {
-		doc = NewDocumentData(t.fh, ca, ca, []DocSign{{address: ga, signed: false}})
+		doc = NewDocumentData(info, ca, ca, []DocSign{{address: ga, signed: false}})
 	}
-	doc = doc.WithData(doc.FileHash(), DocInfo{idx: t.docid, filehash: t.fh}, doc.Creator(), doc.Owner(), doc.Signers())
 	return doc
 }
 
@@ -263,8 +264,7 @@ func (t *testSignDocumentsOperations) TestMultipleItemsWithFee() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
-	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
@@ -326,8 +326,7 @@ func (t *testSignDocumentsOperations) TestInsufficientMultipleItemsWithFee() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
-	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
@@ -378,8 +377,7 @@ func (t *testSignDocumentsOperations) TestSameSenders() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(FileHash("EFGH"), ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
-	dd1 = dd1.WithData(dd1.FileHash(), DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()}, dd1.Creator(), dd1.Owner(), dd1.Signers())
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
 	dinv, _ := StateDocumentsValue(sts0[1])
 	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})

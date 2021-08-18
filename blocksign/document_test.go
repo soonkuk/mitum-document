@@ -38,7 +38,12 @@ func (t *testDocumentData) TestNew() {
 
 	sDocSigns := []DocSign{MustNewDocSign(aSigner, true)}
 
-	a := MustNewDocumentData(fh, aCreator, aOwner, sDocSigns)
+	info := DocInfo{
+		idx:      currency.NewBig(0),
+		filehash: fh,
+	}
+
+	a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
 	t.Equal(a.FileHash(), FileHash("ABCD"))
 	t.Equal(a.Creator(), aCreator)
 	t.Equal(a.Owner(), aOwner)
@@ -72,9 +77,12 @@ func testDocumentDataEncode(enc encoder.Encoder) suite.TestingSuite {
 
 		sDocSigns := []DocSign{MustNewDocSign(aSigner, true)}
 
-		a := MustNewDocumentData(fh, aCreator, aOwner, sDocSigns)
-		doc := NewDocInfo(0, fh)
-		a = a.WithData(a.FileHash(), doc, a.Creator(), a.Owner(), a.Signers())
+		info := DocInfo{
+			idx:      currency.NewBig(0),
+			filehash: fh,
+		}
+
+		a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
 
 		t.NoError(a.IsValid(nil))
 

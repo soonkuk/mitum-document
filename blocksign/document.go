@@ -25,26 +25,25 @@ var (
 )
 
 type DocumentData struct {
-	fileHash FileHash
-	info     DocInfo
-	creator  base.Address
-	owner    base.Address
-	signers  []DocSign
+	info    DocInfo
+	creator base.Address
+	owner   base.Address
+	signers []DocSign
 }
 
-func NewDocumentData(fileHash FileHash, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
+func NewDocumentData(info DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
 	doc := DocumentData{
-		fileHash: fileHash,
-		creator:  creator,
-		owner:    owner,
-		signers:  signers,
+		info:    info,
+		creator: creator,
+		owner:   owner,
+		signers: signers,
 	}
 
 	return doc
 }
 
-func MustNewDocumentData(fileHash FileHash, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
-	doc := NewDocumentData(fileHash, creator, owner, signers)
+func MustNewDocumentData(info DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
+	doc := NewDocumentData(info, creator, owner, signers)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -57,18 +56,17 @@ func (doc DocumentData) Hint() hint.Hint {
 }
 
 func (doc DocumentData) Bytes() []byte {
-	bs := make([][]byte, len(doc.signers)+4)
+	bs := make([][]byte, len(doc.signers)+3)
 
 	sort.Slice(doc.signers, func(i, j int) bool {
 		return bytes.Compare(doc.signers[i].Bytes(), doc.signers[j].Bytes()) < 0
 	})
 
-	bs[0] = doc.fileHash.Bytes()
-	bs[1] = doc.info.Bytes()
-	bs[2] = doc.creator.Bytes()
-	bs[3] = doc.owner.Bytes()
+	bs[0] = doc.info.Bytes()
+	bs[1] = doc.creator.Bytes()
+	bs[2] = doc.owner.Bytes()
 	for i := range doc.signers {
-		bs[i+4] = doc.signers[i].Bytes()
+		bs[i+3] = doc.signers[i].Bytes()
 	}
 
 	return util.ConcatBytesSlice(bs...)
@@ -83,12 +81,12 @@ func (doc DocumentData) GenerateHash() valuehash.Hash {
 }
 
 func (doc DocumentData) IsEmpty() bool {
-	return len(doc.fileHash) < 1 || len(doc.signers) < 1
+	return len(doc.info.FileHash()) < 1 || len(doc.signers) < 1
 }
 
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check([]isvalid.IsValider{
-		doc.fileHash,
+		doc.info.FileHash(),
 		doc.creator,
 		doc.owner,
 	}, nil, false); err != nil {
@@ -108,7 +106,7 @@ func (doc DocumentData) IsValid([]byte) error {
 }
 
 func (doc DocumentData) FileHash() FileHash {
-	return doc.fileHash
+	return doc.info.FileHash()
 }
 
 func (doc DocumentData) Info() DocInfo {
@@ -145,12 +143,12 @@ func (doc DocumentData) String() string {
 		signedBy = signedBy + ")"
 	*/
 
-	return fmt.Sprintf("%s:%s:%s:%s", doc.fileHash.String(), doc.info.String(), doc.creator.String(), doc.owner.String())
+	return fmt.Sprintf("%s:%s:%s:%s", doc.FileHash().String(), doc.info.String(), doc.creator.String(), doc.owner.String())
 }
 
 func (doc DocumentData) Equal(b DocumentData) bool {
 
-	if doc.fileHash != b.fileHash {
+	if doc.FileHash() != b.FileHash() {
 		return false
 	}
 
@@ -178,8 +176,7 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	return true
 }
 
-func (doc DocumentData) WithData(fileHash FileHash, docInfo DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
-	doc.fileHash = fileHash
+func (doc DocumentData) WithData(docInfo DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
 	doc.info = docInfo
 	doc.creator = creator
 	doc.owner = owner

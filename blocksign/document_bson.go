@@ -6,19 +6,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type DocumentBSONPacker struct {
-	FH FileHash            `bson:"filehash"`
-	CR base.AddressDecoder `bson:"creator"`
-	CD bson.Raw            `bson:"createdby"`
-	OW base.AddressDecoder `bson:"owner"`
-	SG []DocSign           `bson:"signers"`
-}
-
 func (doc DocumentData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(doc.Hint()),
 		bson.M{
-			"filehash":     doc.fileHash,
 			"documentinfo": doc.info,
 			"creator":      doc.creator,
 			"owner":        doc.owner,
@@ -28,7 +19,6 @@ func (doc DocumentData) MarshalBSON() ([]byte, error) {
 }
 
 type DocumentBSONUnpacker struct {
-	FH string              `bson:"filehash"`
 	DI bson.Raw            `bson:"documentinfo"`
 	CR base.AddressDecoder `bson:"creator"`
 	OW base.AddressDecoder `bson:"owner"`
@@ -41,5 +31,5 @@ func (doc *DocumentData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return doc.unpack(enc, udoc.FH, udoc.DI, udoc.CR, udoc.OW, udoc.SG)
+	return doc.unpack(enc, udoc.DI, udoc.CR, udoc.OW, udoc.SG)
 }

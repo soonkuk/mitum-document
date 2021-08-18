@@ -155,7 +155,7 @@ func (fact TransferDocumentsFact) Addresses() ([]base.Address, error) {
 	return as, nil
 }
 
-func (fact TransferDocumentsFact) Rebulild() TransferDocumentsFact {
+func (fact TransferDocumentsFact) Rebuild() TransferDocumentsFact {
 	items := make([]TransferDocumentsItem, len(fact.items))
 	for i := range fact.items {
 		it := fact.items[i]

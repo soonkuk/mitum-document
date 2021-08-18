@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"time"
 
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/key"
@@ -25,6 +26,10 @@ var (
 	templateBig              = currency.NewBig(-333)
 	templateSignedAtString   = "2020-10-08T07:53:26Z"
 	templateSignedAt         time.Time
+	templateFileHash         = blocksign.FileHash("abcd")
+	templateOwner            = currency.Address("uncle")
+	templateSigner           = currency.Address("aunt")
+	templateId               = currency.NewBig(33)
 )
 
 func init() {
@@ -58,6 +63,12 @@ func (bl Builder) FactTemplate(ht hint.Hint) (Hal, error) {
 		return bl.templateCurrencyRegisterFact(), nil
 	case currency.CurrencyPolicyUpdaterType:
 		return bl.templateCurrencyPolicyUpdaterFact(), nil
+	case blocksign.CreateDocumentsType:
+		return bl.templateCreateDocumentsFact(), nil
+	case blocksign.TransferDocumentsType:
+		return bl.templateTransferDocumentsFact(), nil
+	case blocksign.SignDocumentsType:
+		return bl.templateSignDocumentsFact(), nil
 	default:
 		return nil, xerrors.Errorf("unknown operation, %q", ht)
 	}
@@ -160,6 +171,70 @@ func (Builder) templateCurrencyPolicyUpdaterFact() Hal {
 	})
 }
 
+func (Builder) templateCreateDocumentsFact() Hal {
+
+	fact := blocksign.NewCreateDocumentsFact(
+		templateToken,
+		templateSender,
+		[]blocksign.CreateDocumentsItem{blocksign.NewCreateDocumentsItemSingleFile(
+			templateFileHash,
+			[]base.Address{templateSigner},
+			templateCurrencyID,
+		)},
+	)
+
+	hal := NewBaseHal(fact, HalLink{})
+	return hal.AddExtras("default", map[string]interface{}{
+		"token":     templateToken,
+		"sender":    templateSender,
+		"items.big": templateBig,
+		"currency":  templateCurrencyID,
+	})
+}
+
+func (Builder) templateTransferDocumentsFact() Hal {
+
+	fact := blocksign.NewTransferDocumentsFact(
+		templateToken,
+		templateSender,
+		[]blocksign.TransferDocumentsItem{blocksign.NewTransferDocumentsItemSingleFile(
+			templateId,
+			templateSender,
+			templateReceiver,
+			templateCurrencyID,
+		)},
+	)
+
+	hal := NewBaseHal(fact, HalLink{})
+	return hal.AddExtras("default", map[string]interface{}{
+		"token":     templateToken,
+		"sender":    templateSender,
+		"items.big": templateBig,
+		"currency":  templateCurrencyID,
+	})
+}
+
+func (Builder) templateSignDocumentsFact() Hal {
+
+	fact := blocksign.NewSignDocumentsFact(
+		templateToken,
+		templateSender,
+		[]blocksign.SignDocumentItem{blocksign.NewSignDocumentsItemSingleFile(
+			templateId,
+			templateOwner,
+			templateCurrencyID,
+		)},
+	)
+
+	hal := NewBaseHal(fact, HalLink{})
+	return hal.AddExtras("default", map[string]interface{}{
+		"token":     templateToken,
+		"sender":    templateSender,
+		"items.big": templateBig,
+		"currency":  templateCurrencyID,
+	})
+}
+
 func (bl Builder) BuildFact(b []byte) (Hal, error) {
 	var fact base.Fact
 	if hinter, err := bl.enc.Decode(b); err != nil {
@@ -181,6 +256,12 @@ func (bl Builder) BuildFact(b []byte) (Hal, error) {
 		return bl.buildFactCurrencyRegister(t)
 	case currency.CurrencyPolicyUpdaterFact:
 		return bl.buildFactCurrencyPolicyUpdater(t)
+	case blocksign.CreateDocumentsFact:
+		return bl.buildFactCreateDocuments(t)
+	case blocksign.TransferDocumentsFact:
+		return bl.buildFactTransferDocuments(t)
+	case blocksign.SignDocumentsFact:
+		return bl.buildFactSignDocuments(t)
 	default:
 		return nil, xerrors.Errorf("unknown fact, %T", fact)
 	}
@@ -215,6 +296,151 @@ func (bl Builder) buildFactCreateAccounts(fact currency.CreateAccountsFact) (Hal
 	var hal Hal
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewCreateAccounts(
+		nfact,
+		[]operation.FactSign{
+			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		},
+		"",
+	)
+	if err != nil {
+		return nil, err
+	}
+	hal = hal.SetInterface(op)
+
+	return hal.
+		AddExtras("default", map[string]interface{}{
+			"fact_signs.signer":    templatePublickey,
+			"fact_signs.signature": templateSignature,
+		}).
+		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+}
+
+func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (Hal, error) {
+	token, err := bl.checkToken(fact.Token())
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]blocksign.CreateDocumentsItem, len(fact.Items()))
+	for i := range fact.Items() {
+		item := fact.Items()[i]
+		if len(item.FileHash()) < 1 {
+			return nil, xerrors.Errorf("empty FileHash")
+		}
+
+		items[i] = blocksign.NewCreateDocumentsItemSingleFile(
+			item.FileHash(),
+			item.Signers(),
+			item.Currency(),
+		)
+	}
+
+	nfact := blocksign.NewCreateDocumentsFact(token, fact.Sender(), items)
+	nfact = nfact.Rebuild()
+	if err = bl.isValidFactCreateDocuments(nfact); err != nil {
+		return nil, err
+	}
+
+	var hal Hal
+	hal = NewBaseHal(nil, HalLink{})
+	op, err := blocksign.NewCreateDocuments(
+		nfact,
+		[]operation.FactSign{
+			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		},
+		"",
+	)
+	if err != nil {
+		return nil, err
+	}
+	hal = hal.SetInterface(op)
+
+	return hal.
+		AddExtras("default", map[string]interface{}{
+			"fact_signs.signer":    templatePublickey,
+			"fact_signs.signature": templateSignature,
+		}).
+		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+}
+
+func (bl Builder) buildFactTransferDocuments(fact blocksign.TransferDocumentsFact) (Hal, error) {
+	token, err := bl.checkToken(fact.Token())
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]blocksign.TransferDocumentsItem, len(fact.Items()))
+	for i := range fact.Items() {
+		item := fact.Items()[i]
+		if (item.DocumentId() == currency.Big{}) {
+			return nil, xerrors.Errorf("empty documentid")
+		}
+
+		items[i] = blocksign.NewTransferDocumentsItemSingleFile(
+			item.DocumentId(),
+			item.Owner(),
+			item.Receiver(),
+			item.Currency(),
+		)
+	}
+
+	nfact := blocksign.NewTransferDocumentsFact(token, fact.Sender(), items)
+	nfact = nfact.Rebuild()
+	if err = bl.isValidFactTransferDocuments(nfact); err != nil {
+		return nil, err
+	}
+
+	var hal Hal
+	hal = NewBaseHal(nil, HalLink{})
+	op, err := blocksign.NewTransferDocuments(
+		nfact,
+		[]operation.FactSign{
+			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		},
+		"",
+	)
+	if err != nil {
+		return nil, err
+	}
+	hal = hal.SetInterface(op)
+
+	return hal.
+		AddExtras("default", map[string]interface{}{
+			"fact_signs.signer":    templatePublickey,
+			"fact_signs.signature": templateSignature,
+		}).
+		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+}
+
+func (bl Builder) buildFactSignDocuments(fact blocksign.SignDocumentsFact) (Hal, error) {
+	token, err := bl.checkToken(fact.Token())
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]blocksign.SignDocumentItem, len(fact.Items()))
+	for i := range fact.Items() {
+		item := fact.Items()[i]
+		if (item.DocumentId() == currency.Big{}) {
+			return nil, xerrors.Errorf("empty documentid")
+		}
+
+		items[i] = blocksign.NewSignDocumentsItemSingleFile(
+			item.DocumentId(),
+			item.Owner(),
+			item.Currency(),
+		)
+	}
+
+	nfact := blocksign.NewSignDocumentsFact(token, fact.Sender(), items)
+	nfact = nfact.Rebuild()
+	if err = bl.isValidFactSignDocuments(nfact); err != nil {
+		return nil, err
+	}
+
+	var hal Hal
+	hal = NewBaseHal(nil, HalLink{})
+	op, err := blocksign.NewSignDocuments(
 		nfact,
 		[]operation.FactSign{
 			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
@@ -468,6 +694,72 @@ func (Builder) isValidFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpda
 	return nil
 }
 
+func (Builder) isValidFactCreateDocuments(fact blocksign.CreateDocumentsFact) error {
+	if err := fact.IsValid(nil); err != nil {
+		return err
+	}
+
+	if bytes.Equal(fact.Token(), templateToken) {
+		return xerrors.Errorf("Please set token; token same with template default")
+	}
+
+	if fact.Sender().Equal(templateSender) {
+		return xerrors.Errorf("Please set sender; sender is same with template default")
+	}
+
+	for i := range fact.Items() {
+		if same := fact.Items()[i].FileHash().Equal(templateFileHash); same {
+			return xerrors.Errorf("Please set filehash; filehash is same with template default")
+		}
+	}
+
+	return nil
+}
+
+func (Builder) isValidFactTransferDocuments(fact blocksign.TransferDocumentsFact) error {
+	if err := fact.IsValid(nil); err != nil {
+		return err
+	}
+
+	if bytes.Equal(fact.Token(), templateToken) {
+		return xerrors.Errorf("Please set token; token same with template default")
+	}
+
+	if fact.Sender().Equal(templateSender) {
+		return xerrors.Errorf("Please set sender; sender is same with template default")
+	}
+
+	for i := range fact.Items() {
+		if same := fact.Items()[i].Owner().Equal(templateOwner); same {
+			return xerrors.Errorf("Please set owner; owner is same with template default")
+		}
+	}
+
+	return nil
+}
+
+func (Builder) isValidFactSignDocuments(fact blocksign.SignDocumentsFact) error {
+	if err := fact.IsValid(nil); err != nil {
+		return err
+	}
+
+	if bytes.Equal(fact.Token(), templateToken) {
+		return xerrors.Errorf("Please set token; token same with template default")
+	}
+
+	if fact.Sender().Equal(templateSender) {
+		return xerrors.Errorf("Please set sender; sender is same with template default")
+	}
+
+	for i := range fact.Items() {
+		if same := fact.Items()[i].Owner().Equal(templateOwner); same {
+			return xerrors.Errorf("Please set owner; owner is same with template default")
+		}
+	}
+
+	return nil
+}
+
 func (bl Builder) BuildOperation(b []byte) (Hal, error) {
 	var op operation.Operation
 	if hinter, err := bl.enc.Decode(b); err != nil {
@@ -584,6 +876,48 @@ func (bl Builder) buildCurrencyPolicyUpdater(op currency.CurrencyPolicyUpdater) 
 	} else if err := nop.IsValid(bl.networkID); err != nil {
 		return nil, err
 	} else if err := bl.isValidFactCurrencyPolicyUpdater(nop.Fact().(currency.CurrencyPolicyUpdaterFact)); err != nil {
+		return nil, err
+	} else {
+		return NewBaseHal(nop, HalLink{}), nil
+	}
+}
+
+func (bl Builder) buildCreateDocumets(op blocksign.CreateDocuments) (Hal, error) {
+	fs := bl.updateFactSigns(op.Signs())
+
+	if nop, err := blocksign.NewCreateDocuments(op.Fact().(blocksign.CreateDocumentsFact), fs, op.Memo); err != nil {
+		return nil, err
+	} else if err := nop.IsValid(bl.networkID); err != nil {
+		return nil, err
+	} else if err := bl.isValidFactCreateDocuments(nop.Fact().(blocksign.CreateDocumentsFact)); err != nil {
+		return nil, err
+	} else {
+		return NewBaseHal(nop, HalLink{}), nil
+	}
+}
+
+func (bl Builder) buildTransferDocumets(op blocksign.TransferDocuments) (Hal, error) {
+	fs := bl.updateFactSigns(op.Signs())
+
+	if nop, err := blocksign.NewTransferDocuments(op.Fact().(blocksign.TransferDocumentsFact), fs, op.Memo); err != nil {
+		return nil, err
+	} else if err := nop.IsValid(bl.networkID); err != nil {
+		return nil, err
+	} else if err := bl.isValidFactTransferDocuments(nop.Fact().(blocksign.TransferDocumentsFact)); err != nil {
+		return nil, err
+	} else {
+		return NewBaseHal(nop, HalLink{}), nil
+	}
+}
+
+func (bl Builder) buildSignDocumets(op blocksign.SignDocuments) (Hal, error) {
+	fs := bl.updateFactSigns(op.Signs())
+
+	if nop, err := blocksign.NewSignDocuments(op.Fact().(blocksign.SignDocumentsFact), fs, op.Memo); err != nil {
+		return nil, err
+	} else if err := nop.IsValid(bl.networkID); err != nil {
+		return nil, err
+	} else if err := bl.isValidFactSignDocuments(nop.Fact().(blocksign.SignDocumentsFact)); err != nil {
 		return nil, err
 	} else {
 		return NewBaseHal(nop, HalLink{}), nil

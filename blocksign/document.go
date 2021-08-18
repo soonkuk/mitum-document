@@ -125,23 +125,25 @@ func (doc DocumentData) Signers() []DocSign {
 	return doc.signers
 }
 
+func (doc DocumentData) Addresses() ([]base.Address, error) {
+	addresses := make(map[base.Address]bool)
+	addresses[doc.Owner()] = true
+	for i := range doc.Signers() {
+		_, found := addresses[doc.Signers()[i].Address()]
+		if !found {
+			addresses[doc.Signers()[i].Address()] = true
+		}
+	}
+	result := make([]base.Address, len(addresses))
+	i := 0
+	for k := range addresses {
+		result[i] = k
+		i = i + 1
+	}
+	return result, nil
+}
+
 func (doc DocumentData) String() string {
-
-	/*
-		var signers string
-		signers = "signers("
-		for i := range doc.signers {
-			signers = signers + "" + doc.signers[i].String()
-		}
-		signers = signers + ")"
-
-		var signedBy string
-		signedBy = "signedBy("
-		for i := range doc.signedBy {
-			signers = signers + ":" + doc.signedBy[i].String()
-		}
-		signedBy = signedBy + ")"
-	*/
 
 	return fmt.Sprintf("%s:%s:%s:%s", doc.FileHash().String(), doc.info.String(), doc.creator.String(), doc.owner.String())
 }
@@ -185,7 +187,7 @@ func (doc DocumentData) WithData(docInfo DocInfo, creator base.Address, owner ba
 }
 
 var (
-	FileHashType = hint.Type("mbs-filehash")
+	FileHashType = hint.Type("mbfh")
 	FileHashHint = hint.NewHint(FileHashType, "v0.0.1")
 )
 

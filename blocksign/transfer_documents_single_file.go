@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	TransfersItemSingleDocumentType   = hint.Type("mitum-blocksign-transfers-item-single-document")
+	TransfersItemSingleDocumentType   = hint.Type("mitum-blocksign-transfer-item-single-document")
 	TransfersItemSingleDocumentHint   = hint.NewHint(TransfersItemSingleDocumentType, "v0.0.1")
 	TransfersItemSingleDocumentHinter = BaseTransferDocumentsItem{hint: TransfersItemSingleDocumentHint}
 )

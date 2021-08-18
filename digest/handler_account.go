@@ -15,9 +15,11 @@ import (
 
 func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 	cachekey := cacheKeyPath(r)
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	var address base.Address
 	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
@@ -127,9 +129,11 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
 	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, limit, reverse)
@@ -263,16 +267,19 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 		address = a
 	}
 
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
 	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, reverse)
+		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -302,12 +309,18 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 func (hd *Handlers) handleAccountDocumentsInGroup(
 	address base.Address,
 	offset string,
+	limit int64,
 	reverse bool,
 ) ([]byte, bool, error) {
-	limit := hd.itemsLimiter("account-documents")
+	var l int64
+	if limit < 0 {
+		l = hd.itemsLimiter("account-operations")
+	} else {
+		l = limit
+	}
 	var vas []Hal
 	if err := hd.database.DocumentsByAddress(
-		address, reverse, offset, limit,
+		address, reverse, offset, l,
 		func(_ currency.Big, va DocumentValue) (bool, error) {
 			hal, err := hd.buildDocumentHal(va)
 			if err != nil {

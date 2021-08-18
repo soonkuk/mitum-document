@@ -8,16 +8,20 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/soonkuk/mitum-data/blocksign"
 	"github.com/soonkuk/mitum-data/currency"
 	"github.com/spikeekips/mitum/util/hint"
 	"golang.org/x/xerrors"
 )
 
 var factTypesByHint = map[string]hint.Hinter{
-	"create-accounts":   currency.CreateAccounts{},
-	"key-updater":       currency.KeyUpdater{},
-	"transfers":         currency.Transfers{},
-	"currency-register": currency.CurrencyRegister{},
+	"create-accounts":    currency.CreateAccounts{},
+	"key-updater":        currency.KeyUpdater{},
+	"transfers":          currency.Transfers{},
+	"currency-register":  currency.CurrencyRegister{},
+	"create-documents":   blocksign.CreateDocuments{},
+	"transfer-documents": blocksign.TransferDocuments{},
+	"sign-documents":     blocksign.SignDocuments{},
 }
 
 func (hd *Handlers) handleOperationBuild(w http.ResponseWriter, r *http.Request) {

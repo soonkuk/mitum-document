@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	CreateDocumentsFactType = hint.Type("mitum-currency-create-documents-operation-fact")
+	CreateDocumentsFactType = hint.Type("mitum-blocksign-create-documents-operation-fact")
 	CreateDocumentsFactHint = hint.NewHint(CreateDocumentsFactType, "v0.0.1")
-	CreateDocumentsType     = hint.Type("mitum-currency-create-documents-operation")
+	CreateDocumentsType     = hint.Type("mitum-blocksign-create-documents-operation")
 	CreateDocumentsHint     = hint.NewHint(CreateDocumentsType, "v0.0.1")
 )
 
@@ -152,7 +152,7 @@ func (fact CreateDocumentsFact) Addresses() ([]base.Address, error) {
 	return as, nil
 }
 
-func (fact CreateDocumentsFact) Rebulild() CreateDocumentsFact {
+func (fact CreateDocumentsFact) Rebuild() CreateDocumentsFact {
 	items := make([]CreateDocumentsItem, len(fact.items))
 	for i := range fact.items {
 		it := fact.items[i]

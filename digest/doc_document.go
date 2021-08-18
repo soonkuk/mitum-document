@@ -11,8 +11,9 @@ import (
 
 type DocumentDoc struct {
 	mongodbstorage.BaseDoc
-	va     DocumentValue
-	height base.Height
+	va        DocumentValue
+	addresses []string
+	height    base.Height
 }
 
 func NewDocumentDoc(
@@ -21,6 +22,15 @@ func NewDocumentDoc(
 	height base.Height,
 ) (DocumentDoc, error) {
 
+	var addresses []string
+	as, err := doc.Addresses()
+	if err != nil {
+		return DocumentDoc{}, err
+	}
+	addresses = make([]string, len(as))
+	for i := range as {
+		addresses[i] = currency.StateAddressKeyPrefix(as[i])
+	}
 	va := NewDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)
 	if err != nil {
@@ -28,9 +38,10 @@ func NewDocumentDoc(
 	}
 
 	return DocumentDoc{
-		BaseDoc: b,
-		va:      va,
-		height:  height,
+		BaseDoc:   b,
+		va:        va,
+		addresses: addresses,
+		height:    height,
 	}, nil
 }
 
@@ -43,6 +54,7 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 	m["filehash"] = doc.va.Document().FileHash()
 	m["documentid"] = doc.va.Document().Info().Index()
 	m["owner"] = currency.StateAddressKeyPrefix(doc.va.Document().Owner())
+	m["addresses"] = doc.addresses
 	m["height"] = doc.height
 
 	return bsonenc.Marshal(m)

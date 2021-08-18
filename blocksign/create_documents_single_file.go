@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	CreateDocumentsItemSingleFileType   = hint.Type("mitum-currency-create-documents-single-file")
+	CreateDocumentsItemSingleFileType   = hint.Type("mitum-blocksign-create-documents-single-file")
 	CreateDocumentsItemSingleFileHint   = hint.NewHint(CreateDocumentsItemSingleFileType, "v0.0.1")
 	CreateDocumentsItemSingleFileHinter = BaseCreateDocumentsItem{hint: CreateDocumentsItemSingleFileHint}
 )

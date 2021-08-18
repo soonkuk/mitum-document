@@ -1,7 +1,7 @@
 openapi: 3.0.1
 
 info:
-  title: mitum-currency - digest API
+  title: mitum-data-blocksign - digest API
   description: >-
     This is API description of digest service of mitum-currency.
   contact:
@@ -740,6 +740,9 @@ paths:
             - transfers
             - currency-register
             - currency-policy-updater
+            - create-documents
+            - transfer-documents
+            - sign-documents
       responses:
         500:
           description: problems in processing.

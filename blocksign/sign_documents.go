@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	SignDocumentsFactType = hint.Type("mitum-currency-sign-documents-operation-fact")
+	SignDocumentsFactType = hint.Type("mitum-blocksign-sign-documents-operation-fact")
 	SignDocumentsFactHint = hint.NewHint(SignDocumentsFactType, "v0.0.1")
-	SignDocumentsType     = hint.Type("mitum-currency-sign-documents-operation")
+	SignDocumentsType     = hint.Type("mitum-blocksign-sign-documents-operation")
 	SignDocumentsHint     = hint.NewHint(SignDocumentsType, "v0.0.1")
 )
 
@@ -130,7 +130,7 @@ func (fact SignDocumentsFact) Addresses() ([]base.Address, error) {
 	return as, nil
 }
 
-func (fact SignDocumentsFact) Rebulild() SignDocumentsFact {
+func (fact SignDocumentsFact) Rebuild() SignDocumentsFact {
 	items := make([]SignDocumentItem, len(fact.items))
 	for i := range fact.items {
 		it := fact.items[i]

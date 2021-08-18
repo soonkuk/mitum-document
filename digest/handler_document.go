@@ -15,10 +15,13 @@ import (
 )
 
 func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
+
 	cachekey := cacheKeyPath(r)
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
 	if err != nil {
@@ -63,9 +66,11 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
 	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleDocumentsInGroup(offset, reverse)
@@ -129,9 +134,11 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
 	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
+	/*
+		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+			return
+		}
+	*/
 
 	var height base.Height
 	switch h, err := parseHeightFromPath(mux.Vars(r)["height"]); {
@@ -250,7 +257,7 @@ func (*Handlers) buildDocumentsHal(baseSelf string, vas []Hal, offset string, re
 func buildDocumentsFilterByOffset(offset string, reverse bool) (bson.M, error) {
 	filter := bson.M{}
 	if len(offset) > 0 {
-		height, index, err := parseOffset(offset)
+		height, documentid, err := parseOffset(offset)
 		if err != nil {
 			return nil, err
 		}
@@ -260,7 +267,7 @@ func buildDocumentsFilterByOffset(offset string, reverse bool) (bson.M, error) {
 				{"height": bson.M{"$lt": height}},
 				{"$and": []bson.M{
 					{"height": height},
-					{"index": bson.M{"$lt": index}},
+					{"documentid": bson.M{"$lt": documentid}},
 				}},
 			}
 		} else {
@@ -268,7 +275,7 @@ func buildDocumentsFilterByOffset(offset string, reverse bool) (bson.M, error) {
 				{"height": bson.M{"$gt": height}},
 				{"$and": []bson.M{
 					{"height": height},
-					{"index": bson.M{"$gt": index}},
+					{"documentid": bson.M{"$gt": documentid}},
 				}},
 			}
 		}
@@ -283,20 +290,20 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 		return bson.M{"height": height}, nil
 	}
 
-	index, err := strconv.ParseUint(offset, 10, 64)
+	documentid, err := strconv.ParseUint(offset, 10, 64)
 	if err != nil {
 		return nil, xerrors.Errorf("invalid index of offset: %w", err)
 	}
 
 	if reverse {
 		filter = bson.M{
-			"height": height,
-			"index":  bson.M{"$lt": index},
+			"height":     height,
+			"documentid": bson.M{"$lt": documentid},
 		}
 	} else {
 		filter = bson.M{
-			"height": height,
-			"index":  bson.M{"$gt": index},
+			"height":     height,
+			"documentid": bson.M{"$gt": documentid},
 		}
 	}
 

@@ -1,12 +1,12 @@
 package blocksign
 
 import (
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/valuehash"
-	"golang.org/x/xerrors"
 )
 
 func (op CreateDocuments) Process(
@@ -41,7 +41,7 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case found:
-		return xerrors.Errorf("document filehash already registered, %q", opp.item.FileHash())
+		return errors.Errorf("document filehash already registered, %q", opp.item.FileHash())
 	default:
 		opp.nds = st
 	}
@@ -51,7 +51,7 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	for i := range opp.item.Signers() {
 		_, found := msigners[opp.item.Signers()[i].String()]
 		if found {
-			return xerrors.Errorf("duplicated signer, %v", opp.item.Signers()[i])
+			return errors.Errorf("duplicated signer, %v", opp.item.Signers()[i])
 		}
 		msigners[opp.item.Signers()[i].String()] = true
 	}
@@ -66,10 +66,10 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		case err != nil:
 			return err
 		case !found:
-			return xerrors.Errorf("signer account not found, %q", signers[i])
+			return errors.Errorf("signer account not found, %q", signers[i])
 		}
 		if signers[i].Equal(opp.sender) {
-			return xerrors.Errorf("signer account is same with document creator, %q", signers[i])
+			return errors.Errorf("signer account is same with document creator, %q", signers[i])
 		}
 	}
 
@@ -81,15 +81,6 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
 	sts := make([]state.State, 1)
-
-	/*
-		// prepare document id state
-		nst, err := SetStateLastDocumentIdValue(opp.ndis, opp.docInfo)
-		if err != nil {
-			return nil, err
-		}
-		sts[0] = nst
-	*/
 
 	signers := make([]DocSign, len(opp.item.Signers()))
 	for i := range opp.item.Signers() {
@@ -129,7 +120,7 @@ type CreateDocumentsProcessor struct {
 func NewCreateDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		if i, ok := op.(CreateDocuments); !ok {
-			return nil, xerrors.Errorf("not CreateDocuments, %T", op)
+			return nil, errors.Errorf("not CreateDocuments, %T", op)
 		} else {
 			return &CreateDocumentsProcessor{
 				cp:              cp,
@@ -146,7 +137,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 	fact := opp.Fact().(CreateDocumentsFact)
 
 	// check sender account state existence
-	if err := currency.CheckExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
+	if err := checkExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
 		return nil, err
 	}
 
@@ -212,7 +203,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 	opp.ndis = nst
 
 	// check fact sign
-	if err := currency.CheckFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
+	if err := checkFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
 		return nil, operation.NewBaseReasonError("invalid signing: %w", err)
 	}
 
@@ -299,7 +290,7 @@ func CalculateDocumentItemsFee(cp *currency.CurrencyPool, items []CreateDocument
 
 		feeer, found := cp.Feeer(it.Currency())
 		if !found {
-			return nil, xerrors.Errorf("unknown currency id found, %q", it.Currency())
+			return nil, errors.Errorf("unknown currency id found, %q", it.Currency())
 		}
 		switch k, err := feeer.Fee(currency.ZeroBig); {
 		case err != nil:
@@ -325,7 +316,7 @@ func CheckDocumentOwnerEnoughBalance(
 	for cid := range required {
 		rq := required[cid]
 
-		st, err := currency.ExistsState(currency.StateKeyBalance(holder, cid), "currency of holder", getState)
+		st, err := existsState(currency.StateKeyBalance(holder, cid), "currency of holder", getState)
 		if err != nil {
 			return nil, err
 		}

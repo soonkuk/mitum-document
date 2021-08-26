@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/digest"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -22,8 +23,8 @@ import (
 	"github.com/spikeekips/mitum/util/logging"
 	"github.com/ulule/limiter/v3"
 
-	"github.com/soonkuk/mitum-data/currency"
-	"github.com/soonkuk/mitum-data/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
 )
 
 var RunCommandProcesses []pm.Process
@@ -43,7 +44,7 @@ var RunCommandHooks = func(cmd *RunCommand) []pm.Hook {
 		pm.NewHook(pm.HookPrefixPost, ProcessNameDigester,
 			HookNameDigesterFollowUp, HookDigesterFollowUp).SetOverride(true),
 		pm.NewHook(pm.HookPrefixPre, ProcessNameDigestAPI,
-			HookNameSetLocalChannel, HookSetLocalChannel).SetOverride(true),
+			HookNameSetLocalChannel, currencycmds.HookSetLocalChannel).SetOverride(true),
 	}
 }
 
@@ -114,7 +115,7 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 
 	var di *digest.Digester
 	if err := LoadDigesterContextValue(ctx, &di); err != nil {
-		if !xerrors.Is(err, util.ContextValueNotFoundError) {
+		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}
 	}
@@ -164,7 +165,7 @@ func (*RunCommand) hookSetNetworkHandlers(ctx context.Context) (context.Context,
 		return ctx, err
 	}
 
-	nt.SetNodeInfoHandler(NodeInfoHandler(
+	nt.SetNodeInfoHandler(currencycmds.NodeInfoHandler(
 		nt.NodeInfoHandler(),
 	))
 
@@ -177,9 +178,9 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 		return nil, err
 	}
 
-	var design DigestDesign
+	var design currencycmds.DigestDesign
 	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -195,7 +196,7 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 	if err != nil {
 		return ctx, err
 	}
-	_ = handlers.SetLogger(cmd.Log())
+	_ = handlers.SetLogging(cmd.Logging)
 
 	if err := handlers.Initialize(); err != nil {
 		return ctx, err
@@ -205,12 +206,12 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 	if err := LoadDigestNetworkContextValue(ctx, &dnt); err != nil {
 		return ctx, err
 	}
-	dnt.SetHandler(handlers.Handler())
 
+	dnt.SetRouter(handlers.Router())
 	return ctx, nil
 }
 
-func (cmd *RunCommand) loadCache(_ context.Context, design DigestDesign) (digest.Cache, error) {
+func (cmd *RunCommand) loadCache(_ context.Context, design currencycmds.DigestDesign) (digest.Cache, error) {
 	c, err := digest.NewCacheFromURI(design.Cache().String())
 	if err != nil {
 		cmd.Log().Error().Err(err).Str("cache", design.Cache().String()).Msg("failed to connect cache server")
@@ -224,7 +225,7 @@ func (cmd *RunCommand) loadCache(_ context.Context, design DigestDesign) (digest
 func (cmd *RunCommand) setDigestHandlers(
 	ctx context.Context,
 	conf config.LocalNode,
-	design DigestDesign,
+	design currencycmds.DigestDesign,
 	cache digest.Cache,
 ) (*digest.Handlers, error) {
 	var nt network.Server
@@ -266,7 +267,7 @@ func (*RunCommand) enteringBootingState(ctx context.Context) (context.Context, e
 	if err := process.LoadConsensusStatesContextValue(ctx, &cs); err != nil {
 		return ctx, err
 	} else if i, ok := cs.(*basicstates.States); !ok {
-		return ctx, xerrors.Errorf("States not *basicstates.States, %T", cs)
+		return ctx, errors.Errorf("States not *basicstates.States, %T", cs)
 	} else {
 		bcs = i
 	}
@@ -283,7 +284,7 @@ func (*RunCommand) attachDigestRateLimit(
 	handlers *digest.Handlers,
 	conf config.RateLimit,
 ) (context.Context, error) {
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
@@ -298,10 +299,10 @@ func (*RunCommand) attachDigestRateLimit(
 		for j := range rs {
 			prefix, found := digest.RateLimitHandlerMap[j]
 			if !found {
-				return ctx, xerrors.Errorf("handler, %q for digest ratelimit not found", j)
+				return ctx, errors.Errorf("handler, %q for digest ratelimit not found", j)
 			}
 
-			log.Debug().
+			log.Log().Debug().
 				Str("handler", j).
 				Str("prefix", prefix).
 				Str("target", r.Target()).
@@ -318,7 +319,7 @@ func (*RunCommand) attachDigestRateLimit(
 		if err != nil {
 			return ctx, err
 		}
-		log.Debug().Str("store", conf.Cache().String()).Msg("ratelimit store created")
+		log.Log().Debug().Str("store", conf.Cache().String()).Msg("ratelimit store created")
 
 		store = i
 	}
@@ -343,20 +344,26 @@ func (cmd *RunCommand) setDigestSendHandler(
 		return nil, err
 	}
 
-	remotes := suffrage.Nodes()
-	rchans := make([]network.Channel, len(remotes))
-	var j int
-	for i := range remotes {
-		s := remotes[i]
-		_, ch, found := nodepool.Node(s)
-		if !found {
-			return nil, xerrors.Errorf("suffrage node, %q not found in nodepool", s)
-		}
-		rchans[j] = ch
-		j++
-	}
+	handlers = handlers.SetSend(currencycmds.NewSendHandler(conf.Privatekey(), conf.NetworkID(), func() ([]network.Channel, error) {
+		remotes := suffrage.Nodes()
 
-	handlers = handlers.SetSend(newSendHandler(conf.Privatekey(), conf.NetworkID(), rchans))
+		var chs []network.Channel
+		for i := range remotes {
+			s := remotes[i]
+			_, ch, found := nodepool.Node(s)
+			switch {
+			case !found:
+				return nil, errors.Errorf("suffrage node, %q not found in nodepool", s)
+			case ch == nil:
+				continue
+			default:
+				chs = append(chs, ch)
+			}
+		}
+
+		return chs, nil
+	}))
+
 	cmd.Log().Debug().Msg("send handler attached")
 
 	return handlers, nil

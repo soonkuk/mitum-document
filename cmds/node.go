@@ -1,9 +1,11 @@
 package cmds
 
+import currencycmds "github.com/spikeekips/mitum-currency/cmds"
+
 type NodeCommand struct {
-	Init InitCommand     `cmd:"" help:"initialize node"`
-	Run  RunCommand      `cmd:"" help:"run node"`
-	Info NodeInfoCommand `cmd:"" help:"node information"`
+	Init InitCommand                  `cmd:"" help:"initialize node"`
+	Run  RunCommand                   `cmd:"" help:"run node"`
+	Info currencycmds.NodeInfoCommand `cmd:"" help:"node information"`
 }
 
 func NewNodeCommand() (NodeCommand, error) {
@@ -20,6 +22,6 @@ func NewNodeCommand() (NodeCommand, error) {
 	return NodeCommand{
 		Init: initCommand,
 		Run:  runCommand,
-		Info: NewNodeInfoCommand(),
+		Info: currencycmds.NewNodeInfoCommand(),
 	}, nil
 }

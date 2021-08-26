@@ -6,10 +6,8 @@ import (
 	"math/big"
 	"sort"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/xerrors"
-
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
@@ -17,6 +15,7 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
 	"github.com/spikeekips/mitum/util/valuehash"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -90,7 +89,7 @@ func (doc DocumentData) IsValid([]byte) error {
 		doc.creator,
 		doc.owner,
 	}, nil, false); err != nil {
-		return xerrors.Errorf("invalid document data: %w", err)
+		return errors.Errorf("invalid document data: %w", err)
 	}
 
 	for i := range doc.signers {
@@ -186,11 +185,6 @@ func (doc DocumentData) WithData(docInfo DocInfo, creator base.Address, owner ba
 	return doc
 }
 
-var (
-	FileHashType = hint.Type("mbfh")
-	FileHashHint = hint.NewHint(FileHashType, "v0.0.1")
-)
-
 type FileHash string
 
 func (fh FileHash) Bytes() []byte {
@@ -201,21 +195,9 @@ func (fh FileHash) String() string {
 	return string(fh)
 }
 
-func (fh FileHash) Hint() hint.Hint {
-	return FileHashHint
-}
-
-func (fh FileHash) Hash() valuehash.Hash {
-	return fh.GenerateHash()
-}
-
-func (fh FileHash) GenerateHash() valuehash.Hash {
-	return valuehash.NewSHA256(fh.Bytes())
-}
-
 func (fh FileHash) IsValid([]byte) error {
 	if len(fh) < 1 {
-		return xerrors.Errorf("empty fileHash")
+		return errors.Errorf("empty fileHash")
 	}
 	return nil
 }
@@ -402,7 +384,7 @@ func MustNewDocInfo(idx int64, fh FileHash) DocInfo {
 func NewDocInfoFromString(id string, fh string) (DocInfo, error) {
 	i, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return DocInfo{}, xerrors.Errorf("not proper DocInfo string, %q", id)
+		return DocInfo{}, errors.Errorf("not proper DocInfo string, %q", id)
 	}
 	idx := currency.NewBigFromBigInt(i)
 	if !idx.OverNil() {
@@ -562,7 +544,7 @@ func MustNewDocId(idx int64) DocId {
 func NewDocIdFromString(id string) (DocId, error) {
 	i, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return DocId{}, xerrors.Errorf("not proper DocId string, %q", id)
+		return DocId{}, errors.Errorf("not proper DocId string, %q", id)
 	}
 	idx := currency.NewBigFromBigInt(i)
 	if !idx.OverNil() {

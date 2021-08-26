@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/pkg/errors"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum/base/seal"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 	"github.com/spikeekips/mitum/launch/process"
 	"github.com/spikeekips/mitum/network"
 	"github.com/spikeekips/mitum/util"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var SendVars = kong.Vars{
@@ -21,14 +21,14 @@ var SendVars = kong.Vars{
 
 type SendCommand struct {
 	*BaseCommand
-	URL        []*url.URL              `name:"node" help:"remote mitum url (default: ${node_url})" default:"${node_url}"` // nolint
-	NetworkID  mitumcmds.NetworkIDFlag `name:"network-id" help:"network-id" `
-	Seal       FileLoad                `help:"seal" optional:""`
-	DryRun     bool                    `help:"dry-run, print operation" optional:"" default:"false"`
-	Pretty     bool                    `name:"pretty" help:"pretty format"`
-	Privatekey PrivatekeyFlag          `arg:"" name:"privatekey" help:"privatekey for sign"`
-	Timeout    time.Duration           `name:"timeout" help:"timeout; default: 5s"`
-	TLSInscure bool                    `name:"tls-insecure" help:"allow inseucre TLS connection; default is false"`
+	URL        []*url.URL                  `name:"node" help:"remote mitum url (default: ${node_url})" default:"${node_url}"` // nolint
+	NetworkID  mitumcmds.NetworkIDFlag     `name:"network-id" help:"network-id" `
+	Seal       currencycmds.FileLoad       `help:"seal" optional:""`
+	DryRun     bool                        `help:"dry-run, print operation" optional:"" default:"false"`
+	Pretty     bool                        `name:"pretty" help:"pretty format"`
+	Privatekey currencycmds.PrivatekeyFlag `arg:"" name:"privatekey" help:"privatekey for sign"`
+	Timeout    time.Duration               `name:"timeout" help:"timeout; default: 5s"`
+	TLSInscure bool                        `name:"tls-insecure" help:"allow inseucre TLS connection; default is false"`
 }
 
 func NewSendCommand() SendCommand {
@@ -39,7 +39,7 @@ func NewSendCommand() SendCommand {
 
 func (cmd *SendCommand) Run(version util.Version) error {
 	if err := cmd.Initialize(cmd, version); err != nil {
-		return xerrors.Errorf("failed to initialize command: %w", err)
+		return errors.Wrap(err, "failed to initialize command")
 	}
 
 	if cmd.Timeout < 1 {
@@ -51,10 +51,10 @@ func (cmd *SendCommand) Run(version util.Version) error {
 		return err
 	}
 
-	cmd.Log().Debug().Hinted("seal", sl.Hash()).Msg("seal loaded")
+	cmd.Log().Debug().Stringer("seal", sl.Hash()).Msg("seal loaded")
 
 	if !cmd.Privatekey.Empty() {
-		s, err := signSeal(sl, cmd.Privatekey, cmd.NetworkID.NetworkID())
+		s, err := currencycmds.SignSeal(sl, cmd.Privatekey, cmd.NetworkID.NetworkID())
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ func (cmd *SendCommand) Run(version util.Version) error {
 		cmd.Log().Debug().Msg("seal signed")
 	}
 
-	cmd.pretty(cmd.Pretty, sl)
+	currencycmds.PrettyPrint(cmd.Out, cmd.Pretty, sl)
 
 	if cmd.DryRun {
 		return nil
@@ -95,7 +95,7 @@ func (cmd *SendCommand) send(sl seal.Seal) error {
 	}
 
 	if len(urls) < 1 {
-		return xerrors.Errorf("empty node urls")
+		return errors.Errorf("empty node urls")
 	}
 
 	channels := make([]network.Channel, len(urls))
@@ -109,17 +109,30 @@ func (cmd *SendCommand) send(sl seal.Seal) error {
 		channels[i] = ch
 	}
 
-	eg, ctx := errgroup.WithContext(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), cmd.Timeout)
+	defer cancel()
 
-	for i := range channels {
-		ch := channels[i]
-		eg.Go(func() error {
-			ictx, cancel := context.WithTimeout(ctx, cmd.Timeout)
-			defer cancel()
+	wk := util.NewDistributeWorker(ctx, 100, nil)
+	defer wk.Close()
 
-			return ch.SendSeal(ictx, sl)
-		})
-	}
+	go func() {
+		defer wk.Done()
 
-	return eg.Wait()
+		for i := range channels {
+			ch := channels[i]
+			if err := wk.NewJob(func(ctx context.Context, _ uint64) error {
+				if err := ch.SendSeal(ctx, sl); err != nil {
+					cmd.Log().Error().Err(err).Stringer("conninfo", ch.ConnInfo()).Msg("failed to send to node")
+
+					return err
+				}
+
+				return nil
+			}); err != nil {
+				return
+			}
+		}
+	}()
+
+	return wk.Wait()
 }

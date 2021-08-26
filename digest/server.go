@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum/network"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 	"golang.org/x/net/http2"
-	"golang.org/x/xerrors"
 )
 
 type HTTP2Server struct {
@@ -31,12 +32,12 @@ type HTTP2Server struct {
 
 func NewHTTP2Server(bind, host string, certs []tls.Certificate) (*HTTP2Server, error) {
 	if err := network.CheckBindIsOpen("tcp", bind, time.Second*1); err != nil {
-		return nil, xerrors.Errorf("failed to open digest server: %w", err)
+		return nil, errors.Wrap(err, "failed to open digest server")
 	}
 
 	idleTimeout := time.Second * 10
 	sv := &HTTP2Server{
-		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
+		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "http2-server")
 		}),
 		bind:             bind,
@@ -98,14 +99,26 @@ func (sv *HTTP2Server) Initialize() error {
 	return nil
 }
 
-func (sv *HTTP2Server) SetLogger(l logging.Logger) logging.Logger {
-	_ = sv.ContextDaemon.SetLogger(l)
+func (sv *HTTP2Server) SetLogging(l *logging.Logging) *logging.Logging {
+	_ = sv.ContextDaemon.SetLogging(l)
 
-	return sv.Logging.SetLogger(l)
+	return sv.Logging.SetLogging(l)
 }
 
-func (sv *HTTP2Server) SetHandler(handler http.Handler) {
-	sv.srv.Handler = handler
+func (sv *HTTP2Server) Router() *mux.Router {
+	sv.RLock()
+	defer sv.RUnlock()
+
+	return sv.router
+}
+
+func (sv *HTTP2Server) SetRouter(router *mux.Router) {
+	sv.Lock()
+	defer sv.Unlock()
+
+	sv.router = router
+
+	sv.srv.Handler = router
 }
 
 func (sv *HTTP2Server) start(ctx context.Context) error {
@@ -132,7 +145,7 @@ func (sv *HTTP2Server) start(ctx context.Context) error {
 
 	select {
 	case err := <-errchan:
-		if err != nil && xerrors.Is(err, http.ErrServerClosed) {
+		if err != nil && errors.Is(err, http.ErrServerClosed) {
 			sv.Log().Debug().Msg("server closed")
 
 			return nil

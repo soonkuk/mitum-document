@@ -3,7 +3,9 @@ package cmds
 import (
 	"context"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
@@ -12,7 +14,6 @@ import (
 	"github.com/spikeekips/mitum/launch/process"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
-	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -71,7 +72,7 @@ func NewInitCommand(dryrun bool) (InitCommand, error) {
 func (*InitCommand) hookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
 	var oprs *hint.Hintmap
 	if err := process.LoadOperationProcessorsContextValue(ctx, &oprs); err != nil {
-		if !xerrors.Is(err, util.ContextValueNotFoundError) {
+		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}
 	}
@@ -94,7 +95,7 @@ func GenesisOperationsHandlerGenesisCurrencies(
 		return nil, err
 	}
 
-	var de *GenesisCurrenciesDesign
+	var de *currencycmds.GenesisCurrenciesDesign
 	if b, err := yaml.Marshal(m); err != nil {
 		return nil, err
 	} else if err := yaml.Unmarshal(b, &de); err != nil {
@@ -130,7 +131,7 @@ func GenesisOperationsHandlerGenesisCurrencies(
 	}
 }
 
-func loadCurrencyDesign(de CurrencyDesign, ga base.Address) (currency.CurrencyDesign, error) {
+func loadCurrencyDesign(de currencycmds.CurrencyDesign, ga base.Address) (currency.CurrencyDesign, error) {
 	j, err := loadGenesisCurrenciesFeeer(*de.Feeer, ga)
 	if err != nil {
 		return currency.CurrencyDesign{}, err
@@ -145,7 +146,7 @@ func loadCurrencyDesign(de CurrencyDesign, ga base.Address) (currency.CurrencyDe
 	return cd, nil
 }
 
-func loadGenesisCurrenciesFeeer(de FeeerDesign, ga base.Address) (currency.Feeer, error) {
+func loadGenesisCurrenciesFeeer(de currencycmds.FeeerDesign, ga base.Address) (currency.Feeer, error) {
 	var feeer currency.Feeer
 	switch de.Type {
 	case currency.FeeerNil, "":
@@ -167,7 +168,7 @@ func loadGenesisCurrenciesFeeer(de FeeerDesign, ga base.Address) (currency.Feeer
 			max,
 		)
 	default:
-		return nil, xerrors.Errorf("unknown type of feeer, %q", de.Type)
+		return nil, errors.Errorf("unknown type of feeer, %q", de.Type)
 	}
 
 	if err := feeer.IsValid(nil); err != nil {

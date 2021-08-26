@@ -8,7 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spikeekips/mitum/base"
@@ -27,10 +28,9 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
-	"github.com/soonkuk/mitum-data/digest"
-	"github.com/soonkuk/mitum-data/processor"
+	"github.com/soonkuk/mitum-blocksign/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
 )
 
 var BaseNodeCommandHooks = func(cmd *BaseNodeCommand) []pm.Hook {
@@ -72,12 +72,12 @@ func (cmd *BaseNodeCommand) BaseProcesses(ps *pm.Processes) (*pm.Processes, erro
 }
 
 func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
 
-	log.Debug().Msg("loading currencies from mitum database")
+	log.Log().Debug().Msg("loading currencies from mitum database")
 
 	var st *mongodbstorage.Database
 	if err := LoadDatabaseContextValue(ctx, &st); err != nil {
@@ -90,7 +90,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 		if err := cp.Set(sta); err != nil {
 			return false, err
 		}
-		log.Debug().Interface("currency", sta).Msg("currency loaded from mitum database")
+		log.Log().Debug().Interface("currency", sta).Msg("currency loaded from mitum database")
 
 		return true, nil
 	}); err != nil {
@@ -101,7 +101,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 }
 
 func HookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
@@ -117,7 +117,7 @@ func HookInitializeProposalProcessor(ctx context.Context) (context.Context, erro
 	}
 
 	if !suffrage.IsInside(nodepool.LocalNode().Address()) {
-		log.Debug().Msg("none-suffrage node; proposal processor will not be used")
+		log.Log().Debug().Msg("none-suffrage node; proposal processor will not be used")
 
 		return ctx, nil
 	}
@@ -144,8 +144,8 @@ func AttachProposalProcessor(
 	nodepool *network.Nodepool,
 	suffrage base.Suffrage,
 	cp *currency.CurrencyPool,
-) (*processor.OperationProcessor, error) {
-	opr := processor.NewOperationProcessor(cp)
+) (*blocksign.OperationProcessor, error) {
+	opr := blocksign.NewOperationProcessor(cp)
 	if _, err := opr.SetProcessor(currency.CreateAccounts{}, currency.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.KeyUpdater{}, currency.NewKeyUpdaterProcessor(cp)); err != nil {
@@ -170,7 +170,7 @@ func AttachProposalProcessor(
 	for i := range suffrageNodes {
 		n, _, found := nodepool.Node(suffrageNodes[i])
 		if !found {
-			return nil, xerrors.Errorf("suffrage node, %q not found in nodepool", suffrageNodes[i])
+			return nil, errors.Errorf("suffrage node, %q not found in nodepool", suffrageNodes[i])
 		}
 		pubs[i] = n.Publickey()
 	}
@@ -190,10 +190,10 @@ func AttachProposalProcessor(
 	return opr, nil
 }
 
-func InitializeProposalProcessor(ctx context.Context, opr *processor.OperationProcessor) (context.Context, error) {
+func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationProcessor) (context.Context, error) {
 	var oprs *hint.Hintmap
 	if err := process.LoadOperationProcessorsContextValue(ctx, &oprs); err != nil {
-		if !xerrors.Is(err, util.ContextValueNotFoundError) {
+		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}
 	}
@@ -232,11 +232,11 @@ func (*BaseNodeCommand) hookLoadDigestConfig(ctx context.Context) (context.Conte
 	if err := process.LoadConfigSourceTypeContextValue(ctx, &sourceType); err != nil {
 		return ctx, err
 	} else if sourceType != "yaml" {
-		return ctx, xerrors.Errorf("unknown source type, %q", sourceType)
+		return ctx, errors.Errorf("unknown source type, %q", sourceType)
 	}
 
 	var m struct {
-		Digest *DigestDesign
+		Digest *currencycmds.DigestDesign
 	}
 
 	if err := yaml.Unmarshal(source, &m); err != nil {
@@ -258,9 +258,9 @@ func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (conte
 		return ctx, err
 	}
 
-	var design DigestDesign
+	var design currencycmds.DigestDesign
 	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -281,22 +281,22 @@ func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (conte
 func (cmd *BaseNodeCommand) validateDigestConfigNetwork(
 	ctx context.Context,
 	conf config.LocalNode,
-	design DigestDesign,
+	design currencycmds.DigestDesign,
 ) (context.Context, error) {
 	if design.Network().ConnInfo() == nil {
-		return ctx, xerrors.Errorf("digest network url is missing")
+		return ctx, errors.Errorf("digest network url is missing")
 	}
 
 	a := design.Network().Bind()
 	if a == nil {
-		return ctx, xerrors.Errorf("digest network bind is missing")
+		return ctx, errors.Errorf("digest network bind is missing")
 	} else if sameBind(a, conf.Network().Bind()) {
-		return ctx, xerrors.Errorf("digest bind same with mitum bind: %q", a.String())
+		return ctx, errors.Errorf("digest bind same with mitum bind: %q", a.String())
 	}
 
 	if len(design.Network().Certs()) < 1 && design.Network().Bind().Scheme == "https" {
 		if h := design.Network().Bind().Hostname(); !strings.HasPrefix(h, "127.") && h != "localhost" {
-			return ctx, xerrors.Errorf("missing certificates for https")
+			return ctx, errors.Errorf("missing certificates for https")
 		}
 
 		if priv, err := util.GenerateED25519Privatekey(); err != nil {
@@ -321,7 +321,7 @@ func (cmd *BaseNodeCommand) validateDigestConfigNetwork(
 
 func (*BaseNodeCommand) validateDigestConfigNetworkRateLimit(
 	ctx context.Context,
-	design DigestDesign,
+	design currencycmds.DigestDesign,
 ) (context.Context, error) {
 	rcc := config.NewRateLimitChecker(ctx, design.Network().RateLimit(), nil)
 
@@ -329,7 +329,7 @@ func (*BaseNodeCommand) validateDigestConfigNetworkRateLimit(
 		rcc.Initialize,
 		rcc.Check,
 	}).Check(); err != nil {
-		if !xerrors.Is(err, util.IgnoreError) {
+		if !errors.Is(err, util.IgnoreError) {
 			return ctx, err
 		}
 	}
@@ -362,30 +362,19 @@ func sameBind(a, b *url.URL) bool {
 
 type BaseCommand struct {
 	*mitumcmds.BaseCommand
-	out io.Writer
+	Out io.Writer `kong:"-"`
 }
 
 func NewBaseCommand(name string) *BaseCommand {
 	return &BaseCommand{
 		BaseCommand: mitumcmds.NewBaseCommand(name),
-		out:         os.Stdout,
+		Out:         os.Stdout,
 	}
-}
-
-func (co *BaseCommand) pretty(pretty bool, i interface{}) {
-	var b []byte
-	if pretty {
-		b = jsonenc.MustMarshalIndent(i)
-	} else {
-		b = jsonenc.MustMarshal(i)
-	}
-
-	_, _ = fmt.Fprintln(co.out, string(b))
 }
 
 func (co *BaseCommand) print(f string, a ...interface{}) {
-	_, _ = fmt.Fprintf(co.out, f, a...)
-	_, _ = fmt.Fprintln(co.out)
+	_, _ = fmt.Fprintf(co.Out, f, a...)
+	_, _ = fmt.Fprintln(co.Out)
 }
 
 func hookVerboseConfig(ctx context.Context) (context.Context, error) {
@@ -394,14 +383,14 @@ func hookVerboseConfig(ctx context.Context) (context.Context, error) {
 		return ctx, err
 	}
 
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
 
-	var dd DigestDesign
+	var dd currencycmds.DigestDesign
 	if err := LoadDigestDesignContextValue(ctx, &dd); err != nil {
-		if !xerrors.Is(err, util.ContextValueNotFoundError) {
+		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}
 	}
@@ -415,17 +404,17 @@ func hookVerboseConfig(ctx context.Context) (context.Context, error) {
 
 	m["digest"] = dd
 
-	log.Debug().Interface("config", m).Msg("config loaded")
+	log.Log().Debug().Interface("config", m).Msg("config loaded")
 
 	return ctx, nil
 }
 
 type OperationFlags struct {
-	Privatekey PrivatekeyFlag          `arg:"" name:"privatekey" help:"privatekey to sign operation" required:"true"`
-	Token      string                  `help:"token for operation" optional:""`
-	NetworkID  mitumcmds.NetworkIDFlag `name:"network-id" help:"network-id" required:"true"`
-	Memo       string                  `name:"memo" help:"memo"`
-	Pretty     bool                    `name:"pretty" help:"pretty format"`
+	Privatekey currencycmds.PrivatekeyFlag `arg:"" name:"privatekey" help:"privatekey to sign operation" required:"true"`
+	Token      string                      `help:"token for operation" optional:""`
+	NetworkID  mitumcmds.NetworkIDFlag     `name:"network-id" help:"network-id" required:"true"`
+	Memo       string                      `name:"memo" help:"memo"`
+	Pretty     bool                        `name:"pretty" help:"pretty format"`
 }
 
 func (op *OperationFlags) IsValid([]byte) error {

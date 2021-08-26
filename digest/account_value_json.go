@@ -3,8 +3,8 @@ package digest
 import (
 	"encoding/json"
 
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 )

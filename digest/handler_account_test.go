@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"

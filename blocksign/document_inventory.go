@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
@@ -12,7 +13,6 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/valuehash"
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -103,7 +103,7 @@ func (div DocumentInventory) Get(id currency.Big) (DocInfo, error) {
 			return div.documents[i], nil
 		}
 	}
-	return DocInfo{}, xerrors.Errorf("Document not found in Owner's DocumentInventory, %v", id)
+	return DocInfo{}, errors.Errorf("Document not found in Owner's DocumentInventory, %v", id)
 }
 
 func (div *DocumentInventory) Append(d DocInfo) error {
@@ -111,7 +111,7 @@ func (div *DocumentInventory) Append(d DocInfo) error {
 		return err
 	}
 	if div.Exists(d.Index()) {
-		return xerrors.Errorf("document id %v already exists in document inventory", d.idx)
+		return errors.Errorf("document id %v already exists in document inventory", d.idx)
 	}
 	div.documents = append(div.documents, d)
 	return nil
@@ -119,7 +119,7 @@ func (div *DocumentInventory) Append(d DocInfo) error {
 
 func (div *DocumentInventory) Romove(d DocInfo) error {
 	if !div.Exists(d.Index()) {
-		return xerrors.Errorf("document id %v not found in document inventory", d.idx)
+		return errors.Errorf("document id %v not found in document inventory", d.idx)
 	}
 	for i := range div.documents {
 		if d.idx.Equal(div.documents[i].idx) {

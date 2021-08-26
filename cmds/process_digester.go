@@ -3,7 +3,7 @@ package cmds
 import (
 	"context"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/launch/config"
@@ -15,8 +15,8 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/soonkuk/mitum-data/currency"
-	"github.com/soonkuk/mitum-data/digest"
+	"github.com/soonkuk/mitum-blocksign/digest"
+	"github.com/spikeekips/mitum-currency/currency"
 )
 
 const (
@@ -53,14 +53,14 @@ func init() {
 }
 
 func ProcessDigester(ctx context.Context) (context.Context, error) {
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
 
 	var st *digest.Database
 	if err := LoadDigestDatabaseContextValue(ctx, &st); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -68,7 +68,7 @@ func ProcessDigester(ctx context.Context) (context.Context, error) {
 	}
 
 	di := digest.NewDigester(st, nil)
-	_ = di.SetLogger(log)
+	_ = di.SetLogging(log)
 
 	return context.WithValue(ctx, ContextValueDigester, di), nil
 }
@@ -76,7 +76,7 @@ func ProcessDigester(ctx context.Context) (context.Context, error) {
 func ProcessStartDigester(ctx context.Context) (context.Context, error) {
 	var di *digest.Digester
 	if err := LoadDigesterContextValue(ctx, &di); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -87,12 +87,12 @@ func ProcessStartDigester(ctx context.Context) (context.Context, error) {
 }
 
 func HookDigesterFollowUp(ctx context.Context) (context.Context, error) {
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
 
-	log.Debug().Msg("digester trying to follow up")
+	log.Log().Debug().Msg("digester trying to follow up")
 
 	var mst storage.Database
 	if err := process.LoadDatabaseContextValue(ctx, &mst); err != nil {
@@ -101,7 +101,7 @@ func HookDigesterFollowUp(ctx context.Context) (context.Context, error) {
 
 	var st *digest.Database
 	if err := LoadDigestDatabaseContextValue(ctx, &st); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -112,21 +112,21 @@ func HookDigesterFollowUp(ctx context.Context) (context.Context, error) {
 	case err != nil:
 		return ctx, err
 	case !found:
-		log.Debug().Msg("last manifest not found")
+		log.Log().Debug().Msg("last manifest not found")
 	case m.Height() > st.LastBlock():
-		log.Info().
-			Hinted("last_manifest", m.Height()).
-			Hinted("last_block", st.LastBlock()).
+		log.Log().Info().
+			Int64("last_manifest", m.Height().Int64()).
+			Int64("last_block", st.LastBlock().Int64()).
 			Msg("new blocks found to digest")
 
 		if err := digestFollowup(ctx, m.Height()); err != nil {
-			log.Error().Err(err).Msg("failed to follow up")
+			log.Log().Error().Err(err).Msg("failed to follow up")
 
 			return ctx, err
 		}
-		log.Info().Msg("digested new blocks")
+		log.Log().Info().Msg("digested new blocks")
 	default:
-		log.Info().Msg("digested blocks is up-to-dated")
+		log.Log().Info().Msg("digested blocks is up-to-dated")
 	}
 
 	return ctx, nil
@@ -144,7 +144,7 @@ func digestFollowup(ctx context.Context, height base.Height) error {
 		if err := process.LoadBlockDataContextValue(ctx, &bd); err != nil {
 			return err
 		} else if i, ok := bd.(*localfs.BlockData); !ok {
-			return xerrors.Errorf("other block data, %T not yet supported", bd)
+			return errors.Errorf("other block data, %T not yet supported", bd)
 		} else {
 			blockData = i
 		}

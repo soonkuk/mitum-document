@@ -2,7 +2,7 @@
 
 package blocksign
 
-import "github.com/soonkuk/mitum-data/currency"
+import "github.com/spikeekips/mitum-currency/currency"
 
 func MustAddress(s string) currency.Address {
 	a, err := currency.NewAddress(s)

@@ -1,8 +1,7 @@
 package blocksign
 
 import (
-	"golang.org/x/xerrors"
-
+	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 )
@@ -19,7 +18,7 @@ func (doc *DocumentData) unpack(
 	if hinter, err := enc.Decode(di); err != nil {
 		return err
 	} else if i, ok := hinter.(DocInfo); !ok {
-		return xerrors.Errorf("not DocInfo: %T", hinter)
+		return errors.Errorf("not DocInfo: %T", hinter)
 	} else {
 		doc.info = i
 	}
@@ -48,7 +47,7 @@ func (doc *DocumentData) unpack(
 	for i := range hits {
 		s, ok := hits[i].(DocSign)
 		if !ok {
-			return xerrors.Errorf("not DocSign : %T", s)
+			return errors.Errorf("not DocSign : %T", s)
 		}
 
 		signers[i] = s

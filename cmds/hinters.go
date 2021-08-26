@@ -4,9 +4,9 @@ import (
 	"github.com/spikeekips/mitum/launch"
 	"github.com/spikeekips/mitum/util/hint"
 
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
-	"github.com/soonkuk/mitum-data/digest"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/digest"
+	"github.com/spikeekips/mitum-currency/currency"
 )
 
 var (
@@ -58,7 +58,6 @@ var types = []hint.Type{
 	blocksign.DocIdType,
 	blocksign.DocSignType,
 	blocksign.DocumentInventoryType,
-	blocksign.FileHashType,
 	digest.ProblemType,
 	digest.NodeInfoType,
 	digest.BaseHalType,
@@ -93,7 +92,6 @@ var hinters = []hint.Hinter{
 	currency.Key{},
 	currency.NilFeeer{},
 	currency.RatioFeeer{},
-	blocksign.FileHash(""),
 	currency.TransfersFact{},
 	currency.TransfersItemMultiAmountsHinter,
 	currency.TransfersItemSingleAmountHinter,

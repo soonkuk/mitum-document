@@ -1,6 +1,7 @@
-package currency
+package blocksign
 
 import (
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/base/operation"
@@ -31,11 +32,11 @@ func checkFactSignsByState(
 	fs []operation.FactSign,
 	getState func(string) (state.State, bool, error),
 ) error {
-	st, err := existsState(StateKeyAccount(address), "keys of account", getState)
+	st, err := existsState(currency.StateKeyAccount(address), "keys of account", getState)
 	if err != nil {
 		return err
 	}
-	keys, err := StateKeysValue(st)
+	keys, err := currency.StateKeysValue(st)
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}

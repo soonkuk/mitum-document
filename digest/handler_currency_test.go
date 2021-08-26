@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/stretchr/testify/suite"

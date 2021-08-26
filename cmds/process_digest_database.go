@@ -3,8 +3,9 @@ package cmds
 import (
 	"context"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum/launch/config"
 	"github.com/spikeekips/mitum/launch/pm"
 	"github.com/spikeekips/mitum/launch/process"
@@ -12,7 +13,7 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/soonkuk/mitum-data/digest"
+	"github.com/soonkuk/mitum-blocksign/digest"
 )
 
 const ProcessNameDigestDatabase = "digest_database"
@@ -32,9 +33,9 @@ func init() {
 }
 
 func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
-	var design DigestDesign
+	var design currencycmds.DigestDesign
 	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
-		if xerrors.Is(err, util.ContextValueNotFoundError) {
+		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
 
@@ -50,12 +51,12 @@ func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 	if err != nil {
 		return ctx, err
 	}
-	var log logging.Logger
+	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
 
-	_ = st.SetLogger(log)
+	_ = st.SetLogging(log)
 
 	return context.WithValue(ctx, ContextValueDigestDatabase, st), nil
 }

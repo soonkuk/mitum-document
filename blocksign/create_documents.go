@@ -1,9 +1,9 @@
 package blocksign
 
 import (
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
@@ -20,12 +20,6 @@ var (
 )
 
 var MaxCreateDocumentsItems uint = 10
-
-/*
-type FileDataItem interface {
-	DocumentData() DocumentData
-}
-*/
 
 type CreateDocumentsItem interface {
 	hint.Hinter
@@ -82,11 +76,11 @@ func (fact CreateDocumentsFact) Bytes() []byte {
 
 func (fact CreateDocumentsFact) IsValid([]byte) error {
 	if len(fact.token) < 1 {
-		return xerrors.Errorf("empty token for CreateDocumentsFact")
+		return errors.Errorf("empty token for CreateDocumentsFact")
 	} else if n := len(fact.items); n < 1 {
-		return xerrors.Errorf("empty items")
+		return errors.Errorf("empty items")
 	} else if n > int(MaxCreateDocumentsItems) {
-		return xerrors.Errorf("items, %d over max, %d", n, MaxCreateDocumentsItems)
+		return errors.Errorf("items, %d over max, %d", n, MaxCreateDocumentsItems)
 	}
 
 	if err := isvalid.Check([]isvalid.IsValider{
@@ -103,7 +97,7 @@ func (fact CreateDocumentsFact) IsValid([]byte) error {
 		}
 		_, found := fhmap[fact.items[i].FileHash().String()]
 		if found {
-			return xerrors.Errorf("duplicated filehash, %v", fact.items[i].FileHash())
+			return errors.Errorf("duplicated filehash, %v", fact.items[i].FileHash())
 		}
 		fhmap[fact.items[i].FileHash().String()] = true
 	}

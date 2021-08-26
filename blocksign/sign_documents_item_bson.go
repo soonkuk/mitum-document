@@ -1,7 +1,7 @@
 package blocksign // nolint:dupl
 
 import (
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"go.mongodb.org/mongo-driver/bson"

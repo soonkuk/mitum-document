@@ -9,18 +9,18 @@ import (
 	"time"
 
 	"github.com/bluele/gcache"
+	"github.com/pkg/errors"
 	"github.com/rainycape/memcache"
+	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum/network"
 	"github.com/spikeekips/mitum/util"
-	"github.com/spikeekips/mitum/util/errors"
 	"github.com/spikeekips/mitum/util/logging"
 	"github.com/spikeekips/mitum/util/valuehash"
-	"golang.org/x/xerrors"
 )
 
 var (
 	DefaultCacheExpire = time.Hour
-	SkipCacheError     = errors.NewError("skip cache")
+	SkipCacheError     = util.NewError("skip cache")
 )
 
 type Cache interface {
@@ -31,7 +31,7 @@ type Cache interface {
 func NewCacheFromURI(uri string) (Cache, error) {
 	u, err := network.ParseURL(uri, false)
 	if err != nil {
-		return nil, xerrors.Errorf("invalid uri of cache, %q: %w", uri, err)
+		return nil, errors.Wrapf(err, "invalid uri of cache, %q", uri)
 	}
 	switch {
 	case u.Scheme == "memory":
@@ -40,7 +40,7 @@ func NewCacheFromURI(uri string) (Cache, error) {
 	case u.Scheme == "memcached":
 		return NewMemcached(u.Host)
 	default:
-		return nil, xerrors.Errorf("unsupported uri of cache, %q", uri)
+		return nil, errors.Errorf("unsupported uri of cache, %q", uri)
 	}
 }
 
@@ -78,7 +78,7 @@ func NewMemcached(servers ...string) (*Memcached, error) {
 		return nil, err
 	}
 	if _, err := cl.Get("<any key>"); err != nil {
-		if !xerrors.Is(err, memcache.ErrCacheMiss) {
+		if !errors.Is(err, memcache.ErrCacheMiss) {
 			return nil, err
 		}
 	}
@@ -116,7 +116,7 @@ type CachedHTTPHandler struct {
 
 func NewCachedHTTPHandler(cache Cache, f func(http.ResponseWriter, *http.Request)) CachedHTTPHandler {
 	return CachedHTTPHandler{
-		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
+		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "cached-http-handler")
 		}),
 		cache: cache,
@@ -130,8 +130,8 @@ func (ch CachedHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ch.f(cr, r)
 
 	if err := cr.Cache(); err != nil {
-		if !xerrors.Is(err, SkipCacheError) {
-			ch.Log().Verbose().Err(err).Msg("failed to cache")
+		if !errors.Is(err, SkipCacheError) {
+			ch.Log().Debug().Err(err).Msg("failed to cache")
 		}
 	}
 }
@@ -190,10 +190,10 @@ func (cr *CacheResponseWriter) filterHeader() http.Header {
 
 func (cr *CacheResponseWriter) Key() string {
 	if len(cr.key) > 0 {
-		return makeCacheKey(cr.key)
+		return MakeCacheKey(cr.key)
 	}
 
-	return cacheKeyFromRequest(cr.r)
+	return CacheKeyFromRequest(cr.r)
 }
 
 func (cr *CacheResponseWriter) SetKey(key string) *CacheResponseWriter {
@@ -256,17 +256,17 @@ func ScanCRLF(data []byte, atEOF bool) (int, []byte, error) {
 	return 0, nil, nil
 }
 
-func loadFromCache(cache Cache, key string, w http.ResponseWriter) error {
-	if b, err := cache.Get(makeCacheKey(key)); err != nil {
+func LoadFromCache(cache Cache, key string, w http.ResponseWriter) error {
+	if b, err := cache.Get(MakeCacheKey(key)); err != nil {
 		return err
-	} else if err = writeFromCache(b, w); err != nil {
+	} else if err = WriteFromCache(b, w); err != nil {
 		return err
 	} else {
 		return nil
 	}
 }
 
-func writeFromCache(b []byte, w http.ResponseWriter) error {
+func WriteFromCache(b []byte, w http.ResponseWriter) error {
 	reader := bufio.NewReader(bytes.NewReader(b))
 	sc := bufio.NewScanner(reader)
 	sc.Split(ScanCRLF)
@@ -300,10 +300,10 @@ func writeFromCache(b []byte, w http.ResponseWriter) error {
 	return nil
 }
 
-func makeCacheKey(key string) string {
+func MakeCacheKey(key string) string {
 	return valuehash.NewSHA256([]byte(key)).String()
 }
 
-func cacheKeyFromRequest(r *http.Request) string {
-	return makeCacheKey(r.URL.Path + "?" + r.URL.Query().Encode())
+func CacheKeyFromRequest(r *http.Request) string {
+	return MakeCacheKey(r.URL.Path + "?" + r.URL.Query().Encode())
 }

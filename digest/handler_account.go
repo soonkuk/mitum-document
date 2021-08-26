@@ -6,28 +6,27 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/valuehash"
-	"golang.org/x/xerrors"
 )
 
 func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
-	cachekey := cacheKeyPath(r)
-	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	cachekey := CacheKeyPath(r)
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	var address base.Address
 	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 
 		return
 	} else if err := a.IsValid(nil); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 		return
 	} else {
 		address = a
@@ -35,16 +34,16 @@ func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		return hd.handleAccountInGroup(address)
 	}); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 			err = util.NotFoundError.Errorf("account, %s not found", address)
 		} else {
 			hd.Log().Error().Err(err).Str("address", address.String()).Msg("failed to get account")
 		}
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
-		hd.writeHalBytes(w, v.([]byte), http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
 		if !shared {
-			hd.writeCache(w, cachekey, time.Second*2)
+			HTTP2WriteCache(w, cachekey, time.Second*2)
 		}
 	}
 }
@@ -114,11 +113,11 @@ func (hd *Handlers) buildAccountHal(va AccountValue) (Hal, error) {
 func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Request) {
 	var address base.Address
 	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 
 		return
 	} else if err := a.IsValid(nil); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 		return
 	} else {
 		address = a
@@ -128,19 +127,18 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
 		var b []byte
 		var filled bool
@@ -150,7 +148,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 			filled = l[1].(bool)
 		}
 
-		hd.writeHalBytes(w, b, http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
 			expire := time.Second * 3
@@ -158,7 +156,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 				expire = time.Hour * 30
 			}
 
-			hd.writeCache(w, cachekey, expire)
+			HTTP2WriteCache(w, cachekey, expire)
 		}
 	}
 }
@@ -257,11 +255,11 @@ func (hd *Handlers) buildAccountOperationsHal(
 func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Request) {
 	var address base.Address
 	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 
 		return
 	} else if err := a.IsValid(nil); err != nil {
-		hd.problemWithError(w, err, http.StatusBadRequest)
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
 		return
 	} else {
 		address = a
@@ -271,19 +269,18 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
 		var b []byte
 		var filled bool
@@ -293,7 +290,7 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 			filled = l[1].(bool)
 		}
 
-		hd.writeHalBytes(w, b, http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
 			expire := time.Second * 3
@@ -301,7 +298,7 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 				expire = time.Hour * 30
 			}
 
-			hd.writeCache(w, cachekey, expire)
+			HTTP2WriteCache(w, cachekey, expire)
 		}
 	}
 }

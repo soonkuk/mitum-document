@@ -7,25 +7,26 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/xerrors"
 )
 
 func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 
-	cachekey := cacheKeyPath(r)
+	cachekey := CacheKeyPath(r)
+
 	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
+		if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 			return
 		}
 	*/
 
 	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
 	if err != nil {
-		hd.problemWithError(w, xerrors.Errorf("invalid document id for document by id: %w", err), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %w", err), http.StatusBadRequest)
 
 		return
 	}
@@ -33,12 +34,12 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		return hd.handleDocumentInGroup(h)
 	}); err != nil {
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
-		hd.writeHalBytes(w, v.([]byte), http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
 
 		if !shared {
-			hd.writeCache(w, cachekey, time.Hour*30)
+			HTTP2WriteCache(w, cachekey, time.Hour*30)
 		}
 	}
 }
@@ -65,19 +66,18 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleDocumentsInGroup(offset, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
 		var b []byte
 		var filled bool
@@ -87,7 +87,7 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 			filled = l[1].(bool)
 		}
 
-		hd.writeHalBytes(w, b, http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
 			expire := time.Second * 3
@@ -95,7 +95,7 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 				expire = time.Hour * 30
 			}
 
-			hd.writeCache(w, cachekey, expire)
+			HTTP2WriteCache(w, cachekey, expire)
 		}
 	}
 }
@@ -133,21 +133,20 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := cacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
-	/*
-		if err := loadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	var height base.Height
 	switch h, err := parseHeightFromPath(mux.Vars(r)["height"]); {
 	case err != nil:
-		hd.problemWithError(w, xerrors.Errorf("invalid height found for manifest by height"), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, errors.Errorf("invalid height found for manifest by height"), http.StatusBadRequest)
 
 		return
 	case h <= base.NilHeight:
-		hd.problemWithError(w, xerrors.Errorf("invalid height, %v", h), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, errors.Errorf("invalid height, %v", h), http.StatusBadRequest)
 		return
 	default:
 		height = h
@@ -157,7 +156,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 		i, filled, err := hd.handleDocumentsByHeightInGroup(height, offset, reverse)
 		return []interface{}{i, filled}, err
 	}); err != nil {
-		hd.handleError(w, err)
+		HTTP2HandleError(w, err)
 	} else {
 		var b []byte
 		var filled bool
@@ -167,7 +166,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 			filled = l[1].(bool)
 		}
 
-		hd.writeHalBytes(w, b, http.StatusOK)
+		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
 			expire := time.Second * 3
@@ -175,7 +174,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 				expire = time.Hour * 30
 			}
 
-			hd.writeCache(w, cachekey, expire)
+			HTTP2WriteCache(w, cachekey, expire)
 		}
 	}
 }
@@ -292,7 +291,7 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 
 	documentid, err := strconv.ParseUint(offset, 10, 64)
 	if err != nil {
-		return nil, xerrors.Errorf("invalid index of offset: %w", err)
+		return nil, errors.Errorf("invalid index of offset: %w", err)
 	}
 
 	if reverse {

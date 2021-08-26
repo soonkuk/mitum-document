@@ -3,7 +3,7 @@
 package blocksign
 
 import (
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/spikeekips/mitum/base"

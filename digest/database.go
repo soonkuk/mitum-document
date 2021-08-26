@@ -7,8 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/state"
@@ -21,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/xerrors"
 )
 
 var maxLimit int64 = 50
@@ -47,14 +48,14 @@ type Database struct {
 
 func NewDatabase(mitum *mongodbstorage.Database, st *mongodbstorage.Database) (*Database, error) {
 	nst := &Database{
-		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
+		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "digest-mongodb-database")
 		}),
 		mitum:     mitum,
 		database:  st,
 		lastBlock: base.NilHeight,
 	}
-	_ = nst.SetLogger(mitum.Log())
+	_ = nst.SetLogging(mitum.Logging)
 
 	return nst, nil
 }
@@ -71,7 +72,7 @@ func NewReadonlyDatabase(mitum *mongodbstorage.Database, st *mongodbstorage.Data
 
 func (st *Database) New() (*Database, error) {
 	if st.readonly {
-		return nil, xerrors.Errorf("readonly mode")
+		return nil, errors.Errorf("readonly mode")
 	}
 
 	nst, err := st.database.New()
@@ -95,7 +96,7 @@ func (st *Database) Initialize() error {
 
 	switch h, found, err := loadLastBlock(st); {
 	case err != nil:
-		return xerrors.Errorf("failed to get last block for digest: %w", err)
+		return errors.Wrap(err, "failed to get last block for digest")
 	case !found:
 		st.lastBlock = base.NilHeight
 		st.Log().Debug().Msg("last block for digest not found")
@@ -118,7 +119,7 @@ func (st *Database) Initialize() error {
 
 func (st *Database) createIndex() error {
 	if st.readonly {
-		return xerrors.Errorf("readonly mode")
+		return errors.Errorf("readonly mode")
 	}
 
 	for col, models := range defaultIndexes {
@@ -139,7 +140,7 @@ func (st *Database) LastBlock() base.Height {
 
 func (st *Database) SetLastBlock(height base.Height) error {
 	if st.readonly {
-		return xerrors.Errorf("readonly mode")
+		return errors.Errorf("readonly mode")
 	}
 
 	st.Lock()
@@ -154,19 +155,19 @@ func (st *Database) SetLastBlock(height base.Height) error {
 
 func (st *Database) setLastBlock(height base.Height) error {
 	if err := st.database.SetInfo(DigestStorageLastBlockKey, height.Bytes()); err != nil {
-		st.Log().Debug().Hinted("height", height).Msg("failed to set last block")
+		st.Log().Debug().Int64("height", height.Int64()).Msg("failed to set last block")
 
 		return err
 	}
 	st.lastBlock = height
-	st.Log().Debug().Hinted("height", height).Msg("set last block")
+	st.Log().Debug().Int64("height", height.Int64()).Msg("set last block")
 
 	return nil
 }
 
 func (st *Database) Clean() error {
 	if st.readonly {
-		return xerrors.Errorf("readonly mode")
+		return errors.Errorf("readonly mode")
 	}
 
 	st.Lock()
@@ -178,13 +179,13 @@ func (st *Database) Clean() error {
 func (st *Database) clean() error {
 	for _, col := range []string{
 		defaultColNameAccount,
-		defaultColNameDocument,
-		defaultColNameDocuments,
 		defaultColNameBalance,
 		defaultColNameOperation,
+		defaultColNameDocument,
+		defaultColNameDocuments,
 	} {
 		if err := st.database.Client().Collection(col).Drop(context.Background()); err != nil {
-			return storage.WrapStorageError(err)
+			return storage.MergeStorageError(err)
 		}
 
 		st.Log().Debug().Str("collection", col).Msg("drop collection by height")
@@ -201,7 +202,7 @@ func (st *Database) clean() error {
 
 func (st *Database) CleanByHeight(height base.Height) error {
 	if st.readonly {
-		return xerrors.Errorf("readonly mode")
+		return errors.Errorf("readonly mode")
 	}
 
 	st.Lock()
@@ -220,9 +221,10 @@ func (st *Database) cleanByHeight(height base.Height) error {
 
 	for _, col := range []string{
 		defaultColNameAccount,
-		defaultColNameDocument,
 		defaultColNameBalance,
 		defaultColNameOperation,
+		defaultColNameDocument,
+		defaultColNameDocuments,
 	} {
 		res, err := st.database.Client().Collection(col).BulkWrite(
 			context.Background(),
@@ -230,7 +232,7 @@ func (st *Database) cleanByHeight(height base.Height) error {
 			opts,
 		)
 		if err != nil {
-			return storage.WrapStorageError(err)
+			return storage.MergeStorageError(err)
 		}
 
 		st.Log().Debug().Str("collection", col).Interface("result", res).Msg("clean collection by height")
@@ -366,7 +368,7 @@ func (st *Database) Operation(
 			return nil
 		},
 	); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 			return OperationValue{}, false, nil
 		}
 
@@ -499,7 +501,7 @@ func (st *Database) Document(
 		},
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 			return DocumentValue{}, false, nil
 		}
 
@@ -564,7 +566,7 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 		},
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 			return rs, false, nil
 		}
 
@@ -623,7 +625,7 @@ func (st *Database) balance(a base.Address) ([]currency.Amount, base.Height, bas
 			},
 			options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 		); err != nil {
-			if xerrors.Is(err, util.NotFoundError) {
+			if errors.Is(err, util.NotFoundError) {
 				break
 			}
 
@@ -675,7 +677,7 @@ func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, b
 		},
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 
 			return blocksign.NewDocumentInventory([]blocksign.DocInfo{}), lastHeight, previousHeight, nil
 		}
@@ -698,7 +700,7 @@ func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, b
 func loadLastBlock(st *Database) (base.Height, bool, error) {
 	switch b, found, err := st.database.Info(DigestStorageLastBlockKey); {
 	case err != nil:
-		return base.NilHeight, false, xerrors.Errorf("failed to get last block for digest: %w", err)
+		return base.NilHeight, false, errors.Errorf("failed to get last block for digest: %w", err)
 	case !found:
 		return base.NilHeight, false, nil
 	default:
@@ -712,13 +714,13 @@ func loadLastBlock(st *Database) (base.Height, bool, error) {
 
 func parseOffset(s string) (base.Height, uint64, error) {
 	if n := strings.SplitN(s, ",", 2); n == nil {
-		return base.NilHeight, 0, xerrors.Errorf("invalid offset string: %q", s)
+		return base.NilHeight, 0, errors.Errorf("invalid offset string: %q", s)
 	} else if len(n) < 2 {
-		return base.NilHeight, 0, xerrors.Errorf("invalid offset, %q", s)
+		return base.NilHeight, 0, errors.Errorf("invalid offset, %q", s)
 	} else if h, err := base.NewHeightFromString(n[0]); err != nil {
-		return base.NilHeight, 0, xerrors.Errorf("invalid height of offset: %w", err)
+		return base.NilHeight, 0, errors.Errorf("invalid height of offset: %w", err)
 	} else if u, err := strconv.ParseUint(n[1], 10, 64); err != nil {
-		return base.NilHeight, 0, xerrors.Errorf("invalid index of offset: %w", err)
+		return base.NilHeight, 0, errors.Errorf("invalid index of offset: %w", err)
 	} else {
 		return h, u, nil
 	}

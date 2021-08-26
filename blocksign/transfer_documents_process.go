@@ -1,11 +1,11 @@
 package blocksign
 
 import (
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/valuehash"
-	"golang.org/x/xerrors"
 )
 
 func (op TransferDocuments) Process(
@@ -34,14 +34,14 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 	if _, found, err := getState(currency.StateKeyAccount(opp.item.Receiver())); err != nil {
 		return err
 	} else if !found {
-		return xerrors.Errorf("receiver account not found, %q", opp.item.Receiver())
+		return errors.Errorf("receiver account not found, %q", opp.item.Receiver())
 	}
 
 	// check existence of owner account
 	if _, found, err := getState(currency.StateKeyAccount(opp.item.Owner())); err != nil {
 		return err
 	} else if !found {
-		return xerrors.Errorf("owner account not found, %q", opp.item.Owner())
+		return errors.Errorf("owner account not found, %q", opp.item.Owner())
 	}
 
 	// check document id is lesser than or equal to global last document id
@@ -49,19 +49,19 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case !found:
-		return xerrors.Errorf("Document is not registered")
+		return errors.Errorf("Document is not registered")
 	default:
 		v, err := StateLastDocumentIdValue(st)
 		if err != nil {
 			return err
 		}
 		if opp.item.DocumentId().Sub(v.idx).OverZero() {
-			return xerrors.Errorf("Document Id is greater than last registered document id")
+			return errors.Errorf("Document Id is greater than last registered document id")
 		}
 	}
 
 	// get owner document inventory by document id and get filehash
-	if st, err := currency.ExistsState(StateKeyDocuments(opp.item.Owner()), "document inventory", getState); err != nil {
+	if st, err := existsState(StateKeyDocuments(opp.item.Owner()), "document inventory", getState); err != nil {
 		return err
 	} else {
 		dinv, err := StateDocumentsValue(st)
@@ -69,7 +69,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 			return err
 		}
 		if !dinv.Exists(opp.item.DocumentId()) {
-			return xerrors.Errorf("document id not registered to account, %v", opp.item.DocumentId())
+			return errors.Errorf("document id not registered to account, %v", opp.item.DocumentId())
 		}
 		docInfo, err := dinv.Get(opp.item.DocumentId())
 		if err != nil {
@@ -81,8 +81,8 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 	}
 
 	// get document data state by filehash
-	if st, err := currency.ExistsState(StateKeyDocumentData(opp.di.filehash), "document data", getState); err != nil {
-		return xerrors.Errorf("document data of filehash not found, %v", opp.di.filehash)
+	if st, err := existsState(StateKeyDocumentData(opp.di.filehash), "document data", getState); err != nil {
+		return errors.Errorf("document data of filehash not found, %v", opp.di.filehash)
 	} else {
 		opp.dds = st
 	}
@@ -114,7 +114,7 @@ func (opp *TransferDocumentsItemProcessor) PreProcess(
 			return err
 		}
 		if dinv.Exists(opp.di.Index()) {
-			return xerrors.Errorf("Document id already registered in receiver's document inventory, %v", opp.di.idx)
+			return errors.Errorf("Document id already registered in receiver's document inventory, %v", opp.di.idx)
 		}
 	}
 	opp.rdinvs = dst
@@ -152,7 +152,7 @@ type TransferDocumentsProcessor struct {
 func NewTransferDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		if i, ok := op.(TransferDocuments); !ok {
-			return nil, xerrors.Errorf("not TransferDocuments, %T", op)
+			return nil, errors.Errorf("not TransferDocuments, %T", op)
 		} else {
 			return &TransferDocumentsProcessor{
 				cp:                cp,
@@ -169,13 +169,13 @@ func (opp *TransferDocumentsProcessor) PreProcess(
 	fact := opp.Fact().(TransferDocumentsFact)
 
 	// fetch sender StateAccount
-	if err := currency.CheckExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
+	if err := checkExistsState(currency.StateKeyAccount(fact.sender), getState); err != nil {
 		return nil, err
 	}
 	// check sender is owner
 	for i := range fact.items {
 		if !fact.sender.Equal(fact.items[i].Owner()) {
-			return nil, xerrors.Errorf("item Owner is not same with fact sender, %q", fact.items[i].Owner())
+			return nil, errors.Errorf("item Owner is not same with fact sender, %q", fact.items[i].Owner())
 		}
 	}
 
@@ -198,8 +198,8 @@ func (opp *TransferDocumentsProcessor) PreProcess(
 		ns[i] = t
 	}
 
-	if err := currency.CheckFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
-		return nil, xerrors.Errorf("invalid signing: %w", err)
+	if err := checkFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
+		return nil, errors.Errorf("invalid signing: %w", err)
 	}
 
 	opp.ns = ns
@@ -214,7 +214,7 @@ func (opp *TransferDocumentsProcessor) Process( // nolint:dupl
 	fact := opp.Fact().(TransferDocumentsFact)
 
 	// get owner document inventory state and document inventory value
-	if st, err := currency.ExistsState(StateKeyDocuments(fact.Sender()), "document inventory", getState); err != nil {
+	if st, err := existsState(StateKeyDocuments(fact.Sender()), "document inventory", getState); err != nil {
 		return err
 	} else {
 		dinv, err := StateDocumentsValue(st)
@@ -304,7 +304,7 @@ func (opp *TransferDocumentsProcessor) calculateItemsFee() (map[currency.Currenc
 
 		feeer, found := opp.cp.Feeer(it.Currency())
 		if !found {
-			return nil, xerrors.Errorf("unknown currency id found, %q", it.Currency())
+			return nil, errors.Errorf("unknown currency id found, %q", it.Currency())
 		}
 		switch k, err := feeer.Fee(currency.ZeroBig); {
 		case err != nil:

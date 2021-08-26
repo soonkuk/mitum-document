@@ -1,7 +1,7 @@
 package blocksign
 
 import (
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/spikeekips/mitum/base/key"
@@ -60,7 +60,6 @@ func (t *baseTestEncode) SetupSuite() {
 	t.encs.AddHinter(DocInfo{})
 	t.encs.AddHinter(DocSign{})
 	t.encs.AddHinter(DocId{})
-	t.encs.AddHinter(FileHash(""))
 	t.encs.AddHinter(key.BTCPublickeyHinter)
 	t.encs.AddHinter(CreateDocumentsItemSingleFile{})
 	t.encs.AddHinter(CreateDocumentsItemSingleFileHinter)

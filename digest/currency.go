@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/xerrors"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -49,11 +49,11 @@ func LoadCurrenciesFromDatabase(
 			},
 			options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 		); err != nil {
-			if xerrors.Is(err, util.NotFoundError) {
+			if errors.Is(err, util.NotFoundError) {
 				break
 			}
 
-			return xerrors.Errorf("failed to get currency state: %w", err)
+			return errors.Wrap(err, "failed to get currency state")
 		}
 
 		switch keep, err := callback(sta); {
@@ -81,7 +81,7 @@ func loadStateFromDecoder(decoder func(interface{}) error, encs *encoder.Encoder
 	if err != nil {
 		return nil, err
 	} else if i, ok := hinter.(state.State); !ok {
-		return nil, xerrors.Errorf("not state.State: %T", hinter)
+		return nil, errors.Errorf("not state.State: %T", hinter)
 	} else {
 		st = i
 	}

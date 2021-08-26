@@ -4,13 +4,14 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/soonkuk/mitum-blocksign/digest"
 	"github.com/spikeekips/mitum/launch/process"
 	"github.com/spikeekips/mitum/storage"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-data/currency"
-	"github.com/soonkuk/mitum-data/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 	ContextValueCurrencyPool   util.ContextKey = "currency_pool"
 )
 
-func LoadDigestDesignContextValue(ctx context.Context, l *DigestDesign) error {
+func LoadDigestDesignContextValue(ctx context.Context, l *currencycmds.DigestDesign) error {
 	return util.LoadFromContextValue(ctx, ContextValueDigestDesign, l)
 }
 

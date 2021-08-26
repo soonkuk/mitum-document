@@ -8,10 +8,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/xerrors"
 
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
@@ -38,7 +38,7 @@ type BlockSession struct {
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
 	if st.Readonly() {
-		return nil, xerrors.Errorf("readonly mode")
+		return nil, errors.Errorf("readonly mode")
 	}
 
 	nst, err := st.New()
@@ -221,7 +221,6 @@ func (bs *BlockSession) prepareAccounts() error {
 
 	bs.accountModels = accountModels
 	bs.balanceModels = balanceModels
-	bs.documentsModels = documentsModels
 
 	if len(documentModels) > 0 {
 		bs.documentModels = documentModels
@@ -243,18 +242,6 @@ func (bs *BlockSession) handleAccountState(st state.State) ([]mongo.WriteModel, 
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 	}
 }
-
-/*
-func (bs *BlockSession) handleDocumentState(st state.State) ([]mongo.WriteModel, error) {
-	if rs, err := NewDocumentValue(st); err != nil {
-		return nil, err
-	} else if doc, err := NewDocumentDoc(rs, bs.st.database.Encoder()); err != nil {
-		return nil, err
-	} else {
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
-	}
-}
-*/
 
 func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, error) {
 	doc, err := NewBalanceDoc(st, bs.st.database.Encoder())
@@ -320,9 +307,9 @@ func (bs *BlockSession) writeModels(ctx context.Context, col string, models []mo
 func (bs *BlockSession) writeModelsChunk(ctx context.Context, col string, models []mongo.WriteModel) error {
 	opts := options.BulkWrite().SetOrdered(false)
 	if res, err := bs.st.database.Client().Collection(col).BulkWrite(ctx, models, opts); err != nil {
-		return storage.WrapStorageError(err)
+		return storage.MergeStorageError(err)
 	} else if res != nil && res.InsertedCount < 1 {
-		return xerrors.Errorf("not inserted to %s", col)
+		return errors.Errorf("not inserted to %s", col)
 	}
 
 	return nil

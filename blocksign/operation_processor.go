@@ -3,7 +3,9 @@ package blocksign
 import (
 	"sync"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/prprocessor"
@@ -13,10 +15,9 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/logging"
 	"github.com/spikeekips/mitum/util/valuehash"
-	"golang.org/x/xerrors"
 )
 
-// type GetNewProcessor func(state.Processor) (state.Processor, error)
+type GetNewProcessor func(state.Processor) (state.Processor, error)
 
 type DuplicationType string
 
@@ -39,8 +40,8 @@ type OperationProcessor struct {
 
 func NewOperationProcessor(cp *currency.CurrencyPool) *OperationProcessor {
 	return &OperationProcessor{
-		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
-			return c.Str("module", "mitum-blocksign-operations-processor")
+		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
+			return c.Str("module", "mitum-currency-operations-processor")
 		}),
 		processorHintSet: hint.NewHintmap(),
 		cp:               cp,
@@ -49,7 +50,7 @@ func NewOperationProcessor(cp *currency.CurrencyPool) *OperationProcessor {
 
 func (opr *OperationProcessor) New(pool *storage.Statepool) prprocessor.OperationProcessor {
 	return &OperationProcessor{
-		Logging: logging.NewLogging(func(c logging.Context) logging.Emitter {
+		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "mitum-currency-operations-processor")
 		}),
 		processorHintSet:     opr.processorHintSet,
@@ -117,11 +118,15 @@ func (opr *OperationProcessor) PreProcess(op state.Processor) (state.Processor, 
 
 func (opr *OperationProcessor) Process(op state.Processor) error {
 	switch op.(type) {
-	case *CreateDocumentsProcessor,
-		*TransferDocumentsProcessor,
-		*SignDocumentsProcessor:
+	case *currency.TransfersProcessor,
+		*currency.CreateAccountsProcessor,
+		*currency.KeyUpdaterProcessor,
+		*currency.CurrencyRegisterProcessor,
+		*currency.CurrencyPolicyUpdaterProcessor,
+		*CreateDocumentsProcessor,
+		*TransferDocumentsProcessor:
 		return opr.process(op)
-	case CreateDocuments, TransferDocuments, SignDocuments:
+	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, CreateDocuments, TransferDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -136,11 +141,15 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	var sp state.Processor
 
 	switch t := op.(type) {
+	case *currency.TransfersProcessor:
+		sp = t
+	case *currency.CreateAccountsProcessor:
+		sp = t
+	case *currency.KeyUpdaterProcessor:
+		sp = t
 	case *CreateDocumentsProcessor:
 		sp = t
 	case *TransferDocumentsProcessor:
-		sp = t
-	case *SignDocumentsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -158,14 +167,32 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 	var newAddresses []base.Address
 
 	switch t := op.(type) {
+	case currency.Transfers:
+		did = t.Fact().(currency.TransfersFact).Sender().String()
+		didtype = DuplicationTypeSender
+	case currency.CreateAccounts:
+		fact := t.Fact().(currency.CreateAccountsFact)
+		as, err := fact.Targets()
+		if err != nil {
+			return errors.Errorf("failed to get Addresses")
+		}
+		newAddresses = as
+		did = fact.Sender().String()
+		didtype = DuplicationTypeSender
+	case currency.KeyUpdater:
+		did = t.Fact().(currency.KeyUpdaterFact).Target().String()
+		didtype = DuplicationTypeSender
+	case currency.CurrencyRegister:
+		did = t.Fact().(currency.CurrencyRegisterFact).Currency().Currency().String()
+		didtype = DuplicationTypeCurrency
+	case currency.CurrencyPolicyUpdater:
+		did = t.Fact().(currency.CurrencyPolicyUpdaterFact).Currency().String()
+		didtype = DuplicationTypeCurrency
 	case CreateDocuments:
 		did = t.Fact().(CreateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	case TransferDocuments:
 		did = t.Fact().(TransferDocumentsFact).Sender().String()
-		didtype = DuplicationTypeSender
-	case SignDocuments:
-		did = t.Fact().(SignDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	default:
 		return nil
@@ -175,11 +202,11 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 		if _, found := opr.duplicated[did]; found {
 			switch didtype {
 			case DuplicationTypeSender:
-				return xerrors.Errorf("violates only one sender in proposal")
+				return errors.Errorf("violates only one sender in proposal")
 			case DuplicationTypeCurrency:
-				return xerrors.Errorf("duplicated currency id, %q found in proposal", did)
+				return errors.Errorf("duplicated currency id, %q found in proposal", did)
 			default:
-				return xerrors.Errorf("violates duplication in proposal")
+				return errors.Errorf("violates duplication in proposal")
 			}
 		}
 
@@ -198,7 +225,7 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 func (opr *OperationProcessor) checkNewAddressDuplication(as []base.Address) error {
 	for i := range as {
 		if _, found := opr.duplicatedNewAddress[as[i].String()]; found {
-			return xerrors.Errorf("new address already processed")
+			return errors.Errorf("new address already processed")
 		}
 	}
 
@@ -242,10 +269,14 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 	}
 
 	switch t := op.(type) {
-	case CreateDocuments,
-		TransferDocuments,
-		SignDocuments:
-		return nil, false, xerrors.Errorf("%T needs SetProcessor", t)
+	case currency.Transfers,
+		currency.CreateAccounts,
+		currency.KeyUpdater,
+		currency.CurrencyRegister,
+		currency.CurrencyPolicyUpdater,
+		CreateDocuments,
+		TransferDocuments:
+		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil
 	}
@@ -256,13 +287,13 @@ func (opr *OperationProcessor) getNewProcessorFromHintset(op state.Processor) (s
 	if hinter, ok := op.(hint.Hinter); !ok {
 		return nil, nil
 	} else if i, err := opr.processorHintSet.Compatible(hinter); err != nil {
-		if xerrors.Is(err, util.NotFoundError) {
+		if errors.Is(err, util.NotFoundError) {
 			return nil, nil
 		}
 
 		return nil, err
 	} else if j, ok := i.(currency.GetNewProcessor); !ok {
-		return nil, xerrors.Errorf("invalid GetNewProcessor func, %%", i)
+		return nil, errors.Errorf("invalid GetNewProcessor func, %%", i)
 	} else {
 		f = j
 	}

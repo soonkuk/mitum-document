@@ -5,7 +5,8 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/soonkuk/mitum-data/cmds"
+	"github.com/soonkuk/mitum-blocksign/cmds"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 	"github.com/spikeekips/mitum/util"
 )
@@ -15,8 +16,8 @@ var (
 	options = []kong.Option{
 		kong.Name("mitum-currency"),
 		kong.Description("mitum-currency tool"),
-		cmds.KeyAddressVars,
-		cmds.SendVars,
+		currencycmds.KeyAddressVars,
+		currencycmds.SendVars,
 		mitumcmds.BlockDownloadVars,
 	}
 )
@@ -25,10 +26,10 @@ type mainflags struct {
 	Version VersionCommand   `cmd:"" help:"version"`
 	Node    cmds.NodeCommand `cmd:"" help:"node"`
 	// TODO Blocks mitumcmds.BlocksCommand `cmd:"" help:"get block data from node"`
-	Key     cmds.KeyCommand     `cmd:"" help:"key"`
-	Seal    cmds.SealCommand    `cmd:"" help:"seal"`
-	Storage cmds.StorageCommand `cmd:"" help:"storage"`
-	Deploy  cmds.DeployCommand  `cmd:"" help:"deploy"`
+	Key     currencycmds.KeyCommand     `cmd:"" help:"key"`
+	Seal    cmds.SealCommand            `cmd:"" help:"seal"`
+	Storage currencycmds.StorageCommand `cmd:"" help:"storage"`
+	Deploy  currencycmds.DeployCommand  `cmd:"" help:"deploy"`
 }
 
 func main() {
@@ -41,10 +42,10 @@ func main() {
 
 	flags := mainflags{
 		Node:    nodeCommand,
-		Key:     cmds.NewKeyCommand(),
+		Key:     currencycmds.NewKeyCommand(),
 		Seal:    cmds.NewSealCommand(),
-		Storage: cmds.NewStorageCommand(),
-		Deploy:  cmds.NewDeployCommand(),
+		Storage: currencycmds.NewStorageCommand(),
+		Deploy:  currencycmds.NewDeployCommand(),
 	}
 
 	kctx, err := mitumcmds.Context(os.Args[1:], &flags, options...)

@@ -3,7 +3,7 @@ package blocksign
 import (
 	"testing"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/base/operation"
@@ -138,7 +138,7 @@ func testSignDocumentsItemSingleFileEncode(enc encoder.Encoder) suite.TestingSui
 			b := ufact.Items()[i]
 			t.True(a.DocumentId().Equal(b.DocumentId()))
 			t.True(a.Owner().Equal(b.Owner()))
-			t.True(a.Currency().Equal(b.Currency()))
+			t.Equal(a.Currency(), (b.Currency()))
 		}
 
 	}

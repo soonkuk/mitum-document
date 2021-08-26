@@ -1,23 +1,24 @@
 package cmds
 
 import (
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-data/blocksign"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 )
 
 type TransferDocumentCommand struct {
 	*BaseCommand
-	OperationFlags
-	Sender   AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	Currency CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	DocId    BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
-	Receiver AddressFlag    `arg:"" name:"reciever" help:"reciever address" required:""`
-	Seal     FileLoad       `help:"seal" optional:""`
+	currencycmds.OperationFlags
+	Sender   currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
+	Currency currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
+	DocId    currencycmds.BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
+	Receiver currencycmds.AddressFlag    `arg:"" name:"reciever" help:"reciever address" required:""`
+	Seal     currencycmds.FileLoad       `help:"seal" optional:""`
 	sender   base.Address
 	receiver base.Address
 }
@@ -30,7 +31,7 @@ func NewTransferDocumentCommand() TransferDocumentCommand {
 
 func (cmd *TransferDocumentCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
-		return xerrors.Errorf("failed to initialize command: %w", err)
+		return errors.Errorf("failed to initialize command: %w", err)
 	}
 
 	if err := cmd.parseFlags(); err != nil {
@@ -52,7 +53,7 @@ func (cmd *TransferDocumentCommand) Run(version util.Version) error { // nolint:
 	); err != nil {
 		return err
 	} else {
-		cmd.pretty(cmd.Pretty, sl)
+		currencycmds.PrettyPrint(cmd.Out, cmd.Pretty, sl)
 	}
 
 	return nil
@@ -64,12 +65,12 @@ func (cmd *TransferDocumentCommand) parseFlags() error {
 	}
 
 	if a, err := cmd.Sender.Encode(jenc); err != nil {
-		return xerrors.Errorf("invalid sender format, %q: %w", cmd.Sender.String(), err)
+		return errors.Errorf("invalid sender format, %q: %w", cmd.Sender.String(), err)
 	} else {
 		cmd.sender = a
 	}
 	if a, err := cmd.Receiver.Encode(jenc); err != nil {
-		return xerrors.Errorf("invalid receiver format, %q: %w", cmd.Receiver.String(), err)
+		return errors.Errorf("invalid receiver format, %q: %w", cmd.Receiver.String(), err)
 	} else {
 		cmd.receiver = a
 	}
@@ -107,7 +108,7 @@ func (cmd *TransferDocumentCommand) createOperation() (operation.Operation, erro
 	}
 
 	if op, err := blocksign.NewTransferDocuments(fact, fs, cmd.Memo); err != nil {
-		return nil, xerrors.Errorf("failed to create transfer-document operation: %w", err)
+		return nil, errors.Errorf("failed to create transfer-document operation: %w", err)
 	} else {
 		return op, nil
 	}

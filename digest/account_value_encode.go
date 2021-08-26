@@ -1,12 +1,12 @@
 package digest
 
 import (
-	"github.com/soonkuk/mitum-data/blocksign"
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
-	"golang.org/x/xerrors"
 )
 
 func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []byte, height, previousHeight base.Height) error {
@@ -37,7 +37,7 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []
 	if hinter, err := enc.Decode(dm); err != nil {
 		return err
 	} else if k, ok := hinter.(blocksign.DocumentInventory); !ok {
-		return xerrors.Errorf("not DocumentInventory: %T", hinter)
+		return errors.Errorf("not DocumentInventory: %T", hinter)
 	} else {
 		va.document = k
 	}

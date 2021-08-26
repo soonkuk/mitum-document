@@ -1,9 +1,8 @@
 package blocksign
 
 import (
-	"golang.org/x/xerrors"
-
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
@@ -77,11 +76,11 @@ func (fact TransferDocumentsFact) Bytes() []byte {
 
 func (fact TransferDocumentsFact) IsValid([]byte) error {
 	if len(fact.token) < 1 {
-		return xerrors.Errorf("empty token for TransferDocumentsFact")
+		return errors.Errorf("empty token for TransferDocumentsFact")
 	} else if n := len(fact.items); n < 1 {
-		return xerrors.Errorf("empty items")
+		return errors.Errorf("empty items")
 	} else if n > int(MaxTransferDocumentsItems) {
-		return xerrors.Errorf("items, %d over max, %d", n, MaxTransferDocumentsItems)
+		return errors.Errorf("items, %d over max, %d", n, MaxTransferDocumentsItems)
 	}
 
 	if err := isvalid.Check([]isvalid.IsValider{
@@ -100,11 +99,11 @@ func (fact TransferDocumentsFact) IsValid([]byte) error {
 		}
 		r := it.Receiver().String()
 		if r == fact.sender.String() {
-			return xerrors.Errorf("receiver is same with sender, %q", fact.sender)
+			return errors.Errorf("receiver is same with sender, %q", fact.sender)
 		}
 		k := it.DocumentId().String()
 		if _, found := foundDocId[k]; found {
-			return xerrors.Errorf("duplicated document found, %s", k)
+			return errors.Errorf("duplicated document found, %s", k)
 		}
 		foundDocId[k] = true
 	}

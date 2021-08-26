@@ -3,7 +3,7 @@ package digest
 import (
 	"time"
 
-	"github.com/soonkuk/mitum-data/currency"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"

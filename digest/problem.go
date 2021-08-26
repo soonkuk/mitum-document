@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum/util/hint"
-	"golang.org/x/xerrors"
 )
 
 const (
 	ProblemMimetype    = "application/problem+json; charset=utf-8"
-	ProblemNamespace   = "https://github.com/soonkuk/mitum-data/problems"
+	ProblemNamespace   = "https://github.com/spikeekips/mitum-currency/problems"
 	DefaultProblemType = "others"
 )
 
@@ -76,7 +76,7 @@ func makeProblemNamespace(t string) string {
 
 func parseProblemNamespace(s string) (string, error) {
 	if !strings.HasPrefix(s, ProblemNamespace) {
-		return "", xerrors.Errorf("invalid problem namespace: %q", s)
+		return "", errors.Errorf("invalid problem namespace: %q", s)
 	}
 	return s[len(ProblemNamespace)+1:], nil
 }

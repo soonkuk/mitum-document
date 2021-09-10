@@ -212,6 +212,7 @@ func (st *Database) CleanByHeight(height base.Height) error {
 }
 
 func (st *Database) cleanByHeight(height base.Height) error {
+
 	if height <= base.PreGenesisHeight+1 {
 		return st.clean()
 	}
@@ -237,6 +238,29 @@ func (st *Database) cleanByHeight(height base.Height) error {
 
 		st.Log().Debug().Str("collection", col).Interface("result", res).Msg("clean collection by height")
 	}
+
+	return st.setLastBlock(height - 1)
+}
+
+func (st *Database) cleanByHeightColName(height base.Height, colName string) error {
+
+	if height <= base.PreGenesisHeight+1 {
+		return st.clean()
+	}
+
+	opts := options.BulkWrite().SetOrdered(true)
+	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"height": bson.M{"$lte": height}})
+
+	res, err := st.database.Client().Collection(colName).BulkWrite(
+		context.Background(),
+		[]mongo.WriteModel{removeByHeight},
+		opts,
+	)
+	if err != nil {
+		return storage.MergeStorageError(err)
+	}
+
+	st.Log().Debug().Str("collection", colName).Interface("result", res).Msg("clean collection by height")
 
 	return st.setLastBlock(height - 1)
 }

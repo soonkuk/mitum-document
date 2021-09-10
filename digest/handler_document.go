@@ -18,11 +18,9 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 
 	cachekey := CacheKeyPath(r)
 
-	/*
-		if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
-			return
-		}
-	*/
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
 
 	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
 	if err != nil {
@@ -39,7 +37,7 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
 
 		if !shared {
-			HTTP2WriteCache(w, cachekey, time.Hour*30)
+			HTTP2WriteCache(w, cachekey, time.Second*2)
 		}
 	}
 }
@@ -92,7 +90,7 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 		if !shared {
 			expire := time.Second * 3
 			if filled {
-				expire = time.Hour * 30
+				expire = time.Hour * 3
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -171,7 +169,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 		if !shared {
 			expire := time.Second * 3
 			if filled {
-				expire = time.Hour * 30
+				expire = time.Hour * 3
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)

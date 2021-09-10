@@ -151,9 +151,9 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 3
+			expire := time.Second * 2
 			if filled {
-				expire = time.Hour * 30
+				expire = time.Hour * 2
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)

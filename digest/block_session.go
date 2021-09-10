@@ -96,6 +96,11 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 	}
 
 	if len(bs.documentModels) > 0 {
+
+		if err := bs.st.cleanByHeightColName(bs.block.Height(), defaultColNameDocument); err != nil {
+			return err
+		}
+
 		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
 			return err
 		}

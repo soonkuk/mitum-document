@@ -11,7 +11,12 @@ func (it *BaseCreateDocumentsItem) unpack(
 	enc encoder.Encoder,
 	ht hint.Hint,
 	bfh string,
+	bdi currency.Big,
+	bsc string,
+	btl string,
+	bsz currency.Big,
 	bsg []base.AddressDecoder,
+	bsd []string,
 	scid string,
 
 ) error {
@@ -28,6 +33,11 @@ func (it *BaseCreateDocumentsItem) unpack(
 	}
 	it.signers = signers
 	it.fileHash = FileHash(bfh)
+	it.documentid = bdi
+	it.signcode = bsc
+	it.title = btl
+	it.size = bsz
+	it.signcodes = bsd
 	it.cid = currency.CurrencyID(scid)
 
 	return nil

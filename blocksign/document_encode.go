@@ -2,6 +2,7 @@ package blocksign
 
 import (
 	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 )
@@ -9,8 +10,9 @@ import (
 func (doc *DocumentData) unpack(
 	enc encoder.Encoder,
 	di []byte,
-	cr base.AddressDecoder, // creator
-	ow base.AddressDecoder, // owner
+	cr []byte, // creator
+	tl string,
+	sz currency.Big,
 	bsg []byte, // signers
 ) error {
 
@@ -24,18 +26,16 @@ func (doc *DocumentData) unpack(
 	}
 
 	// unpack creator
-	if a, err := cr.Encode(enc); err != nil {
+	if hinter, err := enc.Decode(cr); err != nil {
 		return err
+	} else if i, ok := hinter.(DocSign); !ok {
+		return errors.Errorf("not DocSign: %T", hinter)
 	} else {
-		doc.creator = a
+		doc.creator = i
 	}
 
-	// unpack owner
-	if a, err := ow.Encode(enc); err != nil {
-		return err
-	} else {
-		doc.owner = a
-	}
+	doc.title = tl
+	doc.size = sz
 
 	hits, err := enc.DecodeSlice(bsg)
 	if err != nil {
@@ -60,6 +60,7 @@ func (doc *DocumentData) unpack(
 func (ds *DocSign) unpack(
 	enc encoder.Encoder,
 	ad base.AddressDecoder, // address
+	sc string,
 	sg bool, // signed
 ) error {
 
@@ -68,6 +69,7 @@ func (ds *DocSign) unpack(
 		return err
 	}
 	ds.address = a
+	ds.signcode = sc
 	ds.signed = sg
 
 	return nil

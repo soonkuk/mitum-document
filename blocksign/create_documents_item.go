@@ -8,18 +8,35 @@ import (
 )
 
 type BaseCreateDocumentsItem struct {
-	hint     hint.Hint
-	fileHash FileHash
-	signers  []base.Address
-	cid      currency.CurrencyID
+	hint       hint.Hint
+	fileHash   FileHash
+	documentid currency.Big
+	signcode   string //creator signcode
+	title      string
+	size       currency.Big
+	signers    []base.Address
+	signcodes  []string //signers signcode
+	cid        currency.CurrencyID
 }
 
-func NewBaseCreateDocumentsItem(ht hint.Hint, filehash FileHash, signers []base.Address, cid currency.CurrencyID) BaseCreateDocumentsItem {
+func NewBaseCreateDocumentsItem(ht hint.Hint,
+	filehash FileHash,
+	documentid currency.Big,
+	signcode, title string,
+	size currency.Big,
+	signers []base.Address,
+	signcodes []string,
+	cid currency.CurrencyID) BaseCreateDocumentsItem {
 	return BaseCreateDocumentsItem{
-		hint:     ht,
-		fileHash: filehash,
-		signers:  signers,
-		cid:      cid,
+		hint:       ht,
+		fileHash:   filehash,
+		documentid: documentid,
+		signcode:   signcode,
+		title:      title,
+		size:       size,
+		signers:    signers,
+		signcodes:  signcodes,
+		cid:        cid,
 	}
 }
 
@@ -28,9 +45,19 @@ func (it BaseCreateDocumentsItem) Hint() hint.Hint {
 }
 
 func (it BaseCreateDocumentsItem) Bytes() []byte {
-	bs := make([][]byte, 2)
+	bs := make([][]byte, len(it.signers)+len(it.signcodes)+6)
 	bs[0] = it.fileHash.Bytes()
-	bs[1] = it.cid.Bytes()
+	bs[1] = it.documentid.Bytes()
+	bs[2] = []byte(it.signcode)
+	bs[3] = []byte(it.title)
+	bs[4] = it.size.Bytes()
+	bs[5] = it.cid.Bytes()
+	for i := range it.signers {
+		bs[i+6] = it.signers[i].Bytes()
+	}
+	for i := range it.signcodes {
+		bs[i+len(it.signers)+6] = []byte(it.signcodes[i])
+	}
 
 	return util.ConcatBytesSlice(bs...)
 }
@@ -45,8 +72,28 @@ func (it BaseCreateDocumentsItem) FileHash() FileHash {
 	return it.fileHash
 }
 
+func (it BaseCreateDocumentsItem) DocumentId() currency.Big {
+	return it.documentid
+}
+
+func (it BaseCreateDocumentsItem) Signcode() string {
+	return it.signcode
+}
+
+func (it BaseCreateDocumentsItem) Title() string {
+	return it.title
+}
+
+func (it BaseCreateDocumentsItem) Size() currency.Big {
+	return it.size
+}
+
 func (it BaseCreateDocumentsItem) Signers() []base.Address {
 	return it.signers
+}
+
+func (it BaseCreateDocumentsItem) Signcodes() []string {
+	return it.signcodes
 }
 
 // FileData return BaseCreateDocumentsItem's fileData.

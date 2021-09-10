@@ -26,7 +26,12 @@ type CreateDocumentsItem interface {
 	isvalid.IsValider
 	Bytes() []byte
 	FileHash() FileHash
+	DocumentId() currency.Big
+	Signcode() string
+	Title() string
+	Size() currency.Big
 	Signers() []base.Address
+	Signcodes() []string
 	Currency() currency.CurrencyID
 	Rebuild() CreateDocumentsItem
 }

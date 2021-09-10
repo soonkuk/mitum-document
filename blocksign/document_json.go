@@ -3,15 +3,16 @@ package blocksign
 import (
 	"encoding/json"
 
-	"github.com/spikeekips/mitum/base"
+	"github.com/spikeekips/mitum-currency/currency"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 )
 
 type DocumentJSONPacker struct {
 	jsonenc.HintedHead
 	DI DocInfo      `json:"documentinfo"`
-	CR base.Address `json:"creator"`
-	OW base.Address `json:"owner"`
+	CR DocSign      `json:"creator"`
+	TL string       `json:"title"`
+	SZ currency.Big `json:"size"`
 	SG []DocSign    `json:"signers"`
 }
 
@@ -20,16 +21,18 @@ func (doc DocumentData) MarshalJSON() ([]byte, error) {
 		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
 		DI:         doc.info,
 		CR:         doc.creator,
-		OW:         doc.owner,
+		TL:         doc.title,
+		SZ:         doc.size,
 		SG:         doc.signers,
 	})
 }
 
 type DocumentJSONUnpacker struct {
-	DI json.RawMessage     `json:"documentinfo"`
-	CR base.AddressDecoder `json:"creator"`
-	OW base.AddressDecoder `json:"owner"`
-	SG json.RawMessage     `json:"signers"`
+	DI json.RawMessage `json:"documentinfo"`
+	CR json.RawMessage `json:"creator"`
+	TL string          `json:"title"`
+	SZ currency.Big    `json:"size"`
+	SG json.RawMessage `json:"signers"`
 }
 
 func (doc *DocumentData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -38,5 +41,5 @@ func (doc *DocumentData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return doc.unpack(enc, udoc.DI, udoc.CR, udoc.OW, udoc.SG)
+	return doc.unpack(enc, udoc.DI, udoc.CR, udoc.TL, udoc.SZ, udoc.SG)
 }

@@ -19,7 +19,6 @@ func (op CreateDocuments) Process(
 type CreateDocumentsItemProcessor struct {
 	cp      *currency.CurrencyPool
 	sender  base.Address
-	docId   DocId
 	h       valuehash.Hash
 	item    CreateDocumentsItem
 	nds     state.State // new document data state (key = document filehash)
@@ -36,17 +35,17 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	// check existence of new document state with filehash
-	switch st, found, err := getState(StateKeyDocumentData(opp.item.FileHash())); {
+	// check existence of new document state with documentid and get document state
+	switch st, found, err := getState(StateKeyDocumentData(DocId(opp.item.DocumentId()))); {
 	case err != nil:
 		return err
 	case found:
-		return errors.Errorf("document filehash already registered, %q", opp.item.FileHash())
+		return errors.Errorf("documentid already registered, %q", opp.item.DocumentId())
 	default:
 		opp.nds = st
 	}
 
-	// check duplicated signers
+	// check duplicated signers address
 	msigners := map[string]bool{}
 	for i := range opp.item.Signers() {
 		_, found := msigners[opp.item.Signers()[i].String()]
@@ -56,8 +55,11 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		msigners[opp.item.Signers()[i].String()] = true
 	}
 
-	d := opp.docInfo.WithData(opp.docId.Index(), opp.item.FileHash())
-	opp.docInfo = d
+	// prepare doccInfo
+	opp.docInfo = DocInfo{
+		idx:      opp.item.DocumentId(),
+		filehash: opp.item.FileHash(),
+	}
 
 	// check sigenrs account existence
 	signers := opp.item.Signers()
@@ -80,22 +82,25 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
+
 	sts := make([]state.State, 1)
 
+	// prepare signers from items
 	signers := make([]DocSign, len(opp.item.Signers()))
 	for i := range opp.item.Signers() {
-		signers[i] = NewDocSign(opp.item.Signers()[i], false)
+		signers[i] = NewDocSign(opp.item.Signers()[i], opp.item.Signcodes()[i], false)
 	}
 
-	// document data with new document id
+	// prepare document data
 	docData := DocumentData{
 		info:    opp.docInfo,
-		creator: opp.sender,
-		owner:   opp.sender,
+		creator: DocSign{address: opp.sender, signcode: opp.item.Signcode(), signed: true},
+		title:   opp.item.Title(),
+		size:    opp.item.Size(),
 		signers: signers,
 	}
 
-	// prepare document data state
+	// return document data state
 	if dst, err := SetStateDocumentDataValue(opp.nds, docData); err != nil {
 		return nil, err
 	} else {
@@ -108,9 +113,7 @@ func (opp *CreateDocumentsItemProcessor) Process(
 type CreateDocumentsProcessor struct {
 	cp *currency.CurrencyPool
 	CreateDocuments
-	docId    DocId
 	dinv     DocumentInventory
-	ndis     state.State // document id state
 	ndinvs   state.State
 	sb       map[currency.CurrencyID]currency.AmountState // sender StateBalance
 	ns       []*CreateDocumentsItemProcessor              // ItemProcessor
@@ -141,23 +144,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 		return nil, err
 	}
 
-	// get global last document id
-	switch st, found, err := getState(StateKeyLastDocumentId); {
-	case err != nil:
-		return nil, err
-	case !found:
-		opp.docId = NewDocId(0)
-		opp.ndis = st
-	default:
-		v, err := StateLastDocumentIdValue(st)
-		if err != nil {
-			return nil, err
-		}
-		opp.docId = v.WithData(v.Index().Add(currency.NewBig(1)))
-		opp.ndis = st
-	}
-
-	// check existence of document inventory state with address
+	// check existence of document inventory state with address and get document inventory state
 	switch st, found, err := getState(StateKeyDocuments(fact.sender)); {
 	case err != nil:
 		return nil, err
@@ -173,6 +160,7 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 		opp.ndinvs = st
 	}
 
+	// prepare sender balance state
 	if required, err := opp.calculateItemsFee(); err != nil {
 		return nil, operation.NewBaseReasonError("failed to calculate fee: %w", err)
 	} else if sb, err := CheckDocumentOwnerEnoughBalance(fact.sender, required, getState); err != nil {
@@ -182,25 +170,16 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 		opp.sb = sb
 	}
 
+	// prepare item processor for each items
 	ns := make([]*CreateDocumentsItemProcessor, len(fact.items))
 	for i := range fact.items {
 
-		c := &CreateDocumentsItemProcessor{cp: opp.cp, sender: fact.sender, docId: opp.docId, h: opp.Hash(), item: fact.items[i]}
+		c := &CreateDocumentsItemProcessor{cp: opp.cp, sender: fact.sender, h: opp.Hash(), item: fact.items[i]}
 		if err := c.PreProcess(getState, setState); err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}
-		if i < len(fact.items)-1 {
-			opp.docId = opp.docId.WithData(opp.docId.idx.Add(currency.NewBig(1)))
-		}
 		ns[i] = c
 	}
-
-	// prepare document id state
-	nst, err := SetStateLastDocumentIdValue(opp.ndis, opp.docId)
-	if err != nil {
-		return nil, err
-	}
-	opp.ndis = nst
 
 	// check fact sign
 	if err := checkFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
@@ -216,14 +195,12 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 	getState func(key string) (state.State, bool, error),
 	setState func(valuehash.Hash, ...state.State) error,
 ) error {
+	// get fact
 	fact := opp.Fact().(CreateDocumentsFact)
 
 	var sts []state.State // nolint:prealloc
 
-	// append documentid state
-	sts = append(sts, opp.ndis)
-
-	// append document data state and doc info to owner document inventory
+	// append document data state and add doc info to owner document inventory
 	for i := range opp.ns {
 		if s, err := opp.ns[i].Process(getState, setState); err != nil {
 			return operation.NewBaseReasonError("failed to process create document item: %w", err)
@@ -233,9 +210,8 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 			if err != nil {
 				return err
 			}
-			docInfo := doc.Info()
 
-			if err := opp.dinv.Append(docInfo); err != nil {
+			if err := opp.dinv.Append(doc.Info()); err != nil {
 				return err
 			}
 		}
@@ -243,7 +219,7 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 
 	opp.dinv.Sort(true)
 
-	// append document inventory state
+	// prepare document inventory state and append it
 	if dinvs, err := SetStateDocumentsValue(opp.ndinvs, opp.dinv); err != nil {
 		return err
 	} else {

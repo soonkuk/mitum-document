@@ -126,7 +126,6 @@ func (t *testCreateDocumentsOperation) TestNormalCase() {
 	ndd, _ := StateDocumentDataValue(nds)
 	t.True(ndd.FileHash().Equal(fh))
 	t.True(ndd.Creator().Equal(sa.Address))
-	t.True(ndd.Owner().Equal(sa.Address))
 
 	ndinv, _ := StateDocumentsValue(ns)
 	t.True(ndinv.Documents()[0].FileHash().Equal(fh))
@@ -443,7 +442,6 @@ func (t *testCreateDocumentsOperation) TestMultipleItemsWithFee() {
 	ndd1, _ := StateDocumentDataValue(dds1)
 	t.True(ndd1.FileHash().Equal(fh1))
 	t.True(ndd1.Creator().Equal(sa.Address))
-	t.True(ndd1.Owner().Equal(sa.Address))
 }
 
 func (t *testCreateDocumentsOperation) TestInSufficientBalanceForFee() {

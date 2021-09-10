@@ -53,7 +53,7 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 
 	m["filehash"] = doc.va.Document().FileHash()
 	m["documentid"] = doc.va.Document().Info().Index()
-	m["owner"] = currency.StateAddressKeyPrefix(doc.va.Document().Owner())
+	m["creator"] = currency.StateAddressKeyPrefix(doc.va.Document().Creator())
 	m["addresses"] = doc.addresses
 	m["height"] = doc.height
 

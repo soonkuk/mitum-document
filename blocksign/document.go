@@ -25,24 +25,35 @@ var (
 
 type DocumentData struct {
 	info    DocInfo
-	creator base.Address
-	owner   base.Address
+	creator DocSign
+	title   string
+	size    currency.Big
 	signers []DocSign
 }
 
-func NewDocumentData(info DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
+func NewDocumentData(info DocInfo,
+	creator base.Address,
+	signcode string,
+	title string,
+	size currency.Big,
+	signers []DocSign) DocumentData {
 	doc := DocumentData{
-		info:    info,
-		creator: creator,
-		owner:   owner,
+		info: info,
+		creator: DocSign{
+			address:  creator,
+			signcode: signcode,
+			signed:   true,
+		},
+		title:   title,
+		size:    size,
 		signers: signers,
 	}
 
 	return doc
 }
 
-func MustNewDocumentData(info DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
-	doc := NewDocumentData(info, creator, owner, signers)
+func MustNewDocumentData(info DocInfo, creator base.Address, signcode string, title string, size currency.Big, signers []DocSign) DocumentData {
+	doc := NewDocumentData(info, creator, signcode, title, size, signers)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -55,7 +66,7 @@ func (doc DocumentData) Hint() hint.Hint {
 }
 
 func (doc DocumentData) Bytes() []byte {
-	bs := make([][]byte, len(doc.signers)+3)
+	bs := make([][]byte, len(doc.signers)+4)
 
 	sort.Slice(doc.signers, func(i, j int) bool {
 		return bytes.Compare(doc.signers[i].Bytes(), doc.signers[j].Bytes()) < 0
@@ -63,7 +74,8 @@ func (doc DocumentData) Bytes() []byte {
 
 	bs[0] = doc.info.Bytes()
 	bs[1] = doc.creator.Bytes()
-	bs[2] = doc.owner.Bytes()
+	bs[2] = []byte(doc.title)
+	bs[3] = doc.size.Bytes()
 	for i := range doc.signers {
 		bs[i+3] = doc.signers[i].Bytes()
 	}
@@ -80,14 +92,13 @@ func (doc DocumentData) GenerateHash() valuehash.Hash {
 }
 
 func (doc DocumentData) IsEmpty() bool {
-	return len(doc.info.FileHash()) < 1 || len(doc.signers) < 1
+	return len(doc.info.FileHash()) < 1 || len(doc.signers) < 1 || len(doc.title) < 1 || !doc.size.OverZero()
 }
 
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check([]isvalid.IsValider{
 		doc.info.FileHash(),
 		doc.creator,
-		doc.owner,
 	}, nil, false); err != nil {
 		return errors.Errorf("invalid document data: %w", err)
 	}
@@ -108,16 +119,24 @@ func (doc DocumentData) FileHash() FileHash {
 	return doc.info.FileHash()
 }
 
+func (doc DocumentData) SignCode() string {
+	return doc.creator.signcode
+}
+
+func (doc DocumentData) Title() string {
+	return doc.title
+}
+
+func (doc DocumentData) Size() currency.Big {
+	return doc.size
+}
+
 func (doc DocumentData) Info() DocInfo {
 	return doc.info
 }
 
 func (doc DocumentData) Creator() base.Address {
-	return doc.creator
-}
-
-func (doc DocumentData) Owner() base.Address {
-	return doc.owner
+	return doc.creator.address
 }
 
 func (doc DocumentData) Signers() []DocSign {
@@ -126,7 +145,6 @@ func (doc DocumentData) Signers() []DocSign {
 
 func (doc DocumentData) Addresses() ([]base.Address, error) {
 	addresses := make(map[base.Address]bool)
-	addresses[doc.Owner()] = true
 	for i := range doc.Signers() {
 		_, found := addresses[doc.Signers()[i].Address()]
 		if !found {
@@ -144,7 +162,12 @@ func (doc DocumentData) Addresses() ([]base.Address, error) {
 
 func (doc DocumentData) String() string {
 
-	return fmt.Sprintf("%s:%s:%s:%s", doc.FileHash().String(), doc.info.String(), doc.creator.String(), doc.owner.String())
+	return fmt.Sprintf("%s:%s:%s:%s:%s",
+		doc.FileHash().String(),
+		doc.info.String(),
+		doc.creator.String(),
+		doc.title,
+		doc.size)
 }
 
 func (doc DocumentData) Equal(b DocumentData) bool {
@@ -157,7 +180,11 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 		return false
 	}
 
-	if !doc.owner.Equal(b.owner) {
+	if doc.title != (b.title) {
+		return false
+	}
+
+	if !doc.size.Equal(b.size) {
 		return false
 	}
 
@@ -177,10 +204,11 @@ func (doc DocumentData) Equal(b DocumentData) bool {
 	return true
 }
 
-func (doc DocumentData) WithData(docInfo DocInfo, creator base.Address, owner base.Address, signers []DocSign) DocumentData {
-	doc.info = docInfo
+func (doc DocumentData) WithData(info DocInfo, creator DocSign, signcode string, title string, size currency.Big, signers []DocSign) DocumentData {
+	doc.info = info
 	doc.creator = creator
-	doc.owner = owner
+	doc.title = title
+	doc.size = size
 	doc.signers = signers
 	return doc
 }
@@ -212,20 +240,22 @@ var (
 )
 
 type DocSign struct {
-	address base.Address
-	signed  bool
+	address  base.Address
+	signcode string
+	signed   bool
 }
 
-func NewDocSign(address base.Address, signed bool) DocSign {
+func NewDocSign(address base.Address, signcode string, signed bool) DocSign {
 	doc := DocSign{
-		address: address,
-		signed:  signed,
+		address:  address,
+		signcode: signcode,
+		signed:   signed,
 	}
 	return doc
 }
 
-func MustNewDocSign(address base.Address, signed bool) DocSign {
-	doc := NewDocSign(address, signed)
+func MustNewDocSign(address base.Address, signcode string, signed bool) DocSign {
+	doc := NewDocSign(address, signcode, signed)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -279,6 +309,10 @@ func (ds DocSign) Equal(b DocSign) bool {
 		return false
 	}
 
+	if ds.signcode != b.signcode {
+		return false
+	}
+
 	if ds.signed != b.signed {
 		return false
 	}
@@ -297,6 +331,7 @@ func (ds *DocSign) SetSigned() {
 type DocSignJSONPacker struct {
 	jsonenc.HintedHead
 	AD base.Address `json:"address"`
+	SC string       `json:"signcode"`
 	SG bool         `json:"signed"`
 }
 
@@ -304,12 +339,14 @@ func (ds DocSign) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(DocSignJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(ds.Hint()),
 		AD:         ds.address,
+		SC:         ds.signcode,
 		SG:         ds.signed,
 	})
 }
 
 type DocSignJSONUnpacker struct {
 	AD base.AddressDecoder `json:"address"`
+	SC string              `json:"signcode"`
 	SG bool                `json:"signed"`
 }
 
@@ -319,11 +356,12 @@ func (ds *DocSign) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return ds.unpack(enc, uds.AD, uds.SG)
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
 }
 
 type DocSignBSONPacker struct {
 	AD base.Address `bson:"address"`
+	SC string       `bson:"signcode"`
 	SG bool         `bson:"signed"`
 }
 
@@ -331,14 +369,16 @@ func (ds DocSign) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(ds.Hint()),
 		bson.M{
-			"address": ds.address,
-			"signed":  ds.signed,
+			"address":  ds.address,
+			"signcode": ds.signcode,
+			"signed":   ds.signed,
 		}),
 	)
 }
 
 type DocSignBSONUnpacker struct {
 	AD base.AddressDecoder `bson:"address"`
+	SC string              `bson:"signcode"`
 	SG bool                `bson:"signed"`
 }
 
@@ -348,7 +388,7 @@ func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return ds.unpack(enc, uds.AD, uds.SG)
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
 }
 
 var (
@@ -513,24 +553,15 @@ func (di *DocInfo) UnmarshalBSON(b []byte) error {
 	return nil
 }
 
-var (
-	DocIdType = hint.Type("mitum-blocksign-document-id")
-	DocIdHint = hint.NewHint(DocIdType, "v0.0.1")
-)
-
-type DocId struct {
-	idx currency.Big
-}
+type DocId currency.Big
 
 func NewDocId(idx int64) DocId {
 	id := currency.NewBig(idx)
 	if !id.OverNil() {
 		return DocId{}
 	}
-	docId := DocId{
-		idx: id,
-	}
-	return docId
+
+	return DocId(id)
 }
 
 func MustNewDocId(idx int64) DocId {
@@ -550,19 +581,16 @@ func NewDocIdFromString(id string) (DocId, error) {
 	if !idx.OverNil() {
 		return DocId{}, nil
 	}
-	docId := DocId{
-		idx: idx,
-	}
-	return docId, nil
+
+	return DocId(idx), nil
 }
 
 func (di DocId) Index() currency.Big {
-	return di.idx
+	return currency.Big(di)
 }
 
 func (di DocId) Bytes() []byte {
-
-	return di.idx.Bytes()
+	return currency.Big(di).Bytes()
 }
 
 func (di DocId) Hash() valuehash.Hash {
@@ -573,12 +601,8 @@ func (di DocId) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(di.Bytes())
 }
 
-func (di DocId) Hint() hint.Hint {
-	return DocIdHint
-}
-
 func (di DocId) IsValid([]byte) error {
-	if err := di.idx.IsValid(nil); err != nil {
+	if err := currency.Big(di).IsValid(nil); err != nil {
 		return err
 	}
 
@@ -586,73 +610,31 @@ func (di DocId) IsValid([]byte) error {
 }
 
 func (di DocId) IsEmpty() bool {
-	return !di.idx.OverNil()
+	return !currency.Big(di).OverNil()
 }
 
 func (di DocId) String() string {
-	return di.idx.String()
+	return currency.Big(di).String()
 }
 
-func (di DocId) Equal(b DocInfo) bool {
-	return di.idx.Equal(b.idx)
+func (di DocId) Equal(b DocId) bool {
+	return currency.Big(di).Equal(currency.Big(b))
 }
 
 func (di DocId) WithData(idx currency.Big) DocId {
-	di.idx = idx
-	return di
+	return DocId(idx)
 }
 
-type DocIdJSONPacker struct {
-	jsonenc.HintedHead
-	ID currency.Big `json:"documentid"`
+type SignCode string
+
+func (sc SignCode) Bytes() []byte {
+	return []byte(sc)
 }
 
-func (di DocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocInfoJSONPacker{
-		HintedHead: jsonenc.NewHintedHead(di.Hint()),
-		ID:         di.idx,
-	})
+func (sc SignCode) String() string {
+	return string(sc)
 }
 
-type DocIdJSONUnpacker struct {
-	ID currency.Big `json:"documentid"`
-}
-
-func (di *DocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocInfoJSONUnpacker
-	if err := enc.Unmarshal(b, &udi); err != nil {
-		return err
-	}
-
-	di.idx = udi.ID
-
-	return nil
-}
-
-type DocIdBSONPacker struct {
-	ID currency.Big `bson:"documentid"`
-}
-
-func (di DocId) MarshalBSON() ([]byte, error) {
-	return bsonenc.Marshal(bsonenc.MergeBSONM(
-		bsonenc.NewHintedDoc(di.Hint()),
-		bson.M{
-			"documentid": di.idx,
-		}),
-	)
-}
-
-type DocIdBSONUnpacker struct {
-	ID currency.Big `bson:"documentid"`
-}
-
-func (di *DocId) UnmarshalBSON(b []byte) error {
-	var udi DocInfoBSONUnpacker
-	if err := bsonenc.Unmarshal(b, &udi); err != nil {
-		return err
-	}
-
-	di.idx = udi.ID
-
+func (sc SignCode) IsValid([]byte) error {
 	return nil
 }

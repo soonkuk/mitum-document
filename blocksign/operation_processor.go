@@ -124,10 +124,9 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*currency.CurrencyRegisterProcessor,
 		*currency.CurrencyPolicyUpdaterProcessor,
 		*CreateDocumentsProcessor,
-		*TransferDocumentsProcessor,
 		*SignDocumentsProcessor:
 		return opr.process(op)
-	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, CreateDocuments, TransferDocuments, SignDocuments:
+	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, CreateDocuments, SignDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -149,8 +148,6 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *currency.KeyUpdaterProcessor:
 		sp = t
 	case *CreateDocumentsProcessor:
-		sp = t
-	case *TransferDocumentsProcessor:
 		sp = t
 	case *SignDocumentsProcessor:
 		sp = t
@@ -193,9 +190,6 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 		didtype = DuplicationTypeCurrency
 	case CreateDocuments:
 		did = t.Fact().(CreateDocumentsFact).Sender().String()
-		didtype = DuplicationTypeSender
-	case TransferDocuments:
-		did = t.Fact().(TransferDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	case SignDocuments:
 		did = t.Fact().(SignDocumentsFact).Sender().String()
@@ -281,7 +275,6 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		currency.CurrencyRegister,
 		currency.CurrencyPolicyUpdater,
 		CreateDocuments,
-		TransferDocuments,
 		SignDocuments:
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:

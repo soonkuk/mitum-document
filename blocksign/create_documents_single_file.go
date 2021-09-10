@@ -18,14 +18,23 @@ type CreateDocumentsItemSingleFile struct {
 
 func NewCreateDocumentsItemSingleFile(
 	fh FileHash,
+	documentid currency.Big,
+	signcode, title string,
+	size currency.Big,
 	signers []base.Address,
+	signcodes []string,
 	cid currency.CurrencyID,
 ) CreateDocumentsItemSingleFile {
 	return CreateDocumentsItemSingleFile{
 		BaseCreateDocumentsItem: NewBaseCreateDocumentsItem(
 			CreateDocumentsItemSingleFileHint,
 			fh,
+			documentid,
+			signcode,
+			title,
+			size,
 			signers,
+			signcodes,
 			cid,
 		),
 	}

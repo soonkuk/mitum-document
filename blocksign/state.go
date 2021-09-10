@@ -39,8 +39,8 @@ func SetStateLastDocumentIdValue(st state.State, v DocId) (state.State, error) {
 	}
 }
 
-func StateKeyDocumentData(fh FileHash) string {
-	return fmt.Sprintf("%s%s", fh.String(), StateKeyDocumentDataSuffix)
+func StateKeyDocumentData(documentid DocId) string {
+	return fmt.Sprintf("%s%s", documentid.String(), StateKeyDocumentDataSuffix)
 }
 
 func IsStateDocumentDataKey(key string) bool {

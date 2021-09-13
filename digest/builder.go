@@ -27,8 +27,12 @@ var (
 	templateSignedAtString   = "2020-10-08T07:53:26Z"
 	templateSignedAt         time.Time
 	templateFileHash         = blocksign.FileHash("abcd")
+	templateSigncode         = "tigers"
+	templateTitle            = "my_document"
+	templateSize             = currency.NewBig(555)
 	templateOwner            = currency.Address("uncle")
 	templateSigner           = currency.Address("aunt")
+	templateSignerSigncode   = "rabbits"
 	templateId               = currency.NewBig(33)
 )
 
@@ -65,8 +69,6 @@ func (bl Builder) FactTemplate(ht hint.Hint) (Hal, error) {
 		return bl.templateCurrencyPolicyUpdaterFact(), nil
 	case blocksign.CreateDocumentsType:
 		return bl.templateCreateDocumentsFact(), nil
-	case blocksign.TransferDocumentsType:
-		return bl.templateTransferDocumentsFact(), nil
 	case blocksign.SignDocumentsType:
 		return bl.templateSignDocumentsFact(), nil
 	default:
@@ -178,29 +180,12 @@ func (Builder) templateCreateDocumentsFact() Hal {
 		templateSender,
 		[]blocksign.CreateDocumentsItem{blocksign.NewCreateDocumentsItemSingleFile(
 			templateFileHash,
-			[]base.Address{templateSigner},
-			templateCurrencyID,
-		)},
-	)
-
-	hal := NewBaseHal(fact, HalLink{})
-	return hal.AddExtras("default", map[string]interface{}{
-		"token":     templateToken,
-		"sender":    templateSender,
-		"items.big": templateBig,
-		"currency":  templateCurrencyID,
-	})
-}
-
-func (Builder) templateTransferDocumentsFact() Hal {
-
-	fact := blocksign.NewTransferDocumentsFact(
-		templateToken,
-		templateSender,
-		[]blocksign.TransferDocumentsItem{blocksign.NewTransferDocumentsItemSingleFile(
 			templateId,
-			templateSender,
-			templateReceiver,
+			templateSigncode,
+			templateTitle,
+			templateSize,
+			[]base.Address{templateSigner},
+			[]string{templateSignerSigncode},
 			templateCurrencyID,
 		)},
 	)
@@ -258,8 +243,6 @@ func (bl Builder) BuildFact(b []byte) (Hal, error) {
 		return bl.buildFactCurrencyPolicyUpdater(t)
 	case blocksign.CreateDocumentsFact:
 		return bl.buildFactCreateDocuments(t)
-	case blocksign.TransferDocumentsFact:
-		return bl.buildFactTransferDocuments(t)
 	case blocksign.SignDocumentsFact:
 		return bl.buildFactSignDocuments(t)
 	default:
@@ -330,7 +313,12 @@ func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (
 
 		items[i] = blocksign.NewCreateDocumentsItemSingleFile(
 			item.FileHash(),
+			item.DocumentId(),
+			item.Signcode(),
+			item.Title(),
+			item.Size(),
 			item.Signers(),
+			item.Signcodes(),
 			item.Currency(),
 		)
 	}
@@ -344,55 +332,6 @@ func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (
 	var hal Hal
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := blocksign.NewCreateDocuments(
-		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
-		},
-		"",
-	)
-	if err != nil {
-		return nil, err
-	}
-	hal = hal.SetInterface(op)
-
-	return hal.
-		AddExtras("default", map[string]interface{}{
-			"fact_signs.signer":    templatePublickey,
-			"fact_signs.signature": templateSignature,
-		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
-}
-
-func (bl Builder) buildFactTransferDocuments(fact blocksign.TransferDocumentsFact) (Hal, error) {
-	token, err := bl.checkToken(fact.Token())
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]blocksign.TransferDocumentsItem, len(fact.Items()))
-	for i := range fact.Items() {
-		item := fact.Items()[i]
-		if (item.DocumentId() == currency.Big{}) {
-			return nil, errors.Errorf("empty documentid")
-		}
-
-		items[i] = blocksign.NewTransferDocumentsItemSingleFile(
-			item.DocumentId(),
-			item.Owner(),
-			item.Receiver(),
-			item.Currency(),
-		)
-	}
-
-	nfact := blocksign.NewTransferDocumentsFact(token, fact.Sender(), items)
-	nfact = nfact.Rebuild()
-	if err = bl.isValidFactTransferDocuments(nfact); err != nil {
-		return nil, err
-	}
-
-	var hal Hal
-	hal = NewBaseHal(nil, HalLink{})
-	op, err := blocksign.NewTransferDocuments(
 		nfact,
 		[]operation.FactSign{
 			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
@@ -716,28 +655,6 @@ func (Builder) isValidFactCreateDocuments(fact blocksign.CreateDocumentsFact) er
 	return nil
 }
 
-func (Builder) isValidFactTransferDocuments(fact blocksign.TransferDocumentsFact) error {
-	if err := fact.IsValid(nil); err != nil {
-		return err
-	}
-
-	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
-	}
-
-	if fact.Sender().Equal(templateSender) {
-		return errors.Errorf("Please set sender; sender is same with template default")
-	}
-
-	for i := range fact.Items() {
-		if same := fact.Items()[i].Owner().Equal(templateOwner); same {
-			return errors.Errorf("Please set owner; owner is same with template default")
-		}
-	}
-
-	return nil
-}
-
 func (Builder) isValidFactSignDocuments(fact blocksign.SignDocumentsFact) error {
 	if err := fact.IsValid(nil); err != nil {
 		return err
@@ -786,8 +703,6 @@ func (bl Builder) BuildOperation(b []byte) (Hal, error) {
 			hal, err = bl.buildCurrencyPolicyUpdater(t)
 		case blocksign.CreateDocuments:
 			hal, err = bl.buildCreateDocumets(t)
-		case blocksign.TransferDocuments:
-			hal, err = bl.buildTransferDocumets(t)
 		case blocksign.SignDocuments:
 			hal, err = bl.buildSignDocumets(t)
 		default:
@@ -896,20 +811,6 @@ func (bl Builder) buildCreateDocumets(op blocksign.CreateDocuments) (Hal, error)
 	} else if err := nop.IsValid(bl.networkID); err != nil {
 		return nil, err
 	} else if err := bl.isValidFactCreateDocuments(nop.Fact().(blocksign.CreateDocumentsFact)); err != nil {
-		return nil, err
-	} else {
-		return NewBaseHal(nop, HalLink{}), nil
-	}
-}
-
-func (bl Builder) buildTransferDocumets(op blocksign.TransferDocuments) (Hal, error) {
-	fs := bl.updateFactSigns(op.Signs())
-
-	if nop, err := blocksign.NewTransferDocuments(op.Fact().(blocksign.TransferDocumentsFact), fs, op.Memo); err != nil {
-		return nil, err
-	} else if err := nop.IsValid(bl.networkID); err != nil {
-		return nil, err
-	} else if err := bl.isValidFactTransferDocuments(nop.Fact().(blocksign.TransferDocumentsFact)); err != nil {
 		return nil, err
 	} else {
 		return NewBaseHal(nop, HalLink{}), nil

@@ -18,14 +18,18 @@ import (
 type CreateDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
-	Sender   currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	FileHash string                      `arg:"" name:"filehash" help:"filehash" required:""`
-	Currency currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-
-	Signers []currencycmds.AddressFlag `name:"signers" help:"signers for document"`
-	// Keys      []KeyFlag `name:"key" help:"key for new document account (ex: \"<public key>,<weight>\")" sep:"@"`
-	Seal   currencycmds.FileLoad `help:"seal" optional:""`
-	sender base.Address
+	Sender     currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
+	FileHash   string                      `arg:"" name:"filehash" help:"filehash" required:""`
+	Signcode   string                      `arg:"" name:"signcode" help:"signcode" required:""`
+	DocumentId currencycmds.BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
+	Title      string                      `arg:"" name:"title" help:"title" required:""`
+	Size       currencycmds.BigFlag        `arg:"" name:"size" help:"size" required:""`
+	Currency   currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
+	Signers    []DocSignFlag               `name:"signers" help:"signers for document (ex: \"<address>,<signcode>\")" sep:"@"`
+	Seal       currencycmds.FileLoad       `help:"seal" optional:""`
+	sender     base.Address
+	signers    []base.Address
+	signcodes  []string
 }
 
 func NewCreateDocumentCommand() CreateDocumentCommand {
@@ -75,6 +79,22 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 		cmd.sender = a
 	}
 
+	{
+		signers := make([]base.Address, len(cmd.Signers))
+		signcodes := make([]string, len(cmd.Signers))
+		for i := range cmd.Signers {
+			if a, err := cmd.Signers[i].AD.Encode(jenc); err != nil {
+				return errors.Errorf("invalid sender format, %q: %w", cmd.Signers[i].String(), err)
+			} else {
+				signers[i] = a
+				signcodes[i] = cmd.Signers[i].SC
+
+			}
+		}
+		cmd.signers = signers
+		cmd.signcodes = signcodes
+	}
+
 	return nil
 }
 
@@ -90,16 +110,16 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 		}
 	}
 
-	var signers []base.Address
-	for i := range cmd.Signers {
-		if signer, err := cmd.Signers[i].Encode(jenc); err != nil {
-			return nil, err
-		} else {
-			signers = append(signers, signer)
-		}
-	}
-
-	item := blocksign.NewCreateDocumentsItemSingleFile(blocksign.FileHash(cmd.FileHash), signers, cmd.Currency.CID)
+	item := blocksign.NewCreateDocumentsItemSingleFile(
+		blocksign.FileHash(cmd.FileHash),
+		cmd.DocumentId.Big,
+		cmd.Signcode,
+		cmd.Title,
+		cmd.Size.Big,
+		cmd.signers,
+		cmd.signcodes,
+		cmd.Currency.CID,
+	)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err

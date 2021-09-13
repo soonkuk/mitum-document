@@ -8,7 +8,6 @@ type SealCommand struct {
 	CreateDocument        CreateDocumentCommand                     `cmd:"" name:"create-document" help:"create new document"`
 	SignDocument          SignDocumentCommand                       `cmd:"" name:"sign-document" help:"sign document"`
 	Transfer              currencycmds.TransferCommand              `cmd:"" name:"transfer" help:"transfer big"`
-	TransferDocument      TransferDocumentCommand                   `cmd:"" name:"transfer-document" help:"transfer document"`
 	KeyUpdater            currencycmds.KeyUpdaterCommand            `cmd:"" name:"key-updater" help:"update keys"`
 	CurrencyRegister      currencycmds.CurrencyRegisterCommand      `cmd:"" name:"currency-register" help:"register new currency"`
 	CurrencyPolicyUpdater currencycmds.CurrencyPolicyUpdaterCommand `cmd:"" name:"currency-policy-updater" help:"update currency policy"` // revive:disable-line:line-length-limit
@@ -23,7 +22,6 @@ func NewSealCommand() SealCommand {
 		CreateDocument:        NewCreateDocumentCommand(),
 		SignDocument:          NewSignDocumentCommand(),
 		Transfer:              currencycmds.NewTransferCommand(),
-		TransferDocument:      NewTransferDocumentCommand(),
 		KeyUpdater:            currencycmds.NewKeyUpdaterCommand(),
 		CurrencyRegister:      currencycmds.NewCurrencyRegisterCommand(),
 		CurrencyPolicyUpdater: currencycmds.NewCurrencyPolicyUpdaterCommand(),

@@ -145,6 +145,7 @@ func (doc DocumentData) Signers() []DocSign {
 
 func (doc DocumentData) Addresses() ([]base.Address, error) {
 	addresses := make(map[base.Address]bool)
+	addresses[doc.creator.Address()] = true
 	for i := range doc.Signers() {
 		_, found := addresses[doc.Signers()[i].Address()]
 		if !found {

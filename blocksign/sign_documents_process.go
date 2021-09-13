@@ -63,12 +63,12 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	// check existence of new document state with filehash
-	switch st, found, err := getState(StateKeyDocumentData(docinfo.FileHash())); {
+	// check existence of new document state with documentid
+	switch st, found, err := getState(StateKeyDocumentData(DocId(docinfo.Index()))); {
 	case err != nil:
 		return err
 	case !found:
-		return errors.Errorf("document not registered with filehash, %q", docinfo.FileHash())
+		return errors.Errorf("document not registered with documentid, %q", docinfo.Index())
 	default:
 		opp.nds = st
 	}
@@ -78,8 +78,8 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	if !dd.Owner().Equal(opp.item.Owner()) {
-		return errors.Errorf("Owner not matched with owner in document, %v", opp.item.Owner())
+	if !dd.Creator().Equal(opp.item.Owner()) {
+		return errors.Errorf("Owner not matched with creator in document, %v", opp.item.Owner())
 	}
 
 	if len(dd.Signers()) < 1 {

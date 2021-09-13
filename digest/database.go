@@ -242,6 +242,14 @@ func (st *Database) cleanByHeight(height base.Height) error {
 	return st.setLastBlock(height - 1)
 }
 
+func (st *Database) ManifestByHeight(height base.Height) (block.Manifest, bool, error) {
+	return st.mitum.ManifestByHeight(height)
+}
+
+func (st *Database) Manifest(h valuehash.Hash) (block.Manifest, bool, error) {
+	return st.mitum.Manifest(h)
+}
+
 func (st *Database) cleanByHeightColName(height base.Height, colName string) error {
 
 	if height <= base.PreGenesisHeight+1 {
@@ -263,14 +271,6 @@ func (st *Database) cleanByHeightColName(height base.Height, colName string) err
 	st.Log().Debug().Str("collection", colName).Interface("result", res).Msg("clean collection by height")
 
 	return st.setLastBlock(height - 1)
-}
-
-func (st *Database) ManifestByHeight(height base.Height) (block.Manifest, bool, error) {
-	return st.mitum.ManifestByHeight(height)
-}
-
-func (st *Database) Manifest(h valuehash.Hash) (block.Manifest, bool, error) {
-	return st.mitum.Manifest(h)
 }
 
 // Manifests returns block.Manifests by it's order, height.

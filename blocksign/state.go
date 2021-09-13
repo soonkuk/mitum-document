@@ -18,27 +18,6 @@ var (
 	StateKeyLastDocumentId     = "lastdocumentId"
 )
 
-func StateLastDocumentIdValue(st state.State) (DocId, error) {
-	v := st.Value()
-	if v == nil {
-		return DocId{}, util.NotFoundError.Errorf("document id not found in State")
-	}
-
-	if s, ok := v.Interface().(DocId); !ok {
-		return DocId{}, errors.Errorf("invalid document id value found, %T", v.Interface())
-	} else {
-		return s, nil
-	}
-}
-
-func SetStateLastDocumentIdValue(st state.State, v DocId) (state.State, error) {
-	if uv, err := state.NewHintedValue(v); err != nil {
-		return nil, err
-	} else {
-		return st.SetValue(uv)
-	}
-}
-
 func StateKeyDocumentData(documentid DocId) string {
 	return fmt.Sprintf("%s%s", documentid.String(), StateKeyDocumentDataSuffix)
 }

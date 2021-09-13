@@ -84,7 +84,7 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 		return nil, err
 	} else {
 		for j := range i {
-			if t, ok := i[j].(blocksign.TransferDocuments); ok {
+			if t, ok := i[j].(blocksign.SignDocuments); ok {
 				items = t.Fact().(blocksign.SignDocumentsFact).Items()
 			}
 		}

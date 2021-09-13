@@ -154,8 +154,6 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(blocksign.CreateDocuments{}, blocksign.NewCreateDocumentsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blocksign.TransferDocuments{}, blocksign.NewTransferDocumentsProcessor(cp)); err != nil {
-		return nil, err
 	} else if _, err := opr.SetProcessor(blocksign.SignDocuments{}, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
 		return nil, err
 	}
@@ -211,7 +209,6 @@ func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationPr
 		currency.CurrencyPolicyUpdater{},
 		currency.CurrencyRegister{},
 		blocksign.CreateDocuments{},
-		blocksign.TransferDocuments{},
 		blocksign.SignDocuments{},
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {

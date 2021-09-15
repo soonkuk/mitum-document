@@ -100,7 +100,7 @@ func (doc DocumentData) IsValid([]byte) error {
 		doc.info.FileHash(),
 		doc.creator,
 	}, nil, false); err != nil {
-		return errors.Errorf("invalid document data: %w", err)
+		return errors.Wrap(err, "invalid document data")
 	}
 
 	for i := range doc.signers {

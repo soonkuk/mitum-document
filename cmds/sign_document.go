@@ -31,7 +31,7 @@ func NewSignDocumentCommand() SignDocumentCommand {
 
 func (cmd *SignDocumentCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
-		return errors.Errorf("failed to initialize command: %w", err)
+		return errors.Errorf("failed to initialize command: %q", err)
 	}
 
 	if err := cmd.parseFlags(); err != nil {
@@ -65,12 +65,12 @@ func (cmd *SignDocumentCommand) parseFlags() error {
 	}
 
 	if a, err := cmd.Sender.Encode(jenc); err != nil {
-		return errors.Errorf("invalid sender format, %q: %w", cmd.Sender.String(), err)
+		return errors.Errorf("invalid sender format, %q: %q", cmd.Sender.String(), err)
 	} else {
 		cmd.sender = a
 	}
 	if a, err := cmd.Owner.Encode(jenc); err != nil {
-		return errors.Errorf("invalid receiver format, %q: %w", cmd.Owner.String(), err)
+		return errors.Errorf("invalid receiver format, %q: %q", cmd.Owner.String(), err)
 	} else {
 		cmd.owner = a
 	}
@@ -108,7 +108,7 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 	}
 
 	if op, err := blocksign.NewSignDocuments(fact, fs, cmd.Memo); err != nil {
-		return nil, errors.Errorf("failed to create sign-document operation: %w", err)
+		return nil, errors.Wrap(err, "failed to create sign-document operation")
 	} else {
 		return op, nil
 	}

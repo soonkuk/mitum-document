@@ -34,9 +34,14 @@ func (t *testCreateDocuments) TestNew() {
 
 	token := util.UUID().Bytes()
 
-	fh := FileHash("ABCD")
+	filehash := FileHash("ABCD")
+	documentid := currency.NewBig(0)
+	signcode0 := "user0"
+	title := "title01"
+	size := currency.NewBig(555)
+	signcode1 := "user1"
 
-	item := NewCreateDocumentsItemSingleFile(fh, []base.Address{signerAddr}, cid)
+	item := NewCreateDocumentsItemSingleFile(filehash, documentid, signcode0, title, size, []base.Address{signerAddr}, []string{signcode1}, cid)
 	fact := NewCreateDocumentsFact(token, senderAddr, []CreateDocumentsItem{item})
 
 	var fs []operation.FactSign
@@ -57,11 +62,11 @@ func (t *testCreateDocuments) TestNew() {
 	t.Implements((*operation.Operation)(nil), op)
 
 	ufact := op.Fact().(CreateDocumentsFact)
-	t.Equal(fh, ufact.Items()[0].FileHash())
+	t.Equal(filehash, ufact.Items()[0].FileHash())
 	t.Equal(signerAddr, ufact.Items()[0].Signers()[0])
 }
 
-func (t *testCreateDocuments) TestDuplicatedFileHash() {
+func (t *testCreateDocuments) TestDuplicatedDocumentId() {
 	cid := currency.CurrencyID("SHOWME")
 	var items []CreateDocumentsItem
 
@@ -72,10 +77,14 @@ func (t *testCreateDocuments) TestDuplicatedFileHash() {
 	skeys, _ := currency.NewKeys([]currency.Key{skey}, 100)
 	sender, _ := currency.NewAddressFromKeys(skeys)
 	{
-		fh := FileHash("ABCD")
+		filehash := FileHash("ABCD")
+		documentid := currency.NewBig(0)
+		signcode0 := "user0"
+		title := "title01"
+		size := currency.NewBig(555)
 
-		items = append(items, NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid))
-		items = append(items, NewCreateDocumentsItemSingleFile(fh, []base.Address{}, cid))
+		items = append(items, NewCreateDocumentsItemSingleFile(filehash, documentid, signcode0, title, size, []base.Address{}, []string{}, cid))
+		items = append(items, NewCreateDocumentsItemSingleFile(filehash, documentid, signcode0, title, size, []base.Address{}, []string{}, cid))
 	}
 
 	token := util.UUID().Bytes()

@@ -45,6 +45,10 @@ func NewDocumentDoc(
 	}, nil
 }
 
+func (doc DocumentDoc) DocumentId() currency.Big {
+	return doc.va.doc.Info().Index()
+}
+
 func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 	m, err := doc.BaseDoc.M()
 	if err != nil {

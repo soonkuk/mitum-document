@@ -34,6 +34,7 @@ type BlockSession struct {
 	documentsModels []mongo.WriteModel
 	balanceModels   []mongo.WriteModel
 	statesValue     *sync.Map
+	documentList    []currency.Big
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -97,8 +98,10 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 
 	if len(bs.documentModels) > 0 {
 
-		if err := bs.st.cleanByHeightColName(bs.block.Height(), defaultColNameDocument); err != nil {
-			return err
+		for i := range bs.documentList {
+			if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameDocument, bs.documentList[i]); err != nil {
+				return err
+			}
 		}
 
 		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
@@ -211,6 +214,7 @@ func (bs *BlockSession) prepareAccounts() error {
 			if j, err := bs.handleDocumentDataState(st); err != nil {
 				return err
 			} else {
+
 				documentModels = append(documentModels, j...)
 			}
 		case blocksign.IsStateDocumentsKey(st.Key()):
@@ -264,6 +268,7 @@ func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteMo
 	if ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
 		return nil, err
 	} else {
+		bs.documentList = append(bs.documentList, ndoc.DocumentId())
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 	}
 }

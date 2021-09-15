@@ -40,7 +40,7 @@ func NewCreateDocumentCommand() CreateDocumentCommand {
 
 func (cmd *CreateDocumentCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
-		return errors.Errorf("failed to initialize command: %w", err)
+		return errors.Errorf("failed to initialize command: %q", err)
 	}
 
 	if err := cmd.parseFlags(); err != nil {
@@ -74,7 +74,7 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 	}
 
 	if a, err := cmd.Sender.Encode(jenc); err != nil {
-		return errors.Errorf("invalid sender format, %q: %w", cmd.Sender.String(), err)
+		return errors.Errorf("invalid sender format, %q: %q", cmd.Sender.String(), err)
 	} else {
 		cmd.sender = a
 	}
@@ -84,7 +84,7 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 		signcodes := make([]string, len(cmd.Signers))
 		for i := range cmd.Signers {
 			if a, err := cmd.Signers[i].AD.Encode(jenc); err != nil {
-				return errors.Errorf("invalid sender format, %q: %w", cmd.Signers[i].String(), err)
+				return errors.Errorf("invalid sender format, %q: %q", cmd.Signers[i].String(), err)
 			} else {
 				signers[i] = a
 				signcodes[i] = cmd.Signers[i].SC
@@ -137,7 +137,7 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 	}
 
 	if op, err := blocksign.NewCreateDocuments(fact, fs, cmd.Memo); err != nil {
-		return nil, errors.Errorf("failed to create create-account operation: %w", err)
+		return nil, errors.Errorf("failed to create create-account operation: %q", err)
 	} else {
 		return op, nil
 	}

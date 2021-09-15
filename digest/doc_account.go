@@ -52,7 +52,7 @@ type BalanceDoc struct {
 func NewBalanceDoc(st state.State, enc encoder.Encoder) (BalanceDoc, error) {
 	am, err := currency.StateBalanceValue(st)
 	if err != nil {
-		return BalanceDoc{}, errors.Errorf("BalanceDoc needs Amount state: %w", err)
+		return BalanceDoc{}, errors.Errorf("BalanceDoc needs Amount state: %q", err)
 	}
 
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)

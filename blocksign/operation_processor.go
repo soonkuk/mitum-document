@@ -293,7 +293,7 @@ func (opr *OperationProcessor) getNewProcessorFromHintset(op state.Processor) (s
 
 		return nil, err
 	} else if j, ok := i.(currency.GetNewProcessor); !ok {
-		return nil, errors.Errorf("invalid GetNewProcessor func, %%", i)
+		return nil, errors.Errorf("invalid GetNewProcessor func, %q", i)
 	} else {
 		f = j
 	}

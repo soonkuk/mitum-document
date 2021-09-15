@@ -1,6 +1,7 @@
 package blocksign
 
 import (
+	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -63,7 +64,9 @@ func (it BaseCreateDocumentsItem) Bytes() []byte {
 }
 
 func (it BaseCreateDocumentsItem) IsValid([]byte) error {
-
+	if len(it.fileHash) < 1 {
+		return errors.Errorf("empty fileHash")
+	}
 	return nil
 }
 

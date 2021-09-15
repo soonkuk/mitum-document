@@ -1,0 +1,943 @@
+
+components:
+  schemas:
+    OperationHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: string
+              default: mitum-currency-operation-value-v0.0.1
+              example: mitum-currency-operation-value-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/OperationValue'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /operation/6GymxmuvhgUfAKWYQUKKveYh1H8b981vQaZcMsbWqykS
+                operation:{hash}:
+                  description: request `/operation/{hash}`
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /operation/{hash:(?i)[0-9a-z][0-9a-z]+}
+                          example: /operation/{hash:(?i)[0-9a-z][0-9a-z]+}
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                block:
+                  description: request `/block/{height}` of the operation
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/244
+                manifest:
+                  description: request `/block/{height}/manifest` of the operation
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/244/manifest
+                block:{height}:
+                  description: request `/block/{height}`
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /block/{height:[0-9]+}
+                          example: /block/{height:[0-9]+}
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+
+    DocumentHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: string
+              default: mitum-blocksign-document-value-v0.0.1
+              example: mitum-blocksign-document-value-vs0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/DocumentValue'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /document/23
+                block:
+                  description: request `/block/{height}` of the operation
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/244
+                block:{height}:
+                  description: request `/block/{height}`
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /block/{height:[0-9]+}
+                          example: /block/{height:[0-9]+}
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                document:{ddocumentid}:
+                  description: request `/document/{documentid}`
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /document/{documentid:[0-9]+}
+                          example: /document/{documentid:[0-9]+}
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                manifest:
+                  description: request `/block/{height}/manifest` of the operation
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/244/manifest
+
+    AccountOperationsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: '#/components/schemas/OperationHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/operations
+                account:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1
+                next:
+                  description: >-
+                    next operations with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/operations?offset=2,0
+                reverse:
+                  description: >-
+                    operations by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/operations?reverse=1
+
+    AccountDocumentsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/documents
+                account:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1
+                next:
+                  description: >-
+                    next operations with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/documents?offset=2,0
+                reverse:
+                  description: >-
+                    operations by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /account/7CSxjA4A4TyZPqiMJ6eBY7VfhNxauunQN5NSAnvQGhPN:mca-v0.0.1/documents?reverse=1
+
+
+    ManifestsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: 'components.yml#/components/schemas/ManifestHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/manifests
+                next:
+                  description: >-
+                    next manifests with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/manifests?offset=2
+                reverse:
+                  description: >-
+                    manifests by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/manifests?reverse=1
+
+    OperationsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: '#/components/schemas/OperationHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/operations
+                next:
+                  description: >-
+                    next operations with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/operations?offset=2,0
+                reverse:
+                  description: >-
+                    operations by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/operations?reverse=1
+
+    DocumentsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/documents
+                next:
+                  description: >-
+                    next operations with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/documents?offset=2,0
+                reverse:
+                  description: >-
+                    operations by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/documents?reverse=1
+
+    OperationsByHeightHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _embedded:
+              type: array
+              items:
+                $ref: '#/components/schemas/OperationHAL'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/254/operations
+                next:
+                  description: >-
+                    next operations with *offset*.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/254/operations?offset=0
+                reverse:
+                  description: >-
+                    operations by reverse oder of self.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /block/254/operations?reverse=1
+
+    OperationBuilderHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation
+                operation-fact:{create-accounts}:
+                  description: >-
+                    request the template of *create-accounts* operation.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /builder/operation/fact/template/create-accounts
+                          example: /builder/operation/fact/template/create-accounts
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                operation-fact:{key-updater}:
+                  description: >-
+                    request the template of *key-updater* operation.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /builder/operation/fact/template/key-updater
+                          example: /builder/operation/fact/template/key-updater
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                operation-fact:{transfers}:
+                  description: >-
+                    request the template of *transfers* operation.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /builder/operation/fact/template/transfers
+                          example: /builder/operation/fact/template/transfers
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                operation-fact:{currency-register}:
+                  description: >-
+                    request the template of *currency-register* operation.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /builder/operation/fact/template/currency-register
+                          example: /builder/operation/fact/template/currency-register
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+                operation-fact:{currency-policy-updater}:
+                  description: >-
+                    request the template of *currency-policy-updater* operation.
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /builder/operation/fact/template/currency-policy-updater
+                          example: /builder/operation/fact/template/currency-policy-updater
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+
+    OperationTemplateCreateAccountsFactHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-create-accounts-operation-fact
+                  example: mitum-currency-create-accounts-operation-fact
+                hint:
+                  type: string
+                  default: mitum-currency-create-accounts-operation-fact-v0.0.1
+                  example: mitum-currency-create-accounts-operation-fact-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/CreateAccountsFactForTemplate'
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new fact can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    token:
+                      description: >
+                        *base64* encoded **example** bytes
+                      type: string
+                      example: cmFpc2VkIGJ5
+                    sender:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/AccountAddress'
+                        - description: >
+                            **example** sender *address*
+                    items.keys.keys.key:
+                      description: >
+                        **example** new account *publickey*
+                      type: string
+                      format: publickey
+                      example: "oRHdEPPrgbfNxUp6TWsC35DmWu1zbLCW9rp41Z8npF8H-0113:0.0.1"
+                    items.amount:
+                      description: >
+                        **example** amount of new account
+                      type: string
+                      example: "-333"
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact/template/create-accounts
+                          default: /builder/operation/fact/template/create-accounts
+
+    OperationTemplateKeyUpdaterFactHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-keyupdater-operation-fact
+                  example: mitum-currency-keyupdater-operation-fact
+                hint:
+                  type: string
+                  default: mitum-currency-keyupdater-operation-fact-v0.0.1
+                  example: mitum-currency-keyupdater-operation-fact-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/KeyUpdaterFact'
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new fact can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    token:
+                      description: >-
+                        *base64* encoded **example** bytes
+                      type: string
+                      example: cmFpc2VkIGJ5
+                    target:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/AccountAddress'
+                        - description: >
+                            **example** key owner *address*
+                    keys.keys.key:
+                      description: >-
+                        **example** new account *publickey*
+                      type: string
+                      format: publickey
+                      example: "oRHdEPPrgbfNxUp6TWsC35DmWu1zbLCW9rp41Z8npF8H-0113:0.0.1"
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact/template/key-updater
+                          default: /builder/operation/fact/template/key-updater
+
+    OperationTemplateTransfersFactHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-transfers-operation-fact
+                  example: mitum-currency-transfers-operation-fact
+                hint:
+                  type: string
+                  default: mitum-currency-transfers-operation-fact-v0.0.1
+                  example: mitum-currency-transfers-operation-fact-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/TransfersFact'
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new fact can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    token:
+                      description: >-
+                        *base64* encoded **example** bytes
+                      type: string
+                      example: cmFpc2VkIGJ5
+                    sender:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/AccountAddress'
+                        - description: >
+                            **example** sender *address*
+                    items.receiver:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/AccountAddress'
+                        - description: >
+                            **example** receiver address
+                    items.amount:
+                      description: >-
+                        **example** amount to transfer
+                      type: string
+                      example: "-333"
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact/template/transfers
+                          default: /builder/operation/fact/template/transfers
+
+    OperationTemplateCurrencyRegisterFactHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-currency-register-operation-fact
+                  example: mitum-currency-currency-register-operation-fact
+                hint:
+                  type: string
+                  default: mitum-currency-currency-register-operation-fact-v0.0.1
+                  example: mitum-currency-currency-register-operation-fact-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/CurrencyRegisterFact'
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new fact can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    token:
+                      description: >-
+                        *base64* encoded **example** bytes
+                      type: string
+                      example: cmFpc2VkIGJ5
+                    currency:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/CurrencyDesign'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact/template/currency-register
+                          default: /builder/operation/fact/template/currency-register
+
+    OperationTemplateCurrencyPolicyUpdaterFactHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-currency-policy-updater-operation-fact
+                  example: mitum-currency-currency-policy-updater-operation-fact
+                hint:
+                  type: string
+                  default: mitum-currency-currency-policy-updater-operation-fact-v0.0.1
+                  example: mitum-currency-currency-policy-updater-operation-fact-v0.0.1
+            _embedded:
+              $ref: 'components.yml#/components/schemas/CurrencyPolicyUpdaterFact'
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new fact can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    token:
+                      description: >-
+                        *base64* encoded **example** bytes
+                      type: string
+                      example: cmFpc2VkIGJ5
+                    currency:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/CurrencyID'
+                    policy:
+                      allOf:
+                        - $ref: 'components.yml#/components/schemas/CurrencyPolicy'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact/template/currency-policy-updater
+                          default: /builder/operation/fact/template/currency-policy-updater
+
+    OperationTemplateCreateAccountsHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-create-accounts-operation
+                  example: mitum-currency-create-accounts-operation
+                hint:
+                  type: string
+                  default: mitum-currency-create-accounts-operation-v0.0.1
+                  example: mitum-currency-create-accounts-operation-v0.0.1
+            _embedded:
+              allOf:
+                - $ref: 'components.yml#/components/schemas/Operation'
+                - type: object
+                  properties:
+                    fact:
+                      $ref: 'components.yml#/components/schemas/CreateAccountsFact'
+                      type: object
+                      properties:
+                          token:
+                            description: >-
+                              Replace your own token. *token* value should be encoded by base64.
+            _extras:
+              type: object
+              required:
+              - default
+              properties:
+                default:
+                  description: >-
+                    Simply new operation can be generated by replacing the default value by your own values.
+                  type: object
+                  properties:
+                    fact_signs.signer:
+                      description: >-
+                        **example** *publickey* for signing
+                      type: string
+                      format: publickey
+                      example: "d1bAKFaft9MvowhT3xzbZKJnNN6V3icti66T8ozrZtkH:btc-pub-v0.0.1"
+                    fact_signs.signature:
+                      description: >-
+                        **example** signature
+                      type: string
+                      format: signature
+                      example: "22UZo26eN"
+                signature_base:
+                  description: >-
+                    Bytes for creating *signature*. *base64* encoded string.
+                  type: string
+                  format: signature
+                  example: "M1d82nkxHCooJq1ktIkd09MHgj3sSL8/7d4KYSNv1s1tYzsgVGh1IDEwIFNlcCAyMDIwIDAzOjIzOjMxIFBNIFVUQw=="
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/fact
+                          default: /builder/operation/fact
+
+    OperationTemplateCreateAccountsSignHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-create-accounts-operation
+                  example: mitum-currency-create-accounts-operation
+                hint:
+                  type: string
+                  default: mitum-currency-create-accounts-operation-v0.0.1
+                  example: mitum-currency-create-accounts-operation-v0.0.1
+            _embedded:
+              allOf:
+                - $ref: 'components.yml#/components/schemas/Operation'
+                - type: object
+                  properties:
+                    fact:
+                      $ref: 'components.yml#/components/schemas/CreateAccountsFactForTemplate'
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          example: /builder/operation/sign
+                          default: /builder/operation/sign
+
+    CurrenciesHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+            _links:
+              type: object
+              properties:
+                self:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /currency/
+                          example: /currency/
+                currency:{currency_id}:
+                  allOf:
+                    - $ref: 'components.yml#/components/schemas/HALLink'
+                    - type: object
+                      properties:
+                        href:
+                          type: string
+                          default: /currency/XXX
+                          example: /currency/XXX
+                        templated:
+                          type: boolean
+                          default: true
+                          example: true
+
+    CurrencyHAL:
+      allOf:
+        - $ref: 'components.yml#/components/schemas/HAL'
+        - type: object
+          properties:
+             hint:
+              type: object
+              properties:
+                name:
+                  type: string
+                  default: mitum-currency-currency-design
+                  example: mitum-currency-currency-design
+                hint:
+                  type: string
+                  default: mitum-currency-currency-design-v0.0.1
+                  example: mitum-currency-currency-design-v0.0.1
+             _embedded:
+                $ref: 'components.yml#/components/schemas/CurrencyDesign'
+             _links:
+                type: object
+                properties:
+                  self:
+                    allOf:
+                      - $ref: 'components.yml#/components/schemas/HALLink'
+                      - type: object
+                        properties:
+                          href:
+                            type: string
+                            default: /currency/XXX
+                            example: /currency/XXX

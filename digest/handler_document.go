@@ -24,7 +24,7 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 
 	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
 	if err != nil {
-		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %w", err), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %q", err), http.StatusBadRequest)
 
 		return
 	}
@@ -289,7 +289,7 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 
 	documentid, err := strconv.ParseUint(offset, 10, 64)
 	if err != nil {
-		return nil, errors.Errorf("invalid index of offset: %w", err)
+		return nil, errors.Errorf("invalid index of offset: %q", err)
 	}
 
 	if reverse {

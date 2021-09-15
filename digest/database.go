@@ -250,14 +250,14 @@ func (st *Database) Manifest(h valuehash.Hash) (block.Manifest, bool, error) {
 	return st.mitum.Manifest(h)
 }
 
-func (st *Database) cleanByHeightColName(height base.Height, colName string) error {
+func (st *Database) cleanByHeightColNameDocumentId(height base.Height, colName string, documentid currency.Big) error {
 
 	if height <= base.PreGenesisHeight+1 {
 		return st.clean()
 	}
 
 	opts := options.BulkWrite().SetOrdered(true)
-	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"height": bson.M{"$lte": height}})
+	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"documentid": documentid, "height": bson.M{"$lte": height}})
 
 	res, err := st.database.Client().Collection(colName).BulkWrite(
 		context.Background(),
@@ -724,7 +724,7 @@ func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, b
 func loadLastBlock(st *Database) (base.Height, bool, error) {
 	switch b, found, err := st.database.Info(DigestStorageLastBlockKey); {
 	case err != nil:
-		return base.NilHeight, false, errors.Errorf("failed to get last block for digest: %w", err)
+		return base.NilHeight, false, errors.Wrap(err, "failed to get last block for digest")
 	case !found:
 		return base.NilHeight, false, nil
 	default:
@@ -742,9 +742,9 @@ func parseOffset(s string) (base.Height, uint64, error) {
 	} else if len(n) < 2 {
 		return base.NilHeight, 0, errors.Errorf("invalid offset, %q", s)
 	} else if h, err := base.NewHeightFromString(n[0]); err != nil {
-		return base.NilHeight, 0, errors.Errorf("invalid height of offset: %w", err)
+		return base.NilHeight, 0, errors.Wrap(err, "invalid height of offset")
 	} else if u, err := strconv.ParseUint(n[1], 10, 64); err != nil {
-		return base.NilHeight, 0, errors.Errorf("invalid index of offset: %w", err)
+		return base.NilHeight, 0, errors.Wrap(err, "invalid index of offset")
 	} else {
 		return h, u, nil
 	}

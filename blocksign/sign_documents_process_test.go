@@ -17,10 +17,14 @@ import (
 
 type testSignDocumentsOperations struct {
 	baseTestOperationProcessor
-	cid   currency.CurrencyID
-	docid currency.Big
-	fh    FileHash
-	fee   currency.Big
+	cid       currency.CurrencyID
+	docid     currency.Big
+	fh        FileHash
+	fee       currency.Big
+	signcode0 string
+	title     string
+	size      currency.Big
+	signcode1 string
 }
 
 func (t *testSignDocumentsOperations) SetupSuite() {
@@ -28,6 +32,10 @@ func (t *testSignDocumentsOperations) SetupSuite() {
 	t.docid = currency.NewBig(0)
 	t.fh = FileHash("ABCD")
 	t.fee = currency.NewBig(3)
+	t.signcode0 = "user0"
+	t.title = "title01"
+	t.size = currency.NewBig(555)
+	t.signcode1 = "user1"
 }
 
 func (t *testSignDocumentsOperations) processor(cp *currency.CurrencyPool, pool *storage.Statepool) prprocessor.OperationProcessor {
@@ -80,9 +88,9 @@ func (t *testSignDocumentsOperations) newTestDocumentData(ca base.Address, ga ba
 	info := DocInfo{idx: t.docid, filehash: t.fh}
 
 	if ga == nil {
-		doc = NewDocumentData(info, ca, ca, []DocSign{})
+		doc = NewDocumentData(info, ca, t.signcode0, t.title, t.size, []DocSign{})
 	} else {
-		doc = NewDocumentData(info, ca, ca, []DocSign{{address: ga, signed: false}})
+		doc = NewDocumentData(info, ca, t.signcode0, t.title, t.size, []DocSign{{address: ga, signed: false}})
 	}
 	return doc
 }
@@ -98,6 +106,7 @@ func (t *testSignDocumentsOperations) TestNormalCase() {
 	balance := t.newTestBalance()
 	sa, sta := t.newAccount(true, balance) // sender, signer
 	ca, stb := t.newAccount(true, balance) // creator, owner
+
 	dd := t.newTestDocumentData(ca.Address, sa.Address)
 
 	sts := t.newStateDocument(ca.Address, dd)
@@ -132,7 +141,7 @@ func (t *testSignDocumentsOperations) TestNormalCase() {
 			} else {
 				continue
 			}
-		} else if (IsStateDocumentDataKey(stu.Key())) && (stu.Key() == StateKeyDocumentData(t.fh)) {
+		} else if (IsStateDocumentDataKey(stu.Key())) && (stu.Key() == StateKeyDocumentData(DocId(t.docid))) {
 			dds = stu.GetState()
 		}
 	}
@@ -264,15 +273,15 @@ func (t *testSignDocumentsOperations) TestMultipleItemsWithFee() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, t.signcode0, t.title, t.size, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
-	dinv, _ := StateDocumentsValue(sts0[1])
-	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
+	dinv0, _ := StateDocumentsValue(sts0[0])
+	err := dinv0.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
 	sts1 := t.newStateDocument(ca.Address, dd1)
-	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
-	sts1[1] = nst
-	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
+	nst, _ := SetStateDocumentsValue(sts1[0], dinv0)
+	sts1[0] = nst
+	sts := []state.State{sts0[1], sts1[0], sts1[1]}
 
 	pool, _ := t.statepool(sta, stb, sts)
 
@@ -326,15 +335,15 @@ func (t *testSignDocumentsOperations) TestInsufficientMultipleItemsWithFee() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, t.signcode0, t.title, t.size, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
-	dinv, _ := StateDocumentsValue(sts0[1])
-	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
+	dinv0, _ := StateDocumentsValue(sts0[0])
+	err := dinv0.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
 	sts1 := t.newStateDocument(ca.Address, dd1)
-	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
-	sts1[1] = nst
-	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
+	nst, _ := SetStateDocumentsValue(sts1[0], dinv0)
+	sts1[0] = nst
+	sts := []state.State{sts0[1], sts1[0], sts1[1]}
 
 	pool, _ := t.statepool(sta, stb, sts)
 
@@ -377,15 +386,15 @@ func (t *testSignDocumentsOperations) TestSameSenders() {
 	ca, stb := t.newAccount(true, []currency.Amount{currency.NewAmount(currency.NewBig(0), cid0)})
 
 	dd0 := t.newTestDocumentData(ca.Address, sa.Address)
-	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, ca.Address, []DocSign{{address: sa.Address, signed: false}})
+	dd1 := NewDocumentData(DocInfo{idx: currency.NewBig(1), filehash: FileHash("EFGH")}, ca.Address, t.signcode0, t.title, t.size, []DocSign{{address: sa.Address, signed: false}})
 	sts0 := t.newStateDocument(ca.Address, dd0)
-	dinv, _ := StateDocumentsValue(sts0[1])
-	err := dinv.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
+	dinv0, _ := StateDocumentsValue(sts0[0])
+	err := dinv0.Append(DocInfo{idx: currency.NewBig(1), filehash: dd1.FileHash()})
 	// sts0[1] = nst
 	sts1 := t.newStateDocument(ca.Address, dd1)
-	nst, _ := SetStateDocumentsValue(sts1[1], dinv)
-	sts1[1] = nst
-	sts := []state.State{sts0[0], sts0[2], sts1[0], sts1[1], sts1[2]}
+	nst, _ := SetStateDocumentsValue(sts1[0], dinv0)
+	sts1[0] = nst
+	sts := []state.State{sts0[1], sts1[0], sts1[1]}
 
 	pool, _ := t.statepool(sta, stb, sts)
 

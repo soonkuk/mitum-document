@@ -53,11 +53,27 @@ func (t *testCreateDocumentsSingleFile) TestNew() {
 
 	// uploaderSignCode for document
 	fh := FileHash("ABCD")
+	documentid := currency.NewBig(0)
+	signcode0 := "user0"
+	title := "title01"
+	size := currency.NewBig(555)
+	signcode1 := "user1"
 
 	// create document item
-	item := NewCreateDocumentsItemSingleFile(fh, []base.Address{signer}, cid)
+	items := []CreateDocumentsItem{
+		NewCreateDocumentsItemSingleFile(
+			fh,
+			documentid,
+			signcode0,
+			title,
+			size,
+			[]base.Address{signer},
+			[]string{signcode1},
+			cid,
+		),
+	}
 	// create document fact
-	fact := NewCreateDocumentsFact(token, sender, []CreateDocumentsItem{item})
+	fact := NewCreateDocumentsFact(token, sender, items)
 
 	var fs []operation.FactSign
 	// generate fact signature
@@ -106,11 +122,26 @@ func (t *testCreateDocumentsSingleFile) TestEmptyFileHash() {
 
 	// Empty FileHash
 	efh := FileHash("")
+	documentid := currency.NewBig(0)
+	signcode0 := "user0"
+	title := "title01"
+	size := currency.NewBig(555)
 
 	// create document item
-	item := NewCreateDocumentsItemSingleFile(efh, []base.Address{}, cid)
+	items := []CreateDocumentsItem{
+		NewCreateDocumentsItemSingleFile(
+			efh,
+			documentid,
+			signcode0,
+			title,
+			size,
+			[]base.Address{},
+			[]string{},
+			cid,
+		),
+	}
 	// create document fact
-	fact := NewCreateDocumentsFact(token, sender, []CreateDocumentsItem{item})
+	fact := NewCreateDocumentsFact(token, sender, items)
 
 	// generate fact signature
 	sig, err := operation.NewFactSignature(ownerPrvk, fact, nil)
@@ -163,10 +194,15 @@ func testCreateDocumentsSingleFileEncode(enc encoder.Encoder) suite.TestingSuite
 
 		cid := currency.CurrencyID("SHOWME")
 
-		// uploaderSignCode for document
-		fh := FileHash("ABCD")
+		filehash := FileHash("ABCD")
+		documentid := currency.NewBig(0)
+		signcode0 := "user0"
+		title := "title01"
+		size := currency.NewBig(555)
+		signcode1 := "user1"
+		signcode2 := "user2"
 		// FileData for document
-		item := NewCreateDocumentsItemSingleFile(fh, []base.Address{signer0, signer1}, cid)
+		item := NewCreateDocumentsItemSingleFile(filehash, documentid, signcode0, title, size, []base.Address{signer0, signer1}, []string{signcode1, signcode2}, cid)
 		fact := NewCreateDocumentsFact(util.UUID().Bytes(), sender, []CreateDocumentsItem{item})
 
 		var fs []operation.FactSign

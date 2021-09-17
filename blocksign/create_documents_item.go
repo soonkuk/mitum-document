@@ -67,6 +67,21 @@ func (it BaseCreateDocumentsItem) IsValid([]byte) error {
 	if len(it.fileHash) < 1 {
 		return errors.Errorf("empty fileHash")
 	}
+	if (it.documentid == currency.Big{}) {
+		return errors.Errorf("empty documentid")
+	}
+	if !it.documentid.OverZero() {
+		return errors.Errorf("documentid is negative number")
+	}
+	if len(it.signcode) < 1 {
+		return errors.Errorf("empty creator signcode")
+	}
+	if err := it.cid.IsValid(nil); err != nil {
+		return err
+	}
+	if len(it.signers) != len(it.signcodes) {
+		return errors.Errorf("length of signers array is not same with length of signcodes array")
+	}
 	return nil
 }
 

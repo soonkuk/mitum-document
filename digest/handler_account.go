@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -151,9 +152,9 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 2
-			if filled {
-				expire = time.Hour * 2
+			expire := hd.expireNotFilled
+			if len(offset) > 0 && filled {
+				expire = time.Hour * 30
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -164,18 +165,18 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 func (hd *Handlers) handleAccountOperationsInGroup(
 	address base.Address,
 	offset string,
-	limit int64,
+	l int64,
 	reverse bool,
 ) ([]byte, bool, error) {
-	var l int64
-	if limit < 0 {
-		l = hd.itemsLimiter("account-operations")
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("account-operations")
 	} else {
-		l = limit
+		limit = l
 	}
 	var vas []Hal
 	if err := hd.database.OperationsByAddress(
-		address, true, reverse, offset, l,
+		address, true, reverse, offset, limit,
 		func(_ valuehash.Hash, va OperationValue) (bool, error) {
 			hal, err := hd.buildOperationHal(va)
 			if err != nil {
@@ -293,8 +294,8 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 3
-			if filled {
+			expire := hd.expireNotFilled
+			if len(offset) > 0 && filled {
 				expire = time.Hour * 30
 			}
 
@@ -306,18 +307,19 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 func (hd *Handlers) handleAccountDocumentsInGroup(
 	address base.Address,
 	offset string,
-	limit int64,
+	l int64,
 	reverse bool,
 ) ([]byte, bool, error) {
-	var l int64
-	if limit < 0 {
-		l = hd.itemsLimiter("account-operations")
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("account-documents")
 	} else {
-		l = limit
+		limit = l
 	}
+	fmt.Println(limit)
 	var vas []Hal
 	if err := hd.database.DocumentsByAddress(
-		address, reverse, offset, l,
+		address, reverse, offset, limit,
 		func(_ currency.Big, va DocumentValue) (bool, error) {
 			hal, err := hd.buildDocumentHal(va)
 			if err != nil {

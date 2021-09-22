@@ -61,6 +61,7 @@ func (hd *Handlers) handleDocumentInGroup(i currency.Big) ([]byte, error) {
 }
 
 func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
@@ -71,7 +72,7 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleDocumentsInGroup(offset, reverse)
+		i, filled, err := hd.handleDocumentsInGroup(offset, reverse, limit)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -88,9 +89,9 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 3
-			if filled {
-				expire = time.Hour * 3
+			expire := hd.expireNotFilled
+			if len(offset) > 0 && filled {
+				expire = time.Hour * 30
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -98,14 +99,24 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (hd *Handlers) handleDocumentsInGroup(offset string, reverse bool) ([]byte, bool, error) {
+func (hd *Handlers) handleDocumentsInGroup(
+	offset string,
+	reverse bool,
+	l int64,
+) ([]byte, bool, error) {
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("documents")
+	} else {
+		limit = l
+	}
 	filter, err := buildDocumentsFilterByOffset(offset, reverse)
 	if err != nil {
 		return nil, false, err
 	}
 
 	var vas []Hal
-	switch l, e := hd.loadDocumentsHALFromDatabase(filter, reverse); {
+	switch l, e := hd.loadDocumentsHALFromDatabase(filter, reverse, limit); {
 	case e != nil:
 		return nil, false, e
 	case len(l) < 1:
@@ -124,10 +135,11 @@ func (hd *Handlers) handleDocumentsInGroup(offset string, reverse bool) ([]byte,
 	}
 
 	b, err := hd.enc.Marshal(hal)
-	return b, int64(len(vas)) == hd.itemsLimiter("documents"), err
+	return b, int64(len(vas)) == limit, err
 }
 
 func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
@@ -151,7 +163,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleDocumentsByHeightInGroup(height, offset, reverse)
+		i, filled, err := hd.handleDocumentsByHeightInGroup(height, offset, reverse, limit)
 		return []interface{}{i, filled}, err
 	}); err != nil {
 		HTTP2HandleError(w, err)
@@ -167,9 +179,9 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 3
-			if filled {
-				expire = time.Hour * 3
+			expire := hd.expireNotFilled
+			if len(offset) > 0 && filled {
+				expire = time.Hour * 30
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -181,14 +193,21 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	height base.Height,
 	offset string,
 	reverse bool,
+	l int64,
 ) ([]byte, bool, error) {
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("documents")
+	} else {
+		limit = l
+	}
 	filter, err := buildDocumentsByHeightFilterByOffset(height, offset, reverse)
 	if err != nil {
 		return nil, false, err
 	}
 
 	var vas []Hal
-	switch l, e := hd.loadDocumentsHALFromDatabase(filter, reverse); {
+	switch l, e := hd.loadDocumentsHALFromDatabase(filter, reverse, limit); {
 	case e != nil:
 		return nil, false, e
 	case len(l) < 1:
@@ -207,7 +226,7 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	}
 
 	b, err := hd.enc.Marshal(hal)
-	return b, int64(len(vas)) == hd.itemsLimiter("documents"), err
+	return b, int64(len(vas)) == limit, err
 }
 
 func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
@@ -353,10 +372,10 @@ func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) str
 	return next
 }
 
-func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool) ([]Hal, error) {
+func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, limit int64) ([]Hal, error) {
 	var vas []Hal
 	if err := hd.database.Documents(
-		filter, reverse, hd.itemsLimiter("documents"),
+		filter, reverse, limit,
 		func(_ currency.Big, va DocumentValue) (bool, error) {
 			hal, err := hd.buildDocumentHal(va)
 			if err != nil {

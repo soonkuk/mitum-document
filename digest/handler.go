@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -107,6 +108,7 @@ type Handlers struct {
 	rateLimit       map[string][]process.RateLimitRule
 	rateLimitStore  limiter.Store
 	rg              *singleflight.Group
+	expireNotFilled time.Duration
 }
 
 func NewHandlers(
@@ -121,17 +123,18 @@ func NewHandlers(
 		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "http2-handlers")
 		}),
-		networkID:    networkID,
-		encs:         encs,
-		enc:          enc,
-		database:     st,
-		cache:        cache,
-		cp:           cp,
-		router:       mux.NewRouter(),
-		routes:       map[string]*mux.Route{},
-		itemsLimiter: DefaultItemsLimiter,
-		rateLimit:    map[string][]process.RateLimitRule{},
-		rg:           &singleflight.Group{},
+		networkID:       networkID,
+		encs:            encs,
+		enc:             enc,
+		database:        st,
+		cache:           cache,
+		cp:              cp,
+		router:          mux.NewRouter(),
+		routes:          map[string]*mux.Route{},
+		itemsLimiter:    DefaultItemsLimiter,
+		rateLimit:       map[string][]process.RateLimitRule{},
+		rg:              &singleflight.Group{},
+		expireNotFilled: time.Second * 3,
 	}
 }
 

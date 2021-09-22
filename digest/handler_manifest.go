@@ -122,6 +122,7 @@ func (hd *Handlers) buildManifestHal(manifest block.Manifest) (Hal, error) {
 }
 
 func (hd *Handlers) handleManifests(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
@@ -142,7 +143,7 @@ func (hd *Handlers) handleManifests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleManifestsInGroup(height, offset, reverse)
+		i, filled, err := hd.handleManifestsInGroup(height, offset, reverse, limit)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -159,8 +160,8 @@ func (hd *Handlers) handleManifests(w http.ResponseWriter, r *http.Request) {
 		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
 
 		if !shared {
-			expire := time.Second * 3
-			if filled {
+			expire := hd.expireNotFilled
+			if len(offset) > 0 && filled {
 				expire = time.Hour * 30
 			}
 
@@ -169,8 +170,18 @@ func (hd *Handlers) handleManifests(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (hd *Handlers) handleManifestsInGroup(height base.Height, offset string, reverse bool) ([]byte, bool, error) {
-	limit := hd.itemsLimiter("manifests")
+func (hd *Handlers) handleManifestsInGroup(
+	height base.Height,
+	offset string,
+	reverse bool,
+	l int64,
+) ([]byte, bool, error) {
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("manifests")
+	} else {
+		limit = l
+	}
 
 	var vas []Hal
 	if err := hd.database.Manifests(

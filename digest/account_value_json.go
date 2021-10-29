@@ -12,7 +12,7 @@ import (
 type AccountValueJSONPacker struct {
 	jsonenc.HintedHead
 	currency.AccountPackerJSON
-	BL []currency.Amount           `json:"balance"`
+	BL []currency.Amount           `json:"balance,omitempty"`
 	DM blocksign.DocumentInventory `json:"document"`
 	HT base.Height                 `json:"height"`
 	PT base.Height                 `json:"previous_height"`

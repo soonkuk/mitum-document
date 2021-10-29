@@ -13,6 +13,7 @@ import (
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
+	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/storage"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -346,14 +347,14 @@ func (st *Database) OperationsByAddress(
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 			if !load {
-				h, err := loadOperationHash(cursor.Decode)
+				h, err := LoadOperationHash(cursor.Decode)
 				if err != nil {
 					return false, err
 				}
 				return callback(h, OperationValue{})
 			}
 
-			va, err := loadOperation(cursor.Decode, st.database.Encoders())
+			va, err := LoadOperation(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -383,7 +384,7 @@ func (st *Database) Operation(
 				return nil
 			}
 
-			i, err := loadOperation(res.Decode, st.database.Encoders())
+			i, err := LoadOperation(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -436,14 +437,14 @@ func (st *Database) Operations(
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 			if !load {
-				h, err := loadOperationHash(cursor.Decode)
+				h, err := LoadOperationHash(cursor.Decode)
 				if err != nil {
 					return false, err
 				}
 				return callback(h, OperationValue{})
 			}
 
-			va, err := loadOperation(cursor.Decode, st.database.Encoders())
+			va, err := LoadOperation(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -494,7 +495,7 @@ func (st *Database) DocumentsByAddress(
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := loadDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -514,7 +515,7 @@ func (st *Database) Document(
 		util.NewBSONFilter("documentid", i).D(),
 		func(res *mongo.SingleResult) error {
 
-			i, err := loadDocument(res.Decode, st.database.Encoders())
+			i, err := LoadDocument(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -563,7 +564,7 @@ func (st *Database) Documents(
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := loadDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -580,7 +581,7 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 		defaultColNameAccount,
 		util.NewBSONFilter("address", currency.StateAddressKeyPrefix(a)).D(),
 		func(res *mongo.SingleResult) error {
-			i, err := loadAccountValue(res.Decode, st.database.Encoders())
+			i, err := LoadAccountValue(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -620,6 +621,61 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 	return rs, true, nil
 }
 
+// AccountsByPublickey finds Accounts, which are related with the given
+// Publickey.
+// *  offset: returns from next of offset, usually it is "<address>".
+func (st *Database) AccountsByPublickey(
+	pub key.Publickey,
+	loadBalance bool,
+	offset string,
+	limit int64,
+	callback func(AccountValue) (bool, error),
+) error {
+	filter, err := buildAccountsFilterByPublickey(pub, offset)
+	if err != nil {
+		return err
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", 1).Add("address", 1).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameAccount,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+			va, err := LoadAccountValue(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+
+			if loadBalance {
+				// NOTE load balance
+				switch am, lastHeight, previousHeight, err := st.balance(va.Account().Address()); {
+				case err != nil:
+					return false, err
+				default:
+					va = va.SetBalance(am).
+						SetHeight(lastHeight).
+						SetPreviousHeight(previousHeight)
+				}
+			}
+
+			return callback(va)
+		},
+		opt,
+	)
+}
+
 func (st *Database) balance(a base.Address) ([]currency.Amount, base.Height, base.Height, error) {
 	lastHeight, previousHeight := base.NilHeight, base.NilHeight
 	var cids []string
@@ -639,7 +695,7 @@ func (st *Database) balance(a base.Address) ([]currency.Amount, base.Height, bas
 			defaultColNameBalance,
 			q,
 			func(res *mongo.SingleResult) error {
-				i, err := loadBalance(res.Decode, st.database.Encoders())
+				i, err := LoadBalance(res.Decode, st.database.Encoders())
 				if err != nil {
 					return err
 				}
@@ -691,7 +747,7 @@ func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, b
 		defaultColNameDocuments,
 		q,
 		func(res *mongo.SingleResult) error {
-			i, err := loadDocuments(res.Decode, st.database.Encoders())
+			i, err := LoadDocuments(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -810,6 +866,17 @@ func buildDocumentsFilterByAddress(address base.Address, offset string, reverse 
 			}
 		}
 	}
+
+	return filter, nil
+}
+
+func buildAccountsFilterByPublickey(pub key.Publickey, offset string) (bson.M, error) { // nolint:unparam
+	filter := bson.M{"pubs": bson.M{"$in": []string{pub.Raw() + ":" + pub.Hint().Type().String()}}}
+	if len(offset) < 1 {
+		return filter, nil
+	}
+
+	filter["address"] = bson.M{"$gt": offset}
 
 	return filter, nil
 }

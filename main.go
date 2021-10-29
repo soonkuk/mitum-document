@@ -23,13 +23,13 @@ var (
 )
 
 type mainflags struct {
-	Version VersionCommand   `cmd:"" help:"version"`
-	Node    cmds.NodeCommand `cmd:"" help:"node"`
-	// TODO Blocks mitumcmds.BlocksCommand `cmd:"" help:"get block data from node"`
-	Key     currencycmds.KeyCommand     `cmd:"" help:"key"`
-	Seal    cmds.SealCommand            `cmd:"" help:"seal"`
-	Storage currencycmds.StorageCommand `cmd:"" help:"storage"`
-	Deploy  currencycmds.DeployCommand  `cmd:"" help:"deploy"`
+	Version    VersionCommand              `cmd:"" help:"version"`
+	Node       cmds.NodeCommand            `cmd:"" help:"node"`
+	Key        currencycmds.KeyCommand     `cmd:"" help:"key"`
+	Seal       cmds.SealCommand            `cmd:"" help:"seal"`
+	Storage    currencycmds.StorageCommand `cmd:"" help:"storage"`
+	Deploy     currencycmds.DeployCommand  `cmd:"" help:"deploy"`
+	QuicClient mitumcmds.QuicClientCommand `cmd:"" help:"quic-client"`
 }
 
 func main() {
@@ -41,11 +41,12 @@ func main() {
 	}
 
 	flags := mainflags{
-		Node:    nodeCommand,
-		Key:     currencycmds.NewKeyCommand(),
-		Seal:    cmds.NewSealCommand(),
-		Storage: currencycmds.NewStorageCommand(),
-		Deploy:  currencycmds.NewDeployCommand(),
+		Node:       nodeCommand,
+		Key:        currencycmds.NewKeyCommand(),
+		Seal:       cmds.NewSealCommand(),
+		Storage:    currencycmds.NewStorageCommand(),
+		Deploy:     currencycmds.NewDeployCommand(),
+		QuicClient: mitumcmds.NewQuicClientCommand(),
 	}
 
 	kctx, err := mitumcmds.Context(os.Args[1:], &flags, options...)

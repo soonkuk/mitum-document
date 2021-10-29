@@ -9,6 +9,7 @@ import (
 
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
 
 type SignDocumentCommand struct {
@@ -18,7 +19,7 @@ type SignDocumentCommand struct {
 	DocId    currencycmds.BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
 	Owner    currencycmds.AddressFlag    `arg:"" name:"owner" help:"owner address" required:""`
 	Currency currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Seal     currencycmds.FileLoad       `help:"seal" optional:""`
+	Seal     mitumcmds.FileLoad          `help:"seal" optional:""`
 	sender   base.Address
 	owner    base.Address
 }

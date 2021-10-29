@@ -3,7 +3,7 @@ package cmds
 import currencycmds "github.com/spikeekips/mitum-currency/cmds"
 
 type SealCommand struct {
-	Send                  SendCommand                               `cmd:"" name:"send" help:"send seal to remote mitum node"`
+	Send                  currencycmds.SendCommand                  `cmd:"" name:"send" help:"send seal to remote mitum node"`
 	CreateAccount         currencycmds.CreateAccountCommand         `cmd:"" name:"create-account" help:"create new account"`
 	CreateDocument        CreateDocumentCommand                     `cmd:"" name:"create-document" help:"create new document"`
 	SignDocument          SignDocumentCommand                       `cmd:"" name:"sign-document" help:"sign document"`
@@ -17,7 +17,7 @@ type SealCommand struct {
 
 func NewSealCommand() SealCommand {
 	return SealCommand{
-		Send:                  NewSendCommand(),
+		Send:                  currencycmds.NewSendCommand(),
 		CreateAccount:         currencycmds.NewCreateAccountCommand(),
 		CreateDocument:        NewCreateDocumentCommand(),
 		SignDocument:          NewSignDocumentCommand(),

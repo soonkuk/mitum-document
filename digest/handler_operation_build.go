@@ -9,15 +9,18 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/util/hint"
 )
 
 var factTypesByHint = map[string]hint.Hinter{
-	"create-accounts":   currency.CreateAccounts{},
-	"key-updater":       currency.KeyUpdater{},
-	"transfers":         currency.Transfers{},
-	"currency-register": currency.CurrencyRegister{},
+	"create-accounts":   currency.CreateAccountsHinter,
+	"key-updater":       currency.KeyUpdaterHinter,
+	"transfers":         currency.TransfersHinter,
+	"create-documents":  blocksign.CreateDocumentsHinter,
+	"sign-documents":    blocksign.SignDocumentsHinter,
+	"currency-register": currency.CurrencyRegisterHinter,
 }
 
 func (hd *Handlers) handleOperationBuild(w http.ResponseWriter, r *http.Request) {

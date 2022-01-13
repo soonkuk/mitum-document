@@ -1,10 +1,10 @@
-address: mbd-node:sa-v0.0.1
-privatekey: KxaTHDAQnmFeWWik5MqWXBYkhvp5EpWbsZzXeHDdTDb5NE1dVw8w:btc-priv-v0.0.1
+address: mbd-nodesas
+privatekey: KxaTHDAQnmFeWWik5MqWXBYkhvp5EpWbsZzXeHDdTDb5NE1dVw8wmpr
 storage:
     database:
         uri: mongodb://127.0.0.1:27017/mbd
     blockdata:
-        path: ./mbd_blockdatas
+        path: ./blockdata
 network-id: mitum
 network:
     bind: https://0.0.0.0:54330
@@ -14,8 +14,8 @@ genesis-operations:
     - type: genesis-currencies
       account-keys:
         keys:
-            - publickey: rcrd3KA2wWNhKdAP8rHRzfRmgp91oR9mqopckyXRmCvG:btc-pub-v0.0.1
-              # privatekey: L5GTSKkRs9NPsXwYgACZdodNUJqCAWjz2BccuR4cAgxJumEZWjok-0112:0.0.1
+            - publickey: rcrd3KA2wWNhKdAP8rHRzfRmgp91oR9mqopckyXRmCvGmpu
+              # privatekey: L5GTSKkRs9NPsXwYgACZdodNUJqCAWjz2BccuR4cAgxJumEZWjokmpr
               weight: 100
         threshold: 100
       currencies:
@@ -40,7 +40,7 @@ policy:
 
 suffrage:
     nodes:
-        - mbd-node:sa-v0.0.1
+        - mbd-nodesas
 
 nodes:
 

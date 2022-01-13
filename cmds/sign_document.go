@@ -46,7 +46,7 @@ func (cmd *SignDocumentCommand) Run(version util.Version) error { // nolint:dupl
 		op = o
 	}
 
-	if sl, err := loadSealAndAddOperation(
+	if sl, err := LoadSealAndAddOperation(
 		cmd.Seal.Bytes(),
 		cmd.Privatekey,
 		cmd.NetworkID.NetworkID(),
@@ -101,16 +101,16 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 
 	fact := blocksign.NewSignDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
-	var fs []operation.FactSign
-	if sig, err := operation.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID()); err != nil {
+	var fs []base.FactSign
+	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
+	if err != nil {
 		return nil, err
-	} else {
-		fs = append(fs, operation.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 	}
+	fs = append(fs, base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 
-	if op, err := blocksign.NewSignDocuments(fact, fs, cmd.Memo); err != nil {
+	op, err := blocksign.NewSignDocuments(fact, fs, cmd.Memo)
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to create sign-document operation")
-	} else {
-		return op, nil
 	}
+	return op, nil
 }

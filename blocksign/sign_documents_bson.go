@@ -5,7 +5,6 @@ import (
 
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
-	"github.com/spikeekips/mitum/base/operation"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"github.com/spikeekips/mitum/util/valuehash"
 )
@@ -37,27 +36,13 @@ func (fact *SignDocumentsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error 
 	return fact.unpack(enc, uca.H, uca.TK, uca.SD, uca.IT)
 }
 
-func (op SignDocuments) MarshalBSON() ([]byte, error) {
-	return bsonenc.Marshal(
-		bsonenc.MergeBSONM(
-			op.BaseOperation.BSONM(),
-			bson.M{"memo": op.Memo},
-		))
-}
-
 func (op *SignDocuments) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var ubo operation.BaseOperation
+	var ubo currency.BaseOperation
 	if err := ubo.UnpackBSON(b, enc); err != nil {
 		return err
 	}
 
-	*op = SignDocuments{BaseOperation: ubo}
-
-	var um currency.MemoBSONUnpacker
-	if err := enc.Unmarshal(b, &um); err != nil {
-		return err
-	}
-	op.Memo = um.Memo
+	op.BaseOperation = ubo
 
 	return nil
 }

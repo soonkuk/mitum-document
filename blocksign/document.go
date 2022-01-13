@@ -19,11 +19,13 @@ import (
 )
 
 var (
-	DocumentDataType = hint.Type("mitum-blocksign-document-data")
-	DocumentDataHint = hint.NewHint(DocumentDataType, "v0.0.1")
+	DocumentDataType   = hint.Type("mitum-blocksign-document-data")
+	DocumentDataHint   = hint.NewHint(DocumentDataType, "v0.0.1")
+	DocumentDataHinter = DocumentData{BaseHinter: hint.NewBaseHinter(DocumentDataHint)}
 )
 
 type DocumentData struct {
+	hint.BaseHinter
 	info    DocInfo
 	creator DocSign
 	title   string
@@ -96,10 +98,9 @@ func (doc DocumentData) IsEmpty() bool {
 }
 
 func (doc DocumentData) IsValid([]byte) error {
-	if err := isvalid.Check([]isvalid.IsValider{
-		doc.info.FileHash(),
-		doc.creator,
-	}, nil, false); err != nil {
+	if err := isvalid.Check(
+		nil, false, doc.info.FileHash(),
+		doc.creator); err != nil {
 		return errors.Wrap(err, "invalid document data")
 	}
 
@@ -236,11 +237,13 @@ func (fh FileHash) Equal(b FileHash) bool {
 }
 
 var (
-	DocSignType = hint.Type("mitum-blocksign-docsign")
-	DocSignHint = hint.NewHint(DocSignType, "v0.0.1")
+	DocSignType   = hint.Type("mitum-blocksign-docsign")
+	DocSignHint   = hint.NewHint(DocSignType, "v0.0.1")
+	DocSignHinter = DocSign{BaseHinter: hint.NewBaseHinter(DocSignHint)}
 )
 
 type DocSign struct {
+	hint.BaseHinter
 	address  base.Address
 	signcode string
 	signed   bool
@@ -296,12 +299,12 @@ func (ds DocSign) IsValid([]byte) error {
 }
 
 func (ds DocSign) IsEmpty() bool {
-	return len(ds.address.Raw()) < 1
+	return len(ds.address.String()) < 1
 }
 
 func (ds DocSign) String() string {
 	v := fmt.Sprintf("%v", ds.signed)
-	return fmt.Sprintf("%s:%s", ds.address.Raw(), v)
+	return fmt.Sprintf("%s:%s", ds.address.String(), v)
 }
 
 func (ds DocSign) Equal(b DocSign) bool {
@@ -393,11 +396,13 @@ func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 }
 
 var (
-	DocInfoType = hint.Type("mitum-blocksign-document-info")
-	DocInfoHint = hint.NewHint(DocInfoType, "v0.0.1")
+	DocInfoType   = hint.Type("mitum-blocksign-document-info")
+	DocInfoHint   = hint.NewHint(DocInfoType, "v0.0.1")
+	DocInfoHinter = DocInfo{BaseHinter: hint.NewBaseHinter(DocInfoHint)}
 )
 
 type DocInfo struct {
+	hint.BaseHinter
 	idx      currency.Big
 	filehash FileHash
 }

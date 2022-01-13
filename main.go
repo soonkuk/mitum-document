@@ -40,11 +40,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	storagecommand, err := currencycmds.NewStorageCommand()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %+v\n", err) // revive:disable-line:unhandled-error
+
+		os.Exit(1)
+	}
+
 	flags := mainflags{
 		Node:       nodeCommand,
 		Key:        currencycmds.NewKeyCommand(),
 		Seal:       cmds.NewSealCommand(),
-		Storage:    currencycmds.NewStorageCommand(),
+		Storage:    storagecommand,
 		Deploy:     currencycmds.NewDeployCommand(),
 		QuicClient: mitumcmds.NewQuicClientCommand(),
 	}

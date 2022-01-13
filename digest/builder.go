@@ -16,11 +16,11 @@ import (
 )
 
 var (
-	templatePrivateKeyString = "Kzxb3TcaxHCp9iq6ekyaNjaeRSdqzvv9JrazTV8cVsZq9U2FQSSG"
+	templatePrivateKeyString = "KzFERQKNQbPA8cdsX5tCiCZvR4KgBou41cgtPk69XueFbaEjrczbmpr"
 	templatePublickey        key.Publickey
 	templateCurrencyID       = currency.CurrencyID("xXx")
-	templateSender           = currency.Address("mother")
-	templateReceiver         = currency.Address("father")
+	templateSender           = currency.NewAddress("mother")
+	templateReceiver         = currency.NewAddress("father")
 	templateToken            = []byte("raised by")
 	templateSignature        = key.Signature([]byte("wolves"))
 	templateBig              = currency.NewBig(-333)
@@ -30,14 +30,14 @@ var (
 	templateSigncode         = "tigers"
 	templateTitle            = "my_document"
 	templateSize             = currency.NewBig(555)
-	templateOwner            = currency.Address("uncle")
-	templateSigner           = currency.Address("aunt")
+	templateOwner            = currency.NewAddress("uncle")
+	templateSigner           = currency.NewAddress("aunt")
 	templateSignerSigncode   = "rabbits"
 	templateId               = currency.NewBig(33)
 )
 
 func init() {
-	if priv, err := key.NewBTCPrivatekeyFromString(templatePrivateKeyString); err != nil {
+	if priv, err := key.ParseBasePrivatekey(templatePrivateKeyString); err != nil {
 		panic(err)
 	} else {
 		templatePublickey = priv.Publickey()
@@ -77,8 +77,8 @@ func (bl Builder) FactTemplate(ht hint.Hint) (Hal, error) {
 }
 
 func (Builder) templateCreateAccountsFact() Hal {
-	nkey, _ := currency.NewKey(templatePublickey, 100)
-	nkeys, _ := currency.NewKeys([]currency.Key{nkey}, 100)
+	nkey, _ := currency.NewBaseAccountKey(templatePublickey, 100)
+	nkeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{nkey}, 100)
 
 	fact := currency.NewCreateAccountsFact(
 		templateToken,
@@ -100,8 +100,8 @@ func (Builder) templateCreateAccountsFact() Hal {
 }
 
 func (Builder) templateKeyUpdaterFact() Hal {
-	nkey, _ := currency.NewKey(templatePublickey, 100)
-	nkeys, _ := currency.NewKeys([]currency.Key{nkey}, 100)
+	nkey, _ := currency.NewBaseAccountKey(templatePublickey, 100)
+	nkeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{nkey}, 100)
 
 	fact := currency.NewKeyUpdaterFact(
 		templateToken,
@@ -263,7 +263,7 @@ func (bl Builder) buildFactCreateAccounts(fact currency.CreateAccountsFact) (Hal
 			return nil, errors.Errorf("empty Amounts")
 		}
 
-		ks, e := currency.NewKeys(item.Keys().Keys(), item.Keys().Threshold())
+		ks, e := currency.NewBaseAccountKeys(item.Keys().Keys(), item.Keys().Threshold())
 		if e != nil {
 			return nil, e
 		}
@@ -280,8 +280,8 @@ func (bl Builder) buildFactCreateAccounts(fact currency.CreateAccountsFact) (Hal
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewCreateAccounts(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -295,7 +295,7 @@ func (bl Builder) buildFactCreateAccounts(fact currency.CreateAccountsFact) (Hal
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (Hal, error) {
@@ -333,8 +333,8 @@ func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := blocksign.NewCreateDocuments(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -348,7 +348,7 @@ func (bl Builder) buildFactCreateDocuments(fact blocksign.CreateDocumentsFact) (
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactSignDocuments(fact blocksign.SignDocumentsFact) (Hal, error) {
@@ -381,8 +381,8 @@ func (bl Builder) buildFactSignDocuments(fact blocksign.SignDocumentsFact) (Hal,
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := blocksign.NewSignDocuments(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -396,7 +396,7 @@ func (bl Builder) buildFactSignDocuments(fact blocksign.SignDocumentsFact) (Hal,
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactKeyUpdater(fact currency.KeyUpdaterFact) (Hal, error) {
@@ -405,7 +405,7 @@ func (bl Builder) buildFactKeyUpdater(fact currency.KeyUpdaterFact) (Hal, error)
 		return nil, err
 	}
 
-	ks, err := currency.NewKeys(fact.Keys().Keys(), fact.Keys().Threshold())
+	ks, err := currency.NewBaseAccountKeys(fact.Keys().Keys(), fact.Keys().Threshold())
 	if err != nil {
 		return nil, err
 	}
@@ -419,8 +419,8 @@ func (bl Builder) buildFactKeyUpdater(fact currency.KeyUpdaterFact) (Hal, error)
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewKeyUpdater(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -434,7 +434,7 @@ func (bl Builder) buildFactKeyUpdater(fact currency.KeyUpdaterFact) (Hal, error)
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactTransfers(fact currency.TransfersFact) (Hal, error) {
@@ -453,8 +453,8 @@ func (bl Builder) buildFactTransfers(fact currency.TransfersFact) (Hal, error) {
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewTransfers(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -468,7 +468,7 @@ func (bl Builder) buildFactTransfers(fact currency.TransfersFact) (Hal, error) {
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactCurrencyRegister(fact currency.CurrencyRegisterFact) (Hal, error) {
@@ -486,8 +486,8 @@ func (bl Builder) buildFactCurrencyRegister(fact currency.CurrencyRegisterFact) 
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewCurrencyRegister(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -501,7 +501,7 @@ func (bl Builder) buildFactCurrencyRegister(fact currency.CurrencyRegisterFact) 
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (bl Builder) buildFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpdaterFact) (Hal, error) {
@@ -519,8 +519,8 @@ func (bl Builder) buildFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpd
 	hal = NewBaseHal(nil, HalLink{})
 	op, err := currency.NewCurrencyPolicyUpdater(
 		nfact,
-		[]operation.FactSign{
-			operation.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
+		[]base.FactSign{
+			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
 		},
 		"",
 	)
@@ -534,7 +534,7 @@ func (bl Builder) buildFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpd
 			"fact_signs.signer":    templatePublickey,
 			"fact_signs.signature": templateSignature,
 		}).
-		AddExtras("signature_base", operation.NewBytesForFactSignature(nfact, bl.networkID)), nil
+		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
 func (Builder) isValidFactCreateAccounts(fact currency.CreateAccountsFact) error {
@@ -846,13 +846,13 @@ func (Builder) checkToken(token []byte) ([]byte, error) {
 }
 
 // updateFactSigns regenerate the newly added factsign.
-func (Builder) updateFactSigns(fss []operation.FactSign) []operation.FactSign {
-	ufss := make([]operation.FactSign, len(fss))
+func (Builder) updateFactSigns(fss []base.FactSign) []base.FactSign {
+	ufss := make([]base.FactSign, len(fss))
 	for i := range fss {
 		fs := fss[i]
 
 		if localtime.RFC3339(fs.SignedAt()) == localtime.RFC3339(templateSignedAt) {
-			fs = operation.NewBaseFactSign(fs.Signer(), fs.Signature())
+			fs = base.NewBaseFactSign(fs.Signer(), fs.Signature())
 		}
 
 		ufss[i] = fs

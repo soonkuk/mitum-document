@@ -10,6 +10,7 @@ import (
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/seal"
 	"github.com/spikeekips/mitum/util"
+	"github.com/spikeekips/mitum/util/encoder"
 
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
@@ -48,24 +49,21 @@ func (cmd *CreateDocumentCommand) Run(version util.Version) error { // nolint:du
 		return err
 	}
 
-	var op operation.Operation
-	if o, err := cmd.createOperation(); err != nil {
+	op, err := cmd.createOperation()
+	if err != nil {
 		return err
-	} else {
-		op = o
 	}
 
-	if sl, err := loadSealAndAddOperation(
+	sl, err := LoadSealAndAddOperation(
 		cmd.Seal.Bytes(),
 		cmd.Privatekey,
 		cmd.NetworkID.NetworkID(),
 		op,
-	); err != nil {
+	)
+	if err != nil {
 		return err
-	} else {
-		currencycmds.PrettyPrint(cmd.Out, cmd.Pretty, sl)
 	}
-
+	currencycmds.PrettyPrint(cmd.Out, cmd.Pretty, sl)
 	return nil
 }
 
@@ -74,11 +72,11 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 		return err
 	}
 
-	if a, err := cmd.Sender.Encode(jenc); err != nil {
-		return errors.Errorf("invalid sender format, %q: %q", cmd.Sender.String(), err)
-	} else {
-		cmd.sender = a
+	a, err := cmd.Sender.Encode(jenc)
+	if err != nil {
+		return errors.Wrapf(err, "invalid sender format, %q", cmd.Sender.String())
 	}
+	cmd.sender = a
 
 	{
 		signers := make([]base.Address, len(cmd.Signers))
@@ -100,14 +98,14 @@ func (cmd *CreateDocumentCommand) parseFlags() error {
 }
 
 func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
-	var items []blocksign.CreateDocumentsItem
-	if i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID()); err != nil {
+	i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID())
+	if err != nil {
 		return nil, err
-	} else {
-		for j := range i {
-			if t, ok := i[j].(blocksign.CreateDocuments); ok {
-				items = t.Fact().(blocksign.CreateDocumentsFact).Items()
-			}
+	}
+	var items []blocksign.CreateDocumentsItem
+	for j := range i {
+		if t, ok := i[j].(blocksign.CreateDocuments); ok {
+			items = t.Fact().(blocksign.CreateDocumentsFact).Items()
 		}
 	}
 
@@ -124,41 +122,63 @@ func (cmd *CreateDocumentCommand) createOperation() (operation.Operation, error)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err
-	} else {
-		items = append(items, item)
 	}
+	items = append(items, item)
 
 	fact := blocksign.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
-	var fs []operation.FactSign
-	if sig, err := operation.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID()); err != nil {
+	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
+	if err != nil {
 		return nil, err
-	} else {
-		fs = append(fs, operation.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
+	}
+	fs := []base.FactSign{
+		base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig),
 	}
 
-	if op, err := blocksign.NewCreateDocuments(fact, fs, cmd.Memo); err != nil {
+	op, err := blocksign.NewCreateDocuments(fact, fs, cmd.Memo)
+	if err != nil {
 		return nil, errors.Errorf("failed to create create-account operation: %q", err)
-	} else {
-		return op, nil
 	}
+	return op, nil
 }
 
-func loadSeal(b []byte, networkID base.NetworkID) (seal.Seal, error) {
+func loadOperations(b []byte, networkID base.NetworkID) ([]operation.Operation, error) {
+	if len(bytes.TrimSpace(b)) < 1 {
+		return nil, nil
+	}
+
+	var sl seal.Seal
+	if s, err := LoadSeal(b, networkID); err != nil {
+		return nil, err
+	} else if so, ok := s.(operation.Seal); !ok {
+		return nil, errors.Errorf("seal is not operation.Seal, %T", s)
+	} else if _, ok := so.(operation.SealUpdater); !ok {
+		return nil, errors.Errorf("seal is not operation.SealUpdater, %T", s)
+	} else {
+		sl = so
+	}
+
+	return sl.(operation.Seal).Operations(), nil
+}
+
+func LoadSeal(b []byte, networkID base.NetworkID) (seal.Seal, error) {
 	if len(bytes.TrimSpace(b)) < 1 {
 		return nil, errors.Errorf("empty input")
 	}
 
-	if sl, err := seal.DecodeSeal(b, jenc); err != nil {
+	var sl seal.Seal
+	if err := encoder.Decode(b, jenc, &sl); err != nil {
 		return nil, err
-	} else if err := sl.IsValid(networkID); err != nil {
-		return nil, errors.Wrap(err, "invalid seal")
-	} else {
-		return sl, nil
 	}
+
+	if err := sl.IsValid(networkID); err != nil {
+		return nil, errors.Wrap(err, "invalid seal")
+	}
+
+	return sl, nil
 }
 
-func loadSealAndAddOperation(
+func LoadSealAndAddOperation(
 	b []byte,
 	privatekey key.Privatekey,
 	networkID base.NetworkID,
@@ -177,7 +197,7 @@ func loadSealAndAddOperation(
 	}
 
 	var sl operation.Seal
-	if s, err := loadSeal(b, networkID); err != nil {
+	if s, err := LoadSeal(b, networkID); err != nil {
 		return nil, err
 	} else if so, ok := s.(operation.Seal); !ok {
 		return nil, errors.Errorf("seal is not operation.Seal, %T", s)
@@ -197,23 +217,4 @@ func loadSealAndAddOperation(
 	sl = s.(operation.Seal)
 
 	return sl, nil
-}
-
-func loadOperations(b []byte, networkID base.NetworkID) ([]operation.Operation, error) {
-	if len(bytes.TrimSpace(b)) < 1 {
-		return nil, nil
-	}
-
-	var sl seal.Seal
-	if s, err := loadSeal(b, networkID); err != nil {
-		return nil, err
-	} else if so, ok := s.(operation.Seal); !ok {
-		return nil, errors.Errorf("seal is not operation.Seal, %T", s)
-	} else if _, ok := so.(operation.SealUpdater); !ok {
-		return nil, errors.Errorf("seal is not operation.SealUpdater, %T", s)
-	} else {
-		sl = so
-	}
-
-	return sl.(operation.Seal).Operations(), nil
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
-	"github.com/spikeekips/mitum/base/operation"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/valuehash"
 )
@@ -44,26 +43,13 @@ func (fact *CreateDocumentsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) erro
 	return fact.unpack(enc, uda.H, uda.TK, uda.SD, uda.IT)
 }
 
-func (op CreateDocuments) MarshalJSON() ([]byte, error) {
-	m := op.BaseOperation.JSONM()
-	m["memo"] = op.Memo
-
-	return jsonenc.Marshal(m)
-}
-
 func (op *CreateDocuments) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var ubo operation.BaseOperation
+	var ubo currency.BaseOperation
 	if err := ubo.UnpackJSON(b, enc); err != nil {
 		return err
 	}
 
-	*op = CreateDocuments{BaseOperation: ubo}
-
-	var um currency.MemoJSONUnpacker
-	if err := enc.Unmarshal(b, &um); err != nil {
-		return err
-	}
-	op.Memo = um.Memo
+	op.BaseOperation = ubo
 
 	return nil
 }

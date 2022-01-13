@@ -42,10 +42,10 @@ var (
 	HandlerPathOperationsByHeight         = `/block/{height:[0-9]+}/operations`
 	HandlerPathManifestByHeight           = `/block/{height:[0-9]+}/manifest`
 	HandlerPathManifestByHash             = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}/manifest`
-	HandlerPathAccount                    = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}`            // revive:disable-line:line-length-limit
-	HandlerPathAccountOperations          = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/operations` // revive:disable-line:line-length-limit
+	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`            // revive:disable-line:line-length-limit
+	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations` // revive:disable-line:line-length-limit
 	HandlerPathAccounts                   = `/accounts`
-	HandlerPathAccountDocuments           = `/account/{address:(?i)[0-9a-z][0-9a-z\-]+:[a-z0-9][a-z0-9\-_\+]*[a-z0-9]-v[0-9\.]*}/documents` // revive:disable-line:line-length-limit
+	HandlerPathAccountDocuments           = `/account/{address:(?i)` + base.REStringAddressString + `}/documents` // revive:disable-line:line-length-limit
 	HandlerPathOperationBuildFactTemplate = `/builder/operation/fact/template/{fact:[\w][\w\-]*}`
 	HandlerPathOperationBuildFact         = `/builder/operation/fact`
 	HandlerPathOperationBuildSign         = `/builder/operation/sign`

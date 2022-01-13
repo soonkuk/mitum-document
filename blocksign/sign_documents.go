@@ -4,7 +4,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
-	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
@@ -12,10 +11,12 @@ import (
 )
 
 var (
-	SignDocumentsFactType = hint.Type("mitum-blocksign-sign-documents-operation-fact")
-	SignDocumentsFactHint = hint.NewHint(SignDocumentsFactType, "v0.0.1")
-	SignDocumentsType     = hint.Type("mitum-blocksign-sign-documents-operation")
-	SignDocumentsHint     = hint.NewHint(SignDocumentsType, "v0.0.1")
+	SignDocumentsFactType   = hint.Type("mitum-blocksign-sign-documents-operation-fact")
+	SignDocumentsFactHint   = hint.NewHint(SignDocumentsFactType, "v0.0.1")
+	SignDocumentsFactHinter = SignDocumentsFact{BaseHinter: hint.NewBaseHinter(SignDocumentsFactHint)}
+	SignDocumentsType       = hint.Type("mitum-blocksign-sign-documents-operation")
+	SignDocumentsHint       = hint.NewHint(SignDocumentsType, "v0.0.1")
+	SignDocumentsHinter     = SignDocuments{BaseOperation: operationHinter(SignDocumentsHint)}
 )
 
 var MaxSignDocumentsItems uint = 10
@@ -31,6 +32,7 @@ type SignDocumentItem interface {
 }
 
 type SignDocumentsFact struct {
+	hint.BaseHinter
 	h      valuehash.Hash
 	token  []byte
 	sender base.Address
@@ -73,7 +75,15 @@ func (fact SignDocumentsFact) Bytes() []byte {
 	)
 }
 
-func (fact SignDocumentsFact) IsValid([]byte) error {
+func (fact SignDocumentsFact) IsValid(b []byte) error {
+	if err := fact.BaseHinter.IsValid(nil); err != nil {
+		return err
+	}
+
+	if err := currency.IsValidOperationFact(fact, b); err != nil {
+		return err
+	}
+
 	if len(fact.token) < 1 {
 		return errors.Errorf("empty token for SignDocumentsFact")
 	} else if n := len(fact.items); n < 1 {
@@ -82,10 +92,9 @@ func (fact SignDocumentsFact) IsValid([]byte) error {
 		return errors.Errorf("items, %d over max, %d", n, MaxSignDocumentsItems)
 	}
 
-	if err := isvalid.Check([]isvalid.IsValider{
-		fact.h,
-		fact.sender,
-	}, nil, false); err != nil {
+	if err := isvalid.Check(
+		nil, false, fact.h,
+		fact.sender); err != nil {
 		return err
 	}
 
@@ -143,55 +152,13 @@ func (fact SignDocumentsFact) Rebuild() SignDocumentsFact {
 }
 
 type SignDocuments struct {
-	operation.BaseOperation
-	Memo string
+	currency.BaseOperation
 }
 
-func NewSignDocuments(fact SignDocumentsFact, fs []operation.FactSign, memo string) (SignDocuments, error) {
-	if bo, err := operation.NewBaseOperationFromFact(SignDocumentsHint, fact, fs); err != nil {
+func NewSignDocuments(fact SignDocumentsFact, fs []base.FactSign, memo string) (SignDocuments, error) {
+	bo, err := currency.NewBaseOperationFromFact(SignDocumentsHint, fact, fs, memo)
+	if err != nil {
 		return SignDocuments{}, err
-	} else {
-		op := SignDocuments{BaseOperation: bo, Memo: memo}
-
-		op.BaseOperation = bo.SetHash(op.GenerateHash())
-
-		return op, nil
 	}
-}
-
-func (op SignDocuments) Hint() hint.Hint {
-	return SignDocumentsHint
-}
-
-func (op SignDocuments) IsValid(networkID []byte) error {
-	if err := currency.IsValidMemo(op.Memo); err != nil {
-		return err
-	}
-
-	return operation.IsValidOperation(op, networkID)
-}
-
-func (op SignDocuments) GenerateHash() valuehash.Hash {
-	bs := make([][]byte, len(op.Signs())+1)
-	for i := range op.Signs() {
-		bs[i] = op.Signs()[i].Bytes()
-	}
-
-	bs[len(bs)-1] = []byte(op.Memo)
-
-	e := util.ConcatBytesSlice(op.Fact().Hash().Bytes(), util.ConcatBytesSlice(bs...))
-
-	return valuehash.NewSHA256(e)
-}
-
-func (op SignDocuments) AddFactSigns(fs ...operation.FactSign) (operation.FactSignUpdater, error) {
-	if o, err := op.BaseOperation.AddFactSigns(fs...); err != nil {
-		return nil, err
-	} else {
-		op.BaseOperation = o.(operation.BaseOperation)
-	}
-
-	op.BaseOperation = op.SetHash(op.GenerateHash())
-
-	return op, nil
+	return SignDocuments{BaseOperation: bo}, nil
 }

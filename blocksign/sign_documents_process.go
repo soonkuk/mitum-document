@@ -1,6 +1,8 @@
 package blocksign
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -8,6 +10,18 @@ import (
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/valuehash"
 )
+
+var SignDocumentsItemProcessorPool = sync.Pool{
+	New: func() interface{} {
+		return new(SignDocumentsItemProcessor)
+	},
+}
+
+var SignDocumentsProcessorPool = sync.Pool{
+	New: func() interface{} {
+		return new(SignDocumentsProcessor)
+	},
+}
 
 func (op SignDocuments) Process(
 	func(key string) (state.State, bool, error),
@@ -18,8 +32,8 @@ func (op SignDocuments) Process(
 
 type SignDocumentsItemProcessor struct {
 	cp     *currency.CurrencyPool
-	sender base.Address
 	h      valuehash.Hash
+	sender base.Address
 	item   SignDocumentItem
 	nds    state.State       // new document data state (key = document filehash)
 	dinv   DocumentInventory // document inventory
@@ -117,6 +131,20 @@ func (opp *SignDocumentsItemProcessor) Process(
 	return sts, nil
 }
 
+func (opp *SignDocumentsItemProcessor) Close() error {
+	opp.cp = nil
+	opp.h = nil
+	opp.sender = nil
+	opp.item = nil
+	opp.nds = nil
+	opp.dinv = DocumentInventory{}
+	opp.ndinvs = nil
+
+	CreateDocumentsItemProcessorPool.Put(opp)
+
+	return nil
+}
+
 type SignDocumentsProcessor struct {
 	cp *currency.CurrencyPool
 	SignDocuments
@@ -201,6 +229,21 @@ func (opp *SignDocumentsProcessor) Process( // nolint:dupl
 	}
 
 	return setState(fact.Hash(), sts...)
+}
+
+func (opp *SignDocumentsProcessor) Close() error {
+	for i := range opp.ns {
+		_ = opp.ns[i].Close()
+	}
+
+	opp.cp = nil
+	opp.SignDocuments = SignDocuments{}
+	opp.sb = nil
+	opp.required = nil
+
+	CreateDocumentsProcessorPool.Put(opp)
+
+	return nil
 }
 
 func (opp *SignDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyID][2]currency.Big, error) {

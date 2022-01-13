@@ -7,8 +7,25 @@ import (
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
-	"github.com/spikeekips/mitum/util/hint"
 )
+
+type AddressFlag struct {
+	s string
+}
+
+func (v *AddressFlag) UnmarshalText(b []byte) error {
+	v.s = string(b)
+
+	return nil
+}
+
+func (v *AddressFlag) String() string {
+	return v.s
+}
+
+func (v *AddressFlag) Encode(enc encoder.Encoder) (base.Address, error) {
+	return base.DecodeAddressFromString(v.s, enc)
+}
 
 type FileHashFlag struct {
 	FH blocksign.FileHash
@@ -29,9 +46,8 @@ func (v *FileHashFlag) String() string {
 }
 
 type DocSignFlag struct {
-	AD base.AddressDecoder
+	AD AddressFlag
 	SC string
-	sa string
 }
 
 func (v *DocSignFlag) UnmarshalText(b []byte) error {
@@ -41,17 +57,15 @@ func (v *DocSignFlag) UnmarshalText(b []byte) error {
 		return errors.Errorf(`wrong formatted; "<string address>,<string signcode>"`)
 	}
 
-	v.sa = docSign[0]
-	hs, err := hint.ParseHintedString(docSign[0])
-	if err != nil {
-		return err
+	v.AD = AddressFlag{
+		s: docSign[0],
 	}
-	v.AD = base.AddressDecoder{HintedString: encoder.NewHintedString(hs.Hint(), hs.Body())}
+
 	v.SC = docSign[1]
 
 	return nil
 }
 
 func (v *DocSignFlag) String() string {
-	return v.sa
+	return v.AD.String()
 }

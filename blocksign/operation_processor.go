@@ -1,6 +1,8 @@
 package blocksign
 
 import (
+	"fmt"
+	"io"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -17,6 +19,12 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
+var operationProcessorPool = sync.Pool{
+	New: func() interface{} {
+		return new(OperationProcessor)
+	},
+}
+
 type GetNewProcessor func(state.Processor) (state.Processor, error)
 
 type DuplicationType string
@@ -27,6 +35,7 @@ const (
 )
 
 type OperationProcessor struct {
+	id string
 	sync.RWMutex
 	*logging.Logging
 	processorHintSet     *hint.Hintmap
@@ -36,6 +45,7 @@ type OperationProcessor struct {
 	amountPool           map[string]currency.AmountState
 	duplicated           map[string]DuplicationType
 	duplicatedNewAddress map[string]struct{}
+	processorClosers     *sync.Map
 }
 
 func NewOperationProcessor(cp *currency.CurrencyPool) *OperationProcessor {
@@ -49,18 +59,34 @@ func NewOperationProcessor(cp *currency.CurrencyPool) *OperationProcessor {
 }
 
 func (opr *OperationProcessor) New(pool *storage.Statepool) prprocessor.OperationProcessor {
-	return &OperationProcessor{
-		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
+	nopr := operationProcessorPool.Get().(*OperationProcessor)
+	nopr.id = util.UUID().String()
+
+	if nopr.Logging == nil {
+		nopr.Logging = logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "mitum-currency-operations-processor")
-		}),
-		processorHintSet:     opr.processorHintSet,
-		cp:                   opr.cp,
-		pool:                 pool,
-		fee:                  map[currency.CurrencyID]currency.Big{},
-		amountPool:           map[string]currency.AmountState{},
-		duplicated:           map[string]DuplicationType{},
-		duplicatedNewAddress: map[string]struct{}{},
+		})
+		_ = nopr.SetLogging(opr.Logging)
 	}
+
+	if nopr.processorHintSet == nil {
+		nopr.processorHintSet = opr.processorHintSet
+	}
+
+	if nopr.cp == nil {
+		nopr.cp = opr.cp
+	}
+
+	nopr.pool = pool
+	nopr.fee = map[currency.CurrencyID]currency.Big{}
+	nopr.amountPool = map[string]currency.AmountState{}
+	nopr.duplicated = map[string]DuplicationType{}
+	nopr.duplicatedNewAddress = map[string]struct{}{}
+	nopr.processorClosers = &sync.Map{}
+
+	nopr.Log().Debug().Str("processor_id", nopr.id).Msg("new operation processors created")
+
+	return nopr
 }
 
 func (opr *OperationProcessor) SetProcessor(
@@ -123,10 +149,11 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*currency.KeyUpdaterProcessor,
 		*currency.CurrencyRegisterProcessor,
 		*currency.CurrencyPolicyUpdaterProcessor,
+		*currency.SuffrageInflationProcessor,
 		*CreateDocumentsProcessor,
 		*SignDocumentsProcessor:
 		return opr.process(op)
-	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, CreateDocuments, SignDocuments:
+	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, CreateDocuments, SignDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -237,8 +264,10 @@ func (opr *OperationProcessor) checkNewAddressDuplication(as []base.Address) err
 }
 
 func (opr *OperationProcessor) Close() error {
-	opr.RLock()
-	defer opr.RUnlock()
+	opr.Lock()
+	defer opr.Unlock()
+
+	defer opr.close()
 
 	if opr.cp != nil && len(opr.fee) > 0 {
 		op := currency.NewFeeOperation(currency.NewFeeOperationFact(opr.pool.Height(), opr.fee))
@@ -254,8 +283,10 @@ func (opr *OperationProcessor) Close() error {
 }
 
 func (opr *OperationProcessor) Cancel() error {
-	opr.RLock()
-	defer opr.RUnlock()
+	opr.Lock()
+	defer opr.Unlock()
+
+	defer opr.close()
 
 	return nil
 }
@@ -274,6 +305,7 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		currency.KeyUpdater,
 		currency.CurrencyRegister,
 		currency.CurrencyPolicyUpdater,
+		currency.SuffrageInflation,
 		CreateDocuments,
 		SignDocuments:
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
@@ -298,5 +330,47 @@ func (opr *OperationProcessor) getNewProcessorFromHintset(op state.Processor) (s
 		f = j
 	}
 
-	return f(op)
+	opp, err := f(op)
+	if err != nil {
+		return nil, err
+	}
+
+	h := op.(valuehash.Hasher).Hash().String()
+	_, iscloser := opp.(io.Closer)
+	if iscloser {
+		opr.processorClosers.Store(h, opp)
+		iscloser = true
+	}
+
+	opr.Log().Debug().
+		Str("operation", h).
+		Str("processor", fmt.Sprintf("%T", opp)).
+		Bool("is_closer", iscloser).
+		Msg("operation processor created")
+
+	return opp, nil
+}
+
+func (opr *OperationProcessor) close() {
+	opr.processorClosers.Range(func(_, v interface{}) bool {
+		err := v.(io.Closer).Close()
+		if err != nil {
+			opr.Log().Error().Err(err).Str("op", fmt.Sprintf("%T", v)).Msg("failed to close operation processor")
+		} else {
+			opr.Log().Debug().Str("processor", fmt.Sprintf("%T", v)).Msg("operation processor closed")
+		}
+
+		return true
+	})
+
+	opr.pool = nil
+	opr.fee = nil
+	opr.amountPool = nil
+	opr.duplicated = nil
+	opr.duplicatedNewAddress = nil
+	opr.processorClosers = nil
+
+	operationProcessorPool.Put(opr)
+
+	opr.Log().Debug().Str("processor_id", opr.id).Msg("operation processors closed")
 }

@@ -136,6 +136,9 @@ func HookInitializeProposalProcessor(ctx context.Context) (context.Context, erro
 	if err != nil {
 		return ctx, err
 	}
+
+	_ = opr.SetLogging(log)
+
 	return InitializeProposalProcessor(ctx, opr)
 }
 
@@ -146,15 +149,15 @@ func AttachProposalProcessor(
 	cp *currency.CurrencyPool,
 ) (*blocksign.OperationProcessor, error) {
 	opr := blocksign.NewOperationProcessor(cp)
-	if _, err := opr.SetProcessor(currency.CreateAccounts{}, currency.NewCreateAccountsProcessor(cp)); err != nil {
+	if _, err := opr.SetProcessor(currency.CreateAccountsHinter, currency.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.KeyUpdater{}, currency.NewKeyUpdaterProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(currency.KeyUpdaterHinter, currency.NewKeyUpdaterProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.Transfers{}, currency.NewTransfersProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(currency.TransfersHinter, currency.NewTransfersProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blocksign.CreateDocuments{}, blocksign.NewCreateDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(blocksign.CreateDocumentsHinter, blocksign.NewCreateDocumentsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blocksign.SignDocuments{}, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(blocksign.SignDocumentsHinter, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
 		return nil, err
 	}
 
@@ -173,14 +176,20 @@ func AttachProposalProcessor(
 		pubs[i] = n.Publickey()
 	}
 
-	if _, err := opr.SetProcessor(currency.CurrencyRegister{},
+	if _, err := opr.SetProcessor(currency.CurrencyRegisterHinter,
 		currency.NewCurrencyRegisterProcessor(cp, pubs, threshold),
 	); err != nil {
 		return nil, err
 	}
 
-	if _, err := opr.SetProcessor(currency.CurrencyPolicyUpdater{},
+	if _, err := opr.SetProcessor(currency.CurrencyPolicyUpdaterHinter,
 		currency.NewCurrencyPolicyUpdaterProcessor(cp, pubs, threshold),
+	); err != nil {
+		return nil, err
+	}
+
+	if _, err := opr.SetProcessor(currency.SuffrageInflationHinter,
+		currency.NewSuffrageInflationProcessor(cp, pubs, threshold),
 	); err != nil {
 		return nil, err
 	}
@@ -203,13 +212,14 @@ func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationPr
 	}
 
 	for _, hinter := range []hint.Hinter{
-		currency.CreateAccounts{},
-		currency.KeyUpdater{},
-		currency.Transfers{},
-		currency.CurrencyPolicyUpdater{},
-		currency.CurrencyRegister{},
-		blocksign.CreateDocuments{},
-		blocksign.SignDocuments{},
+		currency.CreateAccountsHinter,
+		currency.KeyUpdaterHinter,
+		currency.TransfersHinter,
+		currency.CurrencyPolicyUpdaterHinter,
+		currency.CurrencyRegisterHinter,
+		currency.SuffrageInflationHinter,
+		blocksign.CreateDocumentsHinter,
+		blocksign.SignDocumentsHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

@@ -4,10 +4,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum/base/operation"
+	"github.com/spikeekips/mitum/base"
 )
 
-func checkThreshold(fs []operation.FactSign, keys currency.Keys) error {
+func checkThreshold(fs []base.FactSign, keys currency.AccountKeys) error {
 	var sum uint
 	for i := range fs {
 		ky, found := keys.Key(fs[i].Signer())

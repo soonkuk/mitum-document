@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
@@ -48,7 +47,7 @@ func SetStateDocumentDataValue(st state.State, v DocumentData) (state.State, err
 }
 
 func StateKeyDocuments(a base.Address) string {
-	return fmt.Sprintf("%s%s", currency.StateAddressKeyPrefix(a), StateKeyDocumentsSuffix)
+	return fmt.Sprintf("%s%s", a.String(), StateKeyDocumentsSuffix)
 }
 
 func IsStateDocumentsKey(key string) bool {
@@ -100,21 +99,6 @@ func existsState(
 		return nil, err
 	case !found:
 		return nil, operation.NewBaseReasonError("%s does not exist", name)
-	default:
-		return st, nil
-	}
-}
-
-func notExistsState(
-	k,
-	name string,
-	getState func(key string) (state.State, bool, error),
-) (state.State, error) {
-	switch st, found, err := getState(k); {
-	case err != nil:
-		return nil, err
-	case found:
-		return nil, operation.NewBaseReasonError("%s already exists", name)
 	default:
 		return st, nil
 	}

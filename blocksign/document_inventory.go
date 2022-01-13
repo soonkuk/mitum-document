@@ -16,11 +16,13 @@ import (
 )
 
 var (
-	DocumentInventoryType = hint.Type("mbs-document-inventory")
-	DocumentInventoryHint = hint.NewHint(DocumentInventoryType, "v0.0.1")
+	DocumentInventoryType   = hint.Type("mbs-document-inventory")
+	DocumentInventoryHint   = hint.NewHint(DocumentInventoryType, "v0.0.1")
+	DocumentInventoryHinter = DocumentInventory{BaseHinter: hint.NewBaseHinter(DocumentInventoryHint)}
 )
 
 type DocumentInventory struct {
+	hint.BaseHinter
 	documents []DocInfo
 }
 

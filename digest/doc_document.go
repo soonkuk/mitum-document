@@ -23,13 +23,13 @@ func NewDocumentDoc(
 ) (DocumentDoc, error) {
 
 	var addresses []string
-	as, err := doc.Addresses()
+	ads, err := doc.Addresses()
 	if err != nil {
 		return DocumentDoc{}, err
 	}
-	addresses = make([]string, len(as))
-	for i := range as {
-		addresses[i] = currency.StateAddressKeyPrefix(as[i])
+	addresses = make([]string, len(ads))
+	for i := range ads {
+		addresses[i] = ads[i].String()
 	}
 	va := NewDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)
@@ -57,7 +57,7 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 
 	m["filehash"] = doc.va.Document().FileHash()
 	m["documentid"] = doc.va.Document().Info().Index()
-	m["creator"] = currency.StateAddressKeyPrefix(doc.va.Document().Creator())
+	m["creator"] = doc.va.Document().Creator().String()
 	m["addresses"] = doc.addresses
 	m["height"] = doc.height
 

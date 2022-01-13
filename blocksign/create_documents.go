@@ -5,7 +5,6 @@ import (
 
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
-	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
@@ -13,10 +12,12 @@ import (
 )
 
 var (
-	CreateDocumentsFactType = hint.Type("mitum-blocksign-create-documents-operation-fact")
-	CreateDocumentsFactHint = hint.NewHint(CreateDocumentsFactType, "v0.0.1")
-	CreateDocumentsType     = hint.Type("mitum-blocksign-create-documents-operation")
-	CreateDocumentsHint     = hint.NewHint(CreateDocumentsType, "v0.0.1")
+	CreateDocumentsFactType   = hint.Type("mitum-blocksign-create-documents-operation-fact")
+	CreateDocumentsFactHint   = hint.NewHint(CreateDocumentsFactType, "v0.0.1")
+	CreateDocumentsFactHinter = CreateDocumentsFact{BaseHinter: hint.NewBaseHinter(CreateDocumentsFactHint)}
+	CreateDocumentsType       = hint.Type("mitum-blocksign-create-documents-operation")
+	CreateDocumentsHint       = hint.NewHint(CreateDocumentsType, "v0.0.1")
+	CreateDocumentsHinter     = CreateDocuments{BaseOperation: operationHinter(CreateDocumentsHint)}
 )
 
 var MaxCreateDocumentsItems uint = 10
@@ -37,6 +38,7 @@ type CreateDocumentsItem interface {
 }
 
 type CreateDocumentsFact struct {
+	hint.BaseHinter
 	h      valuehash.Hash
 	token  []byte
 	sender base.Address
@@ -45,17 +47,14 @@ type CreateDocumentsFact struct {
 
 func NewCreateDocumentsFact(token []byte, sender base.Address, items []CreateDocumentsItem) CreateDocumentsFact {
 	fact := CreateDocumentsFact{
-		token:  token,
-		sender: sender,
-		items:  items,
+		BaseHinter: hint.NewBaseHinter(CreateDocumentsFactHint),
+		token:      token,
+		sender:     sender,
+		items:      items,
 	}
 	fact.h = fact.GenerateHash()
 
 	return fact
-}
-
-func (fact CreateDocumentsFact) Hint() hint.Hint {
-	return CreateDocumentsFactHint
 }
 
 func (fact CreateDocumentsFact) Hash() valuehash.Hash {
@@ -79,7 +78,14 @@ func (fact CreateDocumentsFact) Bytes() []byte {
 	)
 }
 
-func (fact CreateDocumentsFact) IsValid([]byte) error {
+func (fact CreateDocumentsFact) IsValid(b []byte) error {
+	if err := fact.BaseHinter.IsValid(nil); err != nil {
+		return err
+	}
+
+	if err := currency.IsValidOperationFact(fact, b); err != nil {
+		return err
+	}
 	if len(fact.token) < 1 {
 		return errors.Errorf("empty token for CreateDocumentsFact")
 	} else if n := len(fact.items); n < 1 {
@@ -88,21 +94,20 @@ func (fact CreateDocumentsFact) IsValid([]byte) error {
 		return errors.Errorf("items, %d over max, %d", n, MaxCreateDocumentsItems)
 	}
 
-	if err := isvalid.Check([]isvalid.IsValider{
-		fact.h,
-		fact.sender,
-	}, nil, false); err != nil {
+	if err := isvalid.Check(nil, false, fact.sender); err != nil {
 		return err
 	}
 
 	fhmap := map[string]bool{}
 	for i := range fact.items {
-		if err := fact.items[i].IsValid(nil); err != nil {
+		if err := isvalid.Check(nil, false, fact.items[i]); err != nil {
 			return err
 		}
-		_, found := fhmap[fact.items[i].FileHash().String()]
-		if found {
-			return errors.Errorf("duplicated filehash, %v", fact.items[i].FileHash())
+
+		it := fact.items[i]
+		k := it.FileHash().String()
+		if _, found := fhmap[k]; found {
+			return errors.Errorf("duplicated filehash, %s", k)
 		}
 		fhmap[fact.items[i].FileHash().String()] = true
 	}
@@ -165,55 +170,15 @@ func (fact CreateDocumentsFact) Rebuild() CreateDocumentsFact {
 }
 
 type CreateDocuments struct {
-	operation.BaseOperation
-	Memo string
+	currency.BaseOperation
 }
 
-func NewCreateDocuments(fact CreateDocumentsFact, fs []operation.FactSign, memo string) (CreateDocuments, error) {
-	if bo, err := operation.NewBaseOperationFromFact(CreateDocumentsHint, fact, fs); err != nil {
+func NewCreateDocuments(fact CreateDocumentsFact, fs []base.FactSign, memo string) (CreateDocuments, error) {
+	bo, err := currency.NewBaseOperationFromFact(CreateDocumentsHint, fact, fs, memo)
+	if err != nil {
 		return CreateDocuments{}, err
 	} else {
-		op := CreateDocuments{BaseOperation: bo, Memo: memo}
 
-		op.BaseOperation = bo.SetHash(op.GenerateHash())
-
-		return op, nil
+		return CreateDocuments{BaseOperation: bo}, nil
 	}
-}
-
-func (op CreateDocuments) Hint() hint.Hint {
-	return CreateDocumentsHint
-}
-
-func (op CreateDocuments) IsValid(networkID []byte) error {
-	if err := currency.IsValidMemo(op.Memo); err != nil {
-		return err
-	}
-
-	return operation.IsValidOperation(op, networkID)
-}
-
-func (op CreateDocuments) GenerateHash() valuehash.Hash {
-	bs := make([][]byte, len(op.Signs())+1)
-	for i := range op.Signs() {
-		bs[i] = op.Signs()[i].Bytes()
-	}
-
-	bs[len(bs)-1] = []byte(op.Memo)
-
-	e := util.ConcatBytesSlice(op.Fact().Hash().Bytes(), util.ConcatBytesSlice(bs...))
-
-	return valuehash.NewSHA256(e)
-}
-
-func (op CreateDocuments) AddFactSigns(fs ...operation.FactSign) (operation.FactSignUpdater, error) {
-	if o, err := op.BaseOperation.AddFactSigns(fs...); err != nil {
-		return nil, err
-	} else {
-		op.BaseOperation = o.(operation.BaseOperation)
-	}
-
-	op.BaseOperation = op.SetHash(op.GenerateHash())
-
-	return op, nil
 }

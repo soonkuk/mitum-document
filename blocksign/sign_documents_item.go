@@ -8,7 +8,7 @@ import (
 )
 
 type BaseSignDocumentsItem struct {
-	hint  hint.Hint
+	hint.BaseHinter
 	id    currency.Big
 	owner base.Address
 	cid   currency.CurrencyID
@@ -16,15 +16,11 @@ type BaseSignDocumentsItem struct {
 
 func NewBaseSignDocumentsItem(ht hint.Hint, id currency.Big, owner base.Address, cid currency.CurrencyID) BaseSignDocumentsItem {
 	return BaseSignDocumentsItem{
-		hint:  ht,
-		id:    id,
-		owner: owner,
-		cid:   cid,
+		BaseHinter: hint.NewBaseHinter(ht),
+		id:         id,
+		owner:      owner,
+		cid:        cid,
 	}
-}
-
-func (it BaseSignDocumentsItem) Hint() hint.Hint {
-	return it.hint
 }
 
 func (it BaseSignDocumentsItem) Bytes() []byte {

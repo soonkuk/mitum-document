@@ -50,10 +50,6 @@ func NewSignDocumentsFact(token []byte, sender base.Address, items []SignDocumen
 	return fact
 }
 
-func (fact SignDocumentsFact) Hint() hint.Hint {
-	return SignDocumentsFactHint
-}
-
 func (fact SignDocumentsFact) Hash() valuehash.Hash {
 	return fact.h
 }

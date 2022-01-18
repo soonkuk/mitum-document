@@ -65,16 +65,31 @@ func LoadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 	}
 }
 
-func LoadDocument(decoder func(interface{}) error, encs *encoder.Encoders) (DocumentValue, error) {
+func LoadBlocksignDocument(decoder func(interface{}) error, encs *encoder.Encoders) (BlocksignDocumentValue, error) {
 	var b bson.Raw
 	if err := decoder(&b); err != nil {
-		return DocumentValue{}, err
+		return BlocksignDocumentValue{}, err
 	}
 
 	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
-		return DocumentValue{}, err
-	} else if va, ok := hinter.(DocumentValue); !ok {
-		return DocumentValue{}, errors.Errorf("not DocumentValue : %T", hinter)
+		return BlocksignDocumentValue{}, err
+	} else if va, ok := hinter.(BlocksignDocumentValue); !ok {
+		return BlocksignDocumentValue{}, errors.Errorf("not DocumentValue : %T", hinter)
+	} else {
+		return va, nil
+	}
+}
+
+func LoadBlockcityDocument(decoder func(interface{}) error, encs *encoder.Encoders) (BlockcityDocumentValue, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return BlockcityDocumentValue{}, err
+	}
+
+	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
+		return BlockcityDocumentValue{}, err
+	} else if va, ok := hinter.(BlockcityDocumentValue); !ok {
+		return BlockcityDocumentValue{}, errors.Errorf("not Blockcity DocumentValue : %T", hinter)
 	} else {
 		return va, nil
 	}

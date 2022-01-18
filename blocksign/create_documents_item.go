@@ -9,7 +9,7 @@ import (
 )
 
 type BaseCreateDocumentsItem struct {
-	hint       hint.Hint
+	hint.BaseHinter
 	fileHash   FileHash
 	documentid currency.Big
 	signcode   string //creator signcode
@@ -29,7 +29,7 @@ func NewBaseCreateDocumentsItem(ht hint.Hint,
 	signcodes []string,
 	cid currency.CurrencyID) BaseCreateDocumentsItem {
 	return BaseCreateDocumentsItem{
-		hint:       ht,
+		BaseHinter: hint.NewBaseHinter(ht),
 		fileHash:   filehash,
 		documentid: documentid,
 		signcode:   signcode,
@@ -39,10 +39,6 @@ func NewBaseCreateDocumentsItem(ht hint.Hint,
 		signcodes:  signcodes,
 		cid:        cid,
 	}
-}
-
-func (it BaseCreateDocumentsItem) Hint() hint.Hint {
-	return it.hint
 }
 
 func (it BaseCreateDocumentsItem) Bytes() []byte {

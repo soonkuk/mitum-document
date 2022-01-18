@@ -40,15 +40,12 @@ func NewDocumentData(info DocInfo,
 	size currency.Big,
 	signers []DocSign) DocumentData {
 	doc := DocumentData{
-		info: info,
-		creator: DocSign{
-			address:  creator,
-			signcode: signcode,
-			signed:   true,
-		},
-		title:   title,
-		size:    size,
-		signers: signers,
+		BaseHinter: hint.NewBaseHinter(DocumentDataHint),
+		info:       info,
+		creator:    NewDocSign(creator, signcode, true),
+		title:      title,
+		size:       size,
+		signers:    signers,
 	}
 
 	return doc
@@ -61,10 +58,6 @@ func MustNewDocumentData(info DocInfo, creator base.Address, signcode string, ti
 	}
 
 	return doc
-}
-
-func (doc DocumentData) Hint() hint.Hint {
-	return DocumentDataHint
 }
 
 func (doc DocumentData) Bytes() []byte {
@@ -99,7 +92,9 @@ func (doc DocumentData) IsEmpty() bool {
 
 func (doc DocumentData) IsValid([]byte) error {
 	if err := isvalid.Check(
-		nil, false, doc.info.FileHash(),
+		nil, false,
+		doc.BaseHinter,
+		doc.info,
 		doc.creator); err != nil {
 		return errors.Wrap(err, "invalid document data")
 	}
@@ -237,165 +232,6 @@ func (fh FileHash) Equal(b FileHash) bool {
 }
 
 var (
-	DocSignType   = hint.Type("mitum-blocksign-docsign")
-	DocSignHint   = hint.NewHint(DocSignType, "v0.0.1")
-	DocSignHinter = DocSign{BaseHinter: hint.NewBaseHinter(DocSignHint)}
-)
-
-type DocSign struct {
-	hint.BaseHinter
-	address  base.Address
-	signcode string
-	signed   bool
-}
-
-func NewDocSign(address base.Address, signcode string, signed bool) DocSign {
-	doc := DocSign{
-		address:  address,
-		signcode: signcode,
-		signed:   signed,
-	}
-	return doc
-}
-
-func MustNewDocSign(address base.Address, signcode string, signed bool) DocSign {
-	doc := NewDocSign(address, signcode, signed)
-	if err := doc.IsValid(nil); err != nil {
-		panic(err)
-	}
-	return doc
-}
-
-func (doc DocSign) Address() base.Address {
-	return doc.address
-}
-
-func (ds DocSign) Bytes() []byte {
-	bs := make([][]byte, 2)
-
-	bs[0] = ds.address.Bytes()
-	var v int8
-	if ds.signed {
-		v = 1
-	}
-	bs[1] = []byte{byte(v)}
-	return util.ConcatBytesSlice(bs...)
-}
-
-func (ds DocSign) Hash() valuehash.Hash {
-	return ds.GenerateHash()
-}
-
-func (ds DocSign) GenerateHash() valuehash.Hash {
-	return valuehash.NewSHA256(ds.Bytes())
-}
-
-func (ds DocSign) Hint() hint.Hint {
-	return DocSignHint
-}
-
-func (ds DocSign) IsValid([]byte) error {
-	return nil
-}
-
-func (ds DocSign) IsEmpty() bool {
-	return len(ds.address.String()) < 1
-}
-
-func (ds DocSign) String() string {
-	v := fmt.Sprintf("%v", ds.signed)
-	return fmt.Sprintf("%s:%s", ds.address.String(), v)
-}
-
-func (ds DocSign) Equal(b DocSign) bool {
-
-	if !ds.address.Equal(b.address) {
-		return false
-	}
-
-	if ds.signcode != b.signcode {
-		return false
-	}
-
-	if ds.signed != b.signed {
-		return false
-	}
-
-	return true
-}
-
-func (ds *DocSign) Signed() bool {
-	return ds.signed
-}
-
-func (ds *DocSign) SetSigned() {
-	ds.signed = true
-}
-
-type DocSignJSONPacker struct {
-	jsonenc.HintedHead
-	AD base.Address `json:"address"`
-	SC string       `json:"signcode"`
-	SG bool         `json:"signed"`
-}
-
-func (ds DocSign) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocSignJSONPacker{
-		HintedHead: jsonenc.NewHintedHead(ds.Hint()),
-		AD:         ds.address,
-		SC:         ds.signcode,
-		SG:         ds.signed,
-	})
-}
-
-type DocSignJSONUnpacker struct {
-	AD base.AddressDecoder `json:"address"`
-	SC string              `json:"signcode"`
-	SG bool                `json:"signed"`
-}
-
-func (ds *DocSign) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var uds DocSignJSONUnpacker
-	if err := enc.Unmarshal(b, &uds); err != nil {
-		return err
-	}
-
-	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
-}
-
-type DocSignBSONPacker struct {
-	AD base.Address `bson:"address"`
-	SC string       `bson:"signcode"`
-	SG bool         `bson:"signed"`
-}
-
-func (ds DocSign) MarshalBSON() ([]byte, error) {
-	return bsonenc.Marshal(bsonenc.MergeBSONM(
-		bsonenc.NewHintedDoc(ds.Hint()),
-		bson.M{
-			"address":  ds.address,
-			"signcode": ds.signcode,
-			"signed":   ds.signed,
-		}),
-	)
-}
-
-type DocSignBSONUnpacker struct {
-	AD base.AddressDecoder `bson:"address"`
-	SC string              `bson:"signcode"`
-	SG bool                `bson:"signed"`
-}
-
-func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var uds DocSignBSONUnpacker
-	if err := bsonenc.Unmarshal(b, &uds); err != nil {
-		return err
-	}
-
-	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
-}
-
-var (
 	DocInfoType   = hint.Type("mitum-blocksign-document-info")
 	DocInfoHint   = hint.NewHint(DocInfoType, "v0.0.1")
 	DocInfoHinter = DocInfo{BaseHinter: hint.NewBaseHinter(DocInfoHint)}
@@ -413,8 +249,9 @@ func NewDocInfo(idx int64, fh FileHash) DocInfo {
 		return DocInfo{}
 	}
 	docInfo := DocInfo{
-		idx:      id,
-		filehash: fh,
+		BaseHinter: hint.NewBaseHinter(DocInfoHint),
+		idx:        id,
+		filehash:   fh,
 	}
 	return docInfo
 }
@@ -462,10 +299,6 @@ func (di DocInfo) Hash() valuehash.Hash {
 
 func (di DocInfo) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(di.Bytes())
-}
-
-func (di DocInfo) Hint() hint.Hint {
-	return DocInfoHint
 }
 
 func (di DocInfo) IsValid([]byte) error {
@@ -643,4 +476,157 @@ func (sc SignCode) String() string {
 
 func (sc SignCode) IsValid([]byte) error {
 	return nil
+}
+
+var (
+	DocSignType   = hint.Type("mitum-blocksign-docsign")
+	DocSignHint   = hint.NewHint(DocSignType, "v0.0.1")
+	DocSignHinter = DocSign{BaseHinter: hint.NewBaseHinter(DocSignHint)}
+)
+
+type DocSign struct {
+	hint.BaseHinter
+	address  base.Address
+	signcode string
+	signed   bool
+}
+
+func NewDocSign(address base.Address, signcode string, signed bool) DocSign {
+	doc := DocSign{
+		BaseHinter: hint.NewBaseHinter(DocSignHint),
+		address:    address,
+		signcode:   signcode,
+		signed:     signed,
+	}
+	return doc
+}
+
+func MustNewDocSign(address base.Address, signcode string, signed bool) DocSign {
+	doc := NewDocSign(address, signcode, signed)
+	if err := doc.IsValid(nil); err != nil {
+		panic(err)
+	}
+	return doc
+}
+
+func (doc DocSign) Address() base.Address {
+	return doc.address
+}
+
+func (ds DocSign) Bytes() []byte {
+	bs := make([][]byte, 2)
+	bs[0] = ds.address.Bytes()
+	var v int8
+	if ds.signed {
+		v = 1
+	}
+	bs[1] = []byte{byte(v)}
+	return util.ConcatBytesSlice(bs...)
+}
+
+func (ds DocSign) Hash() valuehash.Hash {
+	return ds.GenerateHash()
+}
+
+func (ds DocSign) GenerateHash() valuehash.Hash {
+	return valuehash.NewSHA256(ds.Bytes())
+}
+
+func (ds DocSign) Hint() hint.Hint {
+	return DocSignHint
+}
+
+func (ds DocSign) IsValid([]byte) error {
+	return nil
+}
+
+func (ds DocSign) IsEmpty() bool {
+	return len(ds.address.String()) < 1
+}
+
+func (ds DocSign) String() string {
+	v := fmt.Sprintf("%v", ds.signed)
+	return fmt.Sprintf("%s:%s", ds.address.String(), v)
+}
+
+func (ds DocSign) Equal(b DocSign) bool {
+
+	if !ds.address.Equal(b.address) {
+		return false
+	}
+
+	if ds.signcode != b.signcode {
+		return false
+	}
+
+	if ds.signed != b.signed {
+		return false
+	}
+
+	return true
+}
+
+func (ds *DocSign) Signed() bool {
+	return ds.signed
+}
+
+func (ds *DocSign) SetSigned() {
+	ds.signed = true
+}
+
+type DocSignJSONPacker struct {
+	jsonenc.HintedHead
+	AD base.Address `json:"address"`
+	SC string       `json:"signcode"`
+	SG bool         `json:"signed"`
+}
+
+func (ds DocSign) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocSignJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(ds.Hint()),
+		AD:         ds.address,
+		SC:         ds.signcode,
+		SG:         ds.signed,
+	})
+}
+
+type DocSignJSONUnpacker struct {
+	AD base.AddressDecoder `json:"address"`
+	SC string              `json:"signcode"`
+	SG bool                `json:"signed"`
+}
+
+func (ds *DocSign) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uds DocSignJSONUnpacker
+	if err := enc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
+}
+
+func (ds DocSign) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(ds.Hint()),
+		bson.M{
+			"address":  ds.address,
+			"signcode": ds.signcode,
+			"signed":   ds.signed,
+		}),
+	)
+}
+
+type DocSignBSONUnpacker struct {
+	AD base.AddressDecoder `bson:"address"`
+	SC string              `bson:"signcode"`
+	SG bool                `bson:"signed"`
+}
+
+func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uds DocSignBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
 }

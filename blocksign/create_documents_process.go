@@ -3,11 +3,11 @@ package blocksign
 import (
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
+	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
@@ -35,7 +35,7 @@ type CreateDocumentsItemProcessor struct {
 	h       valuehash.Hash
 	sender  base.Address
 	item    CreateDocumentsItem
-	nds     state.State // new document data state (key = document filehash)
+	nds     state.State // new document data state (key = document id)
 	docInfo DocInfo     // new document info
 
 }
@@ -44,7 +44,6 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
-
 	if err := opp.item.IsValid(nil); err != nil {
 		return err
 	}
@@ -54,7 +53,7 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case found:
-		return errors.Errorf("documentid already registered, %q", opp.item.DocumentId())
+		return operation.NewBaseReasonError("documentid already registered, %q", opp.item.DocumentId())
 	default:
 		opp.nds = st
 	}
@@ -64,15 +63,16 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	for i := range opp.item.Signers() {
 		_, found := msigners[opp.item.Signers()[i].String()]
 		if found {
-			return errors.Errorf("duplicated signer, %v", opp.item.Signers()[i])
+			return operation.NewBaseReasonError("duplicated signer, %v", opp.item.Signers()[i])
 		}
 		msigners[opp.item.Signers()[i].String()] = true
 	}
 
 	// prepare doccInfo
 	opp.docInfo = DocInfo{
-		idx:      opp.item.DocumentId(),
-		filehash: opp.item.FileHash(),
+		BaseHinter: hint.NewBaseHinter(DocInfoHint),
+		idx:        opp.item.DocumentId(),
+		filehash:   opp.item.FileHash(),
 	}
 
 	// check sigenrs account existence
@@ -82,10 +82,10 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		case err != nil:
 			return err
 		case !found:
-			return errors.Errorf("signer account not found, %q", signers[i])
+			return operation.NewBaseReasonError("signer account not found, %q", signers[i])
 		}
 		if signers[i].Equal(opp.sender) {
-			return errors.Errorf("signer account is same with document creator, %q", signers[i])
+			return operation.NewBaseReasonError("signer account is same with document creator, %q", signers[i])
 		}
 	}
 
@@ -106,13 +106,14 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	}
 
 	// prepare document data
-	docData := DocumentData{
-		info:    opp.docInfo,
-		creator: DocSign{address: opp.sender, signcode: opp.item.Signcode(), signed: true},
-		title:   opp.item.Title(),
-		size:    opp.item.Size(),
-		signers: signers,
-	}
+	docData := NewDocumentData(
+		opp.docInfo,
+		opp.sender,
+		opp.item.Signcode(),
+		opp.item.Title(),
+		opp.item.Size(),
+		signers,
+	)
 
 	// return document data state
 	if dst, err := SetStateDocumentDataValue(opp.nds, docData); err != nil {
@@ -149,14 +150,22 @@ type CreateDocumentsProcessor struct {
 
 func NewCreateDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
-		if i, ok := op.(CreateDocuments); !ok {
-			return nil, errors.Errorf("not CreateDocuments, %T", op)
-		} else {
-			return &CreateDocumentsProcessor{
-				cp:              cp,
-				CreateDocuments: i,
-			}, nil
+		i, ok := op.(CreateDocuments)
+		if !ok {
+			return nil, operation.NewBaseReasonError("not CreateDocuments, %T", op)
 		}
+
+		opp := CreateDocumentsProcessorPool.Get().(*CreateDocumentsProcessor)
+
+		opp.cp = cp
+		opp.CreateDocuments = i
+		opp.dinv = DocumentInventory{}
+		opp.ndinvs = nil
+		opp.sb = nil
+		opp.ns = nil
+		opp.required = nil
+
+		return opp, nil
 	}
 }
 
@@ -201,10 +210,16 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 	ns := make([]*CreateDocumentsItemProcessor, len(fact.items))
 	for i := range fact.items {
 
-		c := &CreateDocumentsItemProcessor{cp: opp.cp, sender: fact.sender, h: opp.Hash(), item: fact.items[i]}
+		c := CreateDocumentsItemProcessorPool.Get().(*CreateDocumentsItemProcessor)
+		c.cp = opp.cp
+		c.h = opp.Hash()
+		c.sender = fact.sender
+		c.item = fact.items[i]
+
 		if err := c.PreProcess(getState, setState); err != nil {
-			return nil, operation.NewBaseReasonErrorFromError(err)
+			return nil, err
 		}
+
 		ns[i] = c
 	}
 
@@ -310,7 +325,7 @@ func CalculateDocumentItemsFee(cp *currency.CurrencyPool, items []CreateDocument
 
 		feeer, found := cp.Feeer(it.Currency())
 		if !found {
-			return nil, errors.Errorf("unknown currency id found, %q", it.Currency())
+			return nil, operation.NewBaseReasonError("unknown currency id found, %q", it.Currency())
 		}
 		switch k, err := feeer.Fee(currency.ZeroBig); {
 		case err != nil:
@@ -320,7 +335,6 @@ func CalculateDocumentItemsFee(cp *currency.CurrencyPool, items []CreateDocument
 		default:
 			required[it.Currency()] = [2]currency.Big{rq[0].Add(k), rq[1].Add(k)}
 		}
-
 	}
 
 	return required, nil

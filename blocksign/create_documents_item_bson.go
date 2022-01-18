@@ -45,5 +45,5 @@ func (it *BaseCreateDocumentsItem) UnpackBSON(b []byte, enc *bsonenc.Encoder) er
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.FH, ucd.DI, ucd.SC, ucd.TL, ucd.SZ, ucd.SG, ucd.SD, ucd.CI)
+	return it.unpack(enc, ucd.FH, ucd.DI, ucd.SC, ucd.TL, ucd.SZ, ucd.SG, ucd.SD, ucd.CI)
 }

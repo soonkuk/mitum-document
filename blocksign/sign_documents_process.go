@@ -3,7 +3,6 @@ package blocksign
 import (
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
@@ -54,7 +53,7 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 	if _, found, err := getState(currency.StateKeyAccount(opp.item.Owner())); err != nil {
 		return err
 	} else if !found {
-		return errors.Errorf("owner does not exist, %q", opp.item.Owner())
+		return operation.NewBaseReasonError("owner does not exist, %q", opp.item.Owner())
 	}
 
 	// check existence of document inventory state with owner address
@@ -62,7 +61,7 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case !found:
-		return errors.Errorf("Owner has no document inventory, %v", opp.item.Owner())
+		return operation.NewBaseReasonError("Owner has no document inventory, %v", opp.item.Owner())
 	default:
 		dinv, err := StateDocumentsValue(st)
 		if err != nil {
@@ -82,7 +81,7 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case !found:
-		return errors.Errorf("document not registered with documentid, %q", docinfo.Index())
+		return operation.NewBaseReasonError("document not registered with documentid, %q", docinfo.Index())
 	default:
 		opp.nds = st
 	}
@@ -93,11 +92,11 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 	}
 
 	if !dd.Creator().Equal(opp.item.Owner()) {
-		return errors.Errorf("Owner not matched with creator in document, %v", opp.item.Owner())
+		return operation.NewBaseReasonError("Owner not matched with creator in document, %v", opp.item.Owner())
 	}
 
 	if len(dd.Signers()) < 1 {
-		return errors.Errorf("sender not found in document Signers, %v", opp.sender)
+		return operation.NewBaseReasonError("sender not found in document Signers, %v", opp.sender)
 	}
 	// check signer exist in document data signers
 	for i := range dd.Signers() {
@@ -106,7 +105,7 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 			break
 		}
 		if i == (len(dd.Signers()) - 1) {
-			return errors.Errorf("sender not found in document Signers, %v", opp.sender)
+			return operation.NewBaseReasonError("sender not found in document Signers, %v", opp.sender)
 		}
 	}
 
@@ -156,7 +155,7 @@ type SignDocumentsProcessor struct {
 func NewSignDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		if i, ok := op.(SignDocuments); !ok {
-			return nil, errors.Errorf("not SignDocuments, %T", op)
+			return nil, operation.NewBaseReasonError("not SignDocuments, %T", op)
 		} else {
 			return &SignDocumentsProcessor{
 				cp:            cp,
@@ -271,7 +270,7 @@ func (opp *SignDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyID]
 
 		feeer, found := opp.cp.Feeer(it.Currency())
 		if !found {
-			return nil, errors.Errorf("unknown currency id found, %q", it.Currency())
+			return nil, operation.NewBaseReasonError("unknown currency id found, %q", it.Currency())
 		}
 		switch k, err := feeer.Fee(currency.ZeroBig); {
 		case err != nil:

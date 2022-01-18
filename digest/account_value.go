@@ -6,6 +6,7 @@ import (
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/hint"
 
+	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum-currency/currency"
 )
@@ -16,11 +17,12 @@ var (
 )
 
 type AccountValue struct {
-	ac             currency.Account
-	balance        []currency.Amount
-	document       blocksign.DocumentInventory
-	height         base.Height
-	previousHeight base.Height
+	ac                currency.Account
+	balance           []currency.Amount
+	blocksignDocument blocksign.DocumentInventory
+	blockcityDocument blockcity.DocumentInventory
+	height            base.Height
+	previousHeight    base.Height
 }
 
 func NewAccountValue(st state.State) (AccountValue, error) {
@@ -53,8 +55,12 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
-func (va AccountValue) Document() blocksign.DocumentInventory {
-	return va.document
+func (va AccountValue) BlocksignDocument() blocksign.DocumentInventory {
+	return va.blocksignDocument
+}
+
+func (va AccountValue) BlockcityDocument() blockcity.DocumentInventory {
+	return va.blockcityDocument
 }
 
 func (va AccountValue) Height() base.Height {
@@ -87,8 +93,14 @@ func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	return va
 }
 
-func (va AccountValue) SetDocument(document blocksign.DocumentInventory) AccountValue {
-	va.document = document
+func (va AccountValue) SetBlocksignDocument(document blocksign.DocumentInventory) AccountValue {
+	va.blocksignDocument = document
+
+	return va
+}
+
+func (va AccountValue) SetBlockcityDocument(document blockcity.DocumentInventory) AccountValue {
+	va.blockcityDocument = document
 
 	return va
 }

@@ -12,9 +12,8 @@ import (
 )
 
 var (
-	StateKeyDocumentsSuffix    = ":documents"
-	StateKeyDocumentDataSuffix = ":documentData"
-	StateKeyLastDocumentId     = "lastdocumentId"
+	StateKeyDocumentsSuffix    = ":blocksignDocuments"
+	StateKeyDocumentDataSuffix = ":blocksignDocumentData"
 )
 
 func StateKeyDocumentData(documentid DocId) string {

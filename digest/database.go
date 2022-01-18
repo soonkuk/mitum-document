@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -31,11 +32,13 @@ import (
 var maxLimit int64 = 50
 
 var (
-	defaultColNameAccount   = "digest_ac"
-	defaultColNameDocument  = "digest_dm"
-	defaultColNameDocuments = "digest_dv"
-	defaultColNameBalance   = "digest_bl"
-	defaultColNameOperation = "digest_op"
+	defaultColNameAccount            = "digest_ac"
+	defaultColNameBlocksignDocument  = "digest_bs_dm"
+	defaultColNameBlockcityDocument  = "digest_bc_dm"
+	defaultColNameBlocksignDocuments = "digest_bs_dv"
+	defaultColNameBlockcityDocuments = "digest_bc_dv"
+	defaultColNameBalance            = "digest_bl"
+	defaultColNameOperation          = "digest_op"
 )
 
 var AllCollections = []string{
@@ -190,8 +193,8 @@ func (st *Database) clean() error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		defaultColNameDocument,
-		defaultColNameDocuments,
+		defaultColNameBlocksignDocument,
+		defaultColNameBlocksignDocuments,
 	} {
 		if err := st.database.Client().Collection(col).Drop(context.Background()); err != nil {
 			return storage.MergeStorageError(err)
@@ -232,8 +235,8 @@ func (st *Database) cleanByHeight(height base.Height) error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		defaultColNameDocument,
-		defaultColNameDocuments,
+		defaultColNameBlocksignDocument,
+		defaultColNameBlocksignDocuments,
 	} {
 		res, err := st.database.Client().Collection(col).BulkWrite(
 			context.Background(),
@@ -258,7 +261,7 @@ func (st *Database) Manifest(h valuehash.Hash) (block.Manifest, bool, error) {
 	return st.mitum.Manifest(h)
 }
 
-func (st *Database) cleanByHeightColNameDocumentId(height base.Height, colName string, documentid currency.Big) error {
+func (st *Database) cleanByHeightColNameDocumentId(height base.Height, colName string, documentid string) error {
 
 	if height <= base.PreGenesisHeight+1 {
 		return st.clean()
@@ -461,12 +464,12 @@ func (st *Database) Operations(
 	)
 }
 
-func (st *Database) DocumentsByAddress(
+func (st *Database) BSDocumentsByAddress(
 	address base.Address,
 	reverse bool,
 	offset string,
 	limit int64,
-	callback func(currency.Big /* document id */, DocumentValue) (bool, error),
+	callback func(currency.Big /* document id */, BlocksignDocumentValue) (bool, error),
 ) error {
 	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
 	if err != nil {
@@ -498,11 +501,11 @@ func (st *Database) DocumentsByAddress(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameDocument,
+		defaultColNameBlocksignDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBlocksignDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -512,17 +515,67 @@ func (st *Database) DocumentsByAddress(
 	)
 }
 
-func (st *Database) Document(
-	i currency.Big, /* document id */
-) (DocumentValue, bool /* exists */, error) {
+func (st *Database) BCDocumentsByAddress(
+	address base.Address,
+	reverse bool,
+	offset string,
+	limit int64,
+	callback func(string /* document id */, BlockcityDocumentValue) (bool, error),
+) error {
+	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
+	if err != nil {
+		return err
+	}
 
-	var va DocumentValue
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	/*
+		opt := options.Find().SetSort(
+			util.NewBSONFilter("height", sr).Add("index", sr).D(),
+		)
+	*/
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameBlockcityDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+			va, err := LoadBlockcityDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.Document().DocumentId(), va)
+		},
+		opt,
+	)
+}
+
+func (st *Database) BSDocument(
+	i string, /* document id */
+) (BlocksignDocumentValue, bool /* exists */, error) {
+
+	var va BlocksignDocumentValue
 	if err := st.database.Client().GetByFilter(
-		defaultColNameDocument,
+		defaultColNameBlocksignDocument,
 		util.NewBSONFilter("documentid", i).D(),
 		func(res *mongo.SingleResult) error {
 
-			i, err := LoadDocument(res.Decode, st.database.Encoders())
+			i, err := LoadBlocksignDocument(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -534,19 +587,51 @@ func (st *Database) Document(
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
 		if errors.Is(err, util.NotFoundError) {
-			return DocumentValue{}, false, nil
+			return BlocksignDocumentValue{}, false, nil
 		}
 
-		return DocumentValue{}, false, err
+		return BlocksignDocumentValue{}, false, err
 	}
+
 	return va, true, nil
 }
 
-func (st *Database) Documents(
+func (st *Database) BCDocument(
+	i string, /* document id */
+) (BlockcityDocumentValue, bool /* exists */, error) {
+
+	var va BlockcityDocumentValue
+	if err := st.database.Client().GetByFilter(
+		defaultColNameBlockcityDocument,
+		util.NewBSONFilter("documentid", i).D(),
+		func(res *mongo.SingleResult) error {
+
+			i, err := LoadBlockcityDocument(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+
+			va = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+			return BlockcityDocumentValue{}, false, nil
+		}
+
+		return BlockcityDocumentValue{}, false, err
+	}
+
+	return va, true, nil
+}
+
+func (st *Database) BSDocuments(
 	filter bson.M,
 	reverse bool,
 	limit int64,
-	callback func(currency.Big /* documentid */, DocumentValue) (bool, error),
+	callback func(currency.Big /* documentid */, BlocksignDocumentValue) (bool, error),
 ) error {
 	sr := 1
 	if reverse {
@@ -567,15 +652,54 @@ func (st *Database) Documents(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameDocument,
+		defaultColNameBlocksignDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBlocksignDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
 			return callback(va.doc.Info().Index(), va)
+		},
+		opt,
+	)
+}
+
+func (st *Database) BCDocuments(
+	filter bson.M,
+	reverse bool,
+	limit int64,
+	callback func(string /* documentid */, BlockcityDocumentValue) (bool, error),
+) error {
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).Add("documentid", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameBlockcityDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+
+			va, err := LoadBlockcityDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.doc.DocumentId(), va)
 		},
 		opt,
 	)
@@ -615,12 +739,22 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 			SetPreviousHeight(previousHeight)
 	}
 
-	// NOTE load documents
-	switch doc, lastHeight, previousHeight, err := st.documentList(a); {
+	// NOTE load blocksign documents
+	switch doc, lastHeight, previousHeight, err := st.blocksignDocumentList(a); {
 	case err != nil:
 		return rs, false, err
 	default:
-		rs = rs.SetDocument(doc).
+		rs = rs.SetBlocksignDocument(doc).
+			SetHeight(lastHeight).
+			SetPreviousHeight(previousHeight)
+	}
+
+	// NOTE load blockcity documents
+	switch doc, lastHeight, previousHeight, err := st.blockcityDocumentList(a); {
+	case err != nil:
+		return rs, false, err
+	default:
+		rs = rs.SetBlockcityDocument(doc).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -898,12 +1032,22 @@ func (st *Database) filterAccountByPublickey(
 				}
 			}
 
-			// NOTE load documents
-			switch doc, lastHeight, previousHeight, err := st.documentList(va.Account().Address()); {
+			// NOTE load blocksign documents
+			switch doc, lastHeight, previousHeight, err := st.blocksignDocumentList(va.Account().Address()); {
 			case err != nil:
 				return false, err
 			default:
-				va = va.SetDocument(doc).
+				va = va.SetBlocksignDocument(doc).
+					SetHeight(lastHeight).
+					SetPreviousHeight(previousHeight)
+			}
+
+			// NOTE load blockcity documents
+			switch doc, lastHeight, previousHeight, err := st.blockcityDocumentList(va.Account().Address()); {
+			case err != nil:
+				return false, err
+			default:
+				va = va.SetBlockcityDocument(doc).
 					SetHeight(lastHeight).
 					SetPreviousHeight(previousHeight)
 			}
@@ -928,15 +1072,15 @@ func (st *Database) filterAccountByPublickey(
 	return stopped || called == limit, nil
 }
 
-// documentList return document invetory by address
-func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
+// Blocksign documentList return blocksign document invetory by address
+func (st *Database) blocksignDocumentList(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	doc := blocksign.DocumentInventory{}
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
 	if err := st.database.Client().GetByFilter(
-		defaultColNameDocuments,
+		defaultColNameBlocksignDocuments,
 		q,
 		func(res *mongo.SingleResult) error {
 			i, err := LoadDocuments(res.Decode, st.database.Encoders())
@@ -958,6 +1102,47 @@ func (st *Database) documentList(a base.Address) (blocksign.DocumentInventory, b
 	i, err := blocksign.StateDocumentsValue(sta)
 	if err != nil {
 		return blocksign.DocumentInventory{}, lastHeight, previousHeight, err
+	}
+	doc = i
+
+	if h := sta.Height(); h > lastHeight {
+		lastHeight = h
+		previousHeight = sta.PreviousHeight()
+	}
+
+	return doc, lastHeight, previousHeight, nil
+}
+
+// Blockcity documentList return blockcity document invetory by address
+func (st *Database) blockcityDocumentList(a base.Address) (blockcity.DocumentInventory, base.Height, base.Height, error) {
+	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
+	doc := blockcity.DocumentInventory{}
+	filter := util.NewBSONFilter("address", a.String())
+	q := filter.D()
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameBlockcityDocuments,
+		q,
+		func(res *mongo.SingleResult) error {
+			i, err := LoadDocuments(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+
+			return blockcity.NewDocumentInventory([]blockcity.DocInfo{}), lastHeight, previousHeight, nil
+		}
+	}
+
+	i, err := blockcity.StateDocumentsValue(sta)
+	if err != nil {
+		return blockcity.DocumentInventory{}, lastHeight, previousHeight, err
 	}
 	doc = i
 

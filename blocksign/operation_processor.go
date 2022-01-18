@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
@@ -151,9 +152,11 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*currency.CurrencyPolicyUpdaterProcessor,
 		*currency.SuffrageInflationProcessor,
 		*CreateDocumentsProcessor,
-		*SignDocumentsProcessor:
+		*SignDocumentsProcessor,
+		*blockcity.CreateDocumentsProcessor,
+		*blockcity.UpdateDocumentsProcessor:
 		return opr.process(op)
-	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, CreateDocuments, SignDocuments:
+	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, CreateDocuments, SignDocuments, blockcity.CreateDocuments, blockcity.UpdateDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -177,6 +180,10 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *CreateDocumentsProcessor:
 		sp = t
 	case *SignDocumentsProcessor:
+		sp = t
+	case *blockcity.CreateDocumentsProcessor:
+		sp = t
+	case *blockcity.UpdateDocumentsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -220,6 +227,12 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 		didtype = DuplicationTypeSender
 	case SignDocuments:
 		did = t.Fact().(SignDocumentsFact).Sender().String()
+		didtype = DuplicationTypeSender
+	case blockcity.CreateDocuments:
+		did = t.Fact().(blockcity.CreateDocumentsFact).Sender().String()
+		didtype = DuplicationTypeSender
+	case blockcity.UpdateDocuments:
+		did = t.Fact().(blockcity.UpdateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	default:
 		return nil
@@ -307,7 +320,9 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		currency.CurrencyPolicyUpdater,
 		currency.SuffrageInflation,
 		CreateDocuments,
-		SignDocuments:
+		SignDocuments,
+		blockcity.UpdateDocuments,
+		blockcity.CreateDocuments:
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil

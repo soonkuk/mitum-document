@@ -32,7 +32,8 @@ var (
 	HandlerPathCurrencies                 = `/currency`
 	HandlerPathCurrency                   = `/currency/{currencyid:.*}`
 	HandlerPathDocuments                  = `/block/documents`
-	HandlerPathDocument                   = `/block/document/{documentid:[0-9]+}`
+	HandlerPathBSDocument                 = `/block/bsdocument/{documentid:[0-9a-z]+}`
+	HandlerPathBCDocument                 = `/block/bcdocument/{documentid:[0-9a-z]+}`
 	HandlerPathManifests                  = `/block/manifests`
 	HandlerPathOperations                 = `/block/operations`
 	HandlerPathOperation                  = `/block/operation/{hash:(?i)[0-9a-z][0-9a-z]+}`
@@ -58,7 +59,8 @@ var RateLimitHandlerMap = map[string]string{
 	"currencies":                      HandlerPathCurrencies,
 	"currency":                        HandlerPathCurrency,
 	"documents":                       HandlerPathDocuments,
-	"document":                        HandlerPathDocument,
+	"bsdocument":                      HandlerPathBSDocument,
+	"bcdocument":                      HandlerPathBCDocument,
 	"block-manifests":                 HandlerPathManifests,
 	"block-operations":                HandlerPathOperations,
 	"block-operation":                 HandlerPathOperation,
@@ -179,7 +181,9 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathDocument, hd.handleDocument, true).
+	_ = hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
+		Methods(http.MethodOptions, "GET")
+	_ = hd.setHandler(HandlerPathBCDocument, hd.handleBCDocument, true).
 		Methods(http.MethodOptions, "GET")
 	_ = hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
 		Methods(http.MethodOptions, "GET")

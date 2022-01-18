@@ -70,6 +70,28 @@ var documentIndexModels = []mongo.IndexModel{
 	},
 }
 
+var documentsIndexModels = []mongo.IndexModel{
+	{
+		Keys: bson.D{bson.E{Key: "address", Value: 1}, bson.E{Key: "height", Value: -1}},
+		Options: options.Index().
+			SetName("mitum_digest_documents"),
+	},
+	{
+		Keys: bson.D{
+			bson.E{Key: "address", Value: 1},
+			bson.E{Key: "documentid", Value: 1},
+			bson.E{Key: "height", Value: -1},
+		},
+		Options: options.Index().
+			SetName("mitum_digest_documents_blocksign"),
+	},
+	{
+		Keys: bson.D{bson.E{Key: "height", Value: -1}},
+		Options: options.Index().
+			SetName("mitum_digest_documents_height"),
+	},
+}
+
 var operationIndexModels = []mongo.IndexModel{
 	{
 		Keys: bson.D{bson.E{Key: "addresses", Value: 1}, bson.E{Key: "height", Value: 1}, bson.E{Key: "index", Value: 1}},
@@ -89,9 +111,9 @@ var operationIndexModels = []mongo.IndexModel{
 }
 
 var defaultIndexes = map[string] /* collection */ []mongo.IndexModel{
-	defaultColNameAccount:   accountIndexModels,
-	defaultColNameDocument:  accountIndexModels,
-	defaultColNameBalance:   balanceIndexModels,
-	defaultColNameDocument:  documentIndexModels,
-	defaultColNameOperation: operationIndexModels,
+	defaultColNameAccount:            accountIndexModels,
+	defaultColNameBalance:            balanceIndexModels,
+	defaultColNameBlocksignDocument:  documentIndexModels,
+	defaultColNameBlocksignDocuments: documentsIndexModels,
+	defaultColNameOperation:          operationIndexModels,
 }

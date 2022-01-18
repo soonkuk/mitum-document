@@ -44,15 +44,10 @@ type CreateDocumentsItemJSONUnpacker struct {
 }
 
 func (it *BaseCreateDocumentsItem) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var ht jsonenc.HintedHead
-	if err := enc.Unmarshal(b, &ht); err != nil {
-		return err
-	}
-
 	var ucd CreateDocumentsItemJSONUnpacker
 	if err := jsonenc.Unmarshal(b, &ucd); err != nil {
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.FH, ucd.DI, ucd.SC, ucd.TL, ucd.SZ, ucd.SG, ucd.SD, ucd.CI)
+	return it.unpack(enc, ucd.FH, ucd.DI, ucd.SC, ucd.TL, ucd.SZ, ucd.SG, ucd.SD, ucd.CI)
 }

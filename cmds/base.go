@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"gopkg.in/yaml.v3"
 
@@ -159,6 +160,10 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(blocksign.SignDocumentsHinter, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
 		return nil, err
+	} else if _, err := opr.SetProcessor(blockcity.CreateDocumentsHinter, blockcity.NewCreateDocumentsProcessor(cp)); err != nil {
+		return nil, err
+	} else if _, err := opr.SetProcessor(blockcity.UpdateDocumentsHinter, blockcity.NewUpdateDocumentsProcessor(cp)); err != nil {
+		return nil, err
 	}
 
 	threshold, err := base.NewThreshold(uint(len(suffrage.Nodes())), policy.ThresholdRatio())
@@ -220,6 +225,8 @@ func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationPr
 		currency.SuffrageInflationHinter,
 		blocksign.CreateDocumentsHinter,
 		blocksign.SignDocumentsHinter,
+		blockcity.CreateDocumentsHinter,
+		blockcity.UpdateDocumentsHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

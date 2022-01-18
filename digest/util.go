@@ -32,21 +32,18 @@ func IsDocumentState(st state.State) (blocksign.DocumentData, bool, error) {
 	return doc, true, nil
 }
 
-func parseDocIdFromPath(s string) (currency.Big, error) {
+func parseDocIdFromPath(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	if len(s) < 1 {
-		return currency.Big{}, errors.Errorf("empty id")
+		return "", errors.Errorf("empty id")
 	}
 
-	h, err := currency.NewBigFromString(s)
-	if err != nil {
-		return currency.Big{}, err
-	}
-	if err := h.IsValid(nil); err != nil {
-		return currency.Big{}, err
-	}
+	//	h, err := blockcity.ParseDocId(s)
+	//	if err != nil {
+	//		return "", err
+	//	}
 
-	return h, nil
+	return s, nil
 }
 
 func IsAccountState(st state.State) (currency.Account, bool, error) {

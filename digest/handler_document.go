@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
+func (hd *Handlers) handleBSDocument(w http.ResponseWriter, r *http.Request) {
 
 	cachekey := CacheKeyPath(r)
 
@@ -30,7 +30,7 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		return hd.handleDocumentInGroup(h)
+		return hd.handleBSDocumentInGroup(h)
 	}); err != nil {
 		HTTP2HandleError(w, err)
 	} else {
@@ -42,18 +42,18 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (hd *Handlers) handleDocumentInGroup(i currency.Big) ([]byte, error) {
-	switch va, found, err := hd.database.Document(i); {
+func (hd *Handlers) handleBSDocumentInGroup(i string) ([]byte, error) {
+	switch va, found, err := hd.database.BSDocument(i); {
 	case err != nil:
 		return nil, err
 	case !found:
 		return nil, util.NotFoundError.Errorf("document value not found")
 	default:
-		hal, err := hd.buildDocumentHal(va)
+		hal, err := hd.buildBlocksignDocumentHal(va)
 		if err != nil {
 			return nil, err
 		}
-		hal = hal.AddLink("document:{documentid}", NewHalLink(HandlerPathDocument, nil).SetTemplated())
+		hal = hal.AddLink("bsdocument:{documentid}", NewHalLink(HandlerPathBSDocument, nil).SetTemplated())
 		hal = hal.AddLink("block:{height}", NewHalLink(HandlerPathBlockByHeight, nil).SetTemplated())
 
 		return hd.enc.Marshal(hal)
@@ -136,6 +136,52 @@ func (hd *Handlers) handleDocumentsInGroup(
 
 	b, err := hd.enc.Marshal(hal)
 	return b, int64(len(vas)) == limit, err
+}
+
+func (hd *Handlers) handleBCDocument(w http.ResponseWriter, r *http.Request) {
+
+	cachekey := CacheKeyPath(r)
+
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
+
+	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
+	if err != nil {
+		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %q", err), http.StatusBadRequest)
+
+		return
+	}
+
+	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
+		return hd.handleBCDocumentInGroup(h)
+	}); err != nil {
+		HTTP2HandleError(w, err)
+	} else {
+		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
+
+		if !shared {
+			HTTP2WriteCache(w, cachekey, time.Second*2)
+		}
+	}
+}
+
+func (hd *Handlers) handleBCDocumentInGroup(i string) ([]byte, error) {
+	switch va, found, err := hd.database.BCDocument(i); {
+	case err != nil:
+		return nil, err
+	case !found:
+		return nil, util.NotFoundError.Errorf("document value not found")
+	default:
+		hal, err := hd.buildBlockcityDocumentHal(va)
+		if err != nil {
+			return nil, err
+		}
+		hal = hal.AddLink("bcdocument:{documentid}", NewHalLink(HandlerPathBCDocument, nil).SetTemplated())
+		hal = hal.AddLink("block:{height}", NewHalLink(HandlerPathBlockByHeight, nil).SetTemplated())
+
+		return hd.enc.Marshal(hal)
+	}
 }
 
 func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Request) {
@@ -229,10 +275,34 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	return b, int64(len(vas)) == limit, err
 }
 
-func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
+func (hd *Handlers) buildBlocksignDocumentHal(va BlocksignDocumentValue) (Hal, error) {
 	var hal Hal
 
-	h, err := hd.combineURL(HandlerPathDocument, "documentid", va.Document().Info().Index().String())
+	h, err := hd.combineURL(HandlerPathBSDocument, "documentid", va.Document().Info().Index().String())
+	if err != nil {
+		return nil, err
+	}
+	hal = NewBaseHal(va, NewHalLink(h, nil))
+
+	h, err = hd.combineURL(HandlerPathBlockByHeight, "height", va.Height().String())
+	if err != nil {
+		return nil, err
+	}
+	hal = hal.AddLink("block", NewHalLink(h, nil))
+
+	h, err = hd.combineURL(HandlerPathManifestByHeight, "height", va.Height().String())
+	if err != nil {
+		return nil, err
+	}
+	hal = hal.AddLink("manifest", NewHalLink(h, nil))
+
+	return hal, nil
+}
+
+func (hd *Handlers) buildBlockcityDocumentHal(va BlockcityDocumentValue) (Hal, error) {
+	var hal Hal
+
+	h, err := hd.combineURL(HandlerPathBCDocument, "documentid", va.Document().DocumentId())
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +399,7 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(DocumentValue)
+		va := vas[len(vas)-1].Interface().(BlocksignDocumentValue)
 		nextoffset = buildOffset(va.Height(), va.Document().Info().Index().Uint64())
 	}
 
@@ -352,7 +422,7 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(DocumentValue)
+		va := vas[len(vas)-1].Interface().(BlocksignDocumentValue)
 		nextoffset = fmt.Sprintf("%d", va.Document().Info().Index().Uint64())
 	}
 
@@ -374,10 +444,27 @@ func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) str
 
 func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, limit int64) ([]Hal, error) {
 	var vas []Hal
-	if err := hd.database.Documents(
+	if err := hd.database.BSDocuments(
 		filter, reverse, limit,
-		func(_ currency.Big, va DocumentValue) (bool, error) {
-			hal, err := hd.buildDocumentHal(va)
+		func(_ currency.Big, va BlocksignDocumentValue) (bool, error) {
+			hal, err := hd.buildBlocksignDocumentHal(va)
+			if err != nil {
+				return false, err
+			}
+			vas = append(vas, hal)
+
+			return true, nil
+		},
+	); err != nil {
+		return nil, err
+	} else if len(vas) < 1 {
+		return nil, nil
+	}
+
+	if err := hd.database.BCDocuments(
+		filter, reverse, limit,
+		func(_ string, va BlockcityDocumentValue) (bool, error) {
+			hal, err := hd.buildBlockcityDocumentHal(va)
 			if err != nil {
 				return false, err
 			}

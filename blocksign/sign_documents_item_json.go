@@ -29,15 +29,10 @@ type SignDocumentsItemJSONUnpacker struct {
 }
 
 func (it *BaseSignDocumentsItem) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var ht jsonenc.HintedHead
-	if err := enc.Unmarshal(b, &ht); err != nil {
-		return err
-	}
-
 	var ucd SignDocumentsItemJSONUnpacker
 	if err := jsonenc.Unmarshal(b, &ucd); err != nil {
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.DI, ucd.OW, ucd.CI)
+	return it.unpack(enc, ucd.DI, ucd.OW, ucd.CI)
 }

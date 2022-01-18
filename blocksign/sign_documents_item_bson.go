@@ -25,15 +25,10 @@ type SignDocumentsItemBSONUnpacker struct {
 }
 
 func (it *BaseSignDocumentsItem) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var ht bsonenc.HintedHead
-	if err := enc.Unmarshal(b, &ht); err != nil {
-		return err
-	}
-
 	var ucd SignDocumentsItemBSONUnpacker
 	if err := bson.Unmarshal(b, &ucd); err != nil {
 		return err
 	}
 
-	return it.unpack(enc, ht.H, ucd.DI, ucd.OW, ucd.CI)
+	return it.unpack(enc, ucd.DI, ucd.OW, ucd.CI)
 }

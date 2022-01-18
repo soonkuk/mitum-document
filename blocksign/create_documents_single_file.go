@@ -9,7 +9,7 @@ import (
 var (
 	CreateDocumentsItemSingleFileType   = hint.Type("mitum-blocksign-create-documents-single-file")
 	CreateDocumentsItemSingleFileHint   = hint.NewHint(CreateDocumentsItemSingleFileType, "v0.0.1")
-	CreateDocumentsItemSingleFileHinter = BaseCreateDocumentsItem{hint: CreateDocumentsItemSingleFileHint}
+	CreateDocumentsItemSingleFileHinter = BaseCreateDocumentsItem{BaseHinter: hint.NewBaseHinter(CreateDocumentsItemSingleFileHint)}
 )
 
 type CreateDocumentsItemSingleFile struct {

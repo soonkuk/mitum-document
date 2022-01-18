@@ -1,41 +1,74 @@
 package digest
 
 import (
+	"github.com/soonkuk/mitum-blocksign/blockcity"
+	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/hint"
-
-	"github.com/soonkuk/mitum-blocksign/blocksign"
 )
 
 var (
-	DocumentValueType = hint.Type("mitum-blocksign-document-value")
-	DocumentValueHint = hint.NewHint(DocumentValueType, "v0.0.1")
+	BlocksignDocumentValueType = hint.Type("mitum-blocksign-document-value")
+	BlocksignDocumentValueHint = hint.NewHint(BlocksignDocumentValueType, "v0.0.1")
 )
 
-type DocumentValue struct {
+type BlocksignDocumentValue struct {
 	doc    blocksign.DocumentData
 	height base.Height
 }
 
-func NewDocumentValue(
+func NewBlocksignDocumentValue(
 	doc blocksign.DocumentData,
 	height base.Height,
-) DocumentValue {
+) BlocksignDocumentValue {
 
-	return DocumentValue{
+	return BlocksignDocumentValue{
 		doc:    doc,
 		height: height,
 	}
 }
 
-func (dv DocumentValue) Hint() hint.Hint {
-	return DocumentValueHint
+func (dv BlocksignDocumentValue) Hint() hint.Hint {
+	return BlocksignDocumentValueHint
 }
 
-func (dv DocumentValue) Document() blocksign.DocumentData {
+func (dv BlocksignDocumentValue) Document() blocksign.DocumentData {
 	return dv.doc
 }
 
-func (dv DocumentValue) Height() base.Height {
+func (dv BlocksignDocumentValue) Height() base.Height {
+	return dv.height
+}
+
+var (
+	BlockcityDocumentValueType = hint.Type("mitum-blockcity-document-value")
+	BlockcityDocumentValueHint = hint.NewHint(BlockcityDocumentValueType, "v0.0.1")
+)
+
+type BlockcityDocumentValue struct {
+	doc    blockcity.Document
+	height base.Height
+}
+
+func NewBlockcityDocumentValue(
+	doc blockcity.Document,
+	height base.Height,
+) BlockcityDocumentValue {
+
+	return BlockcityDocumentValue{
+		doc:    doc,
+		height: height,
+	}
+}
+
+func (dv BlockcityDocumentValue) Hint() hint.Hint {
+	return BlockcityDocumentValueHint
+}
+
+func (dv BlockcityDocumentValue) Document() blockcity.Document {
+	return dv.doc
+}
+
+func (dv BlockcityDocumentValue) Height() base.Height {
 	return dv.height
 }

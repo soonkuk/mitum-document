@@ -2,6 +2,7 @@ package digest
 
 import (
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -9,7 +10,7 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []byte, height, previousHeight base.Height) error {
+func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, sd []byte, cd []byte, height, previousHeight base.Height) error {
 	if err := encoder.Decode(bac, enc, &va.ac); err != nil {
 		return err
 	}
@@ -30,12 +31,20 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, dm []
 
 	va.balance = balance
 
-	if hinter, err := enc.Decode(dm); err != nil {
+	if hinter, err := enc.Decode(sd); err != nil {
 		return err
 	} else if k, ok := hinter.(blocksign.DocumentInventory); !ok {
-		return errors.Errorf("not DocumentInventory: %T", hinter)
+		return errors.Errorf("not Blocksign DocumentInventory: %T", hinter)
 	} else {
-		va.document = k
+		va.blocksignDocument = k
+	}
+
+	if hinter, err := enc.Decode(cd); err != nil {
+		return err
+	} else if l, ok := hinter.(blockcity.DocumentInventory); !ok {
+		return errors.Errorf("not Blockcity DocumentInventory: %T", hinter)
+	} else {
+		va.blockcityDocument = l
 	}
 
 	va.height = height

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	DocumentInventoryType   = hint.Type("mbs-document-inventory")
+	DocumentInventoryType   = hint.Type("mitum-blocksign-document-inventory")
 	DocumentInventoryHint   = hint.NewHint(DocumentInventoryType, "v0.0.1")
 	DocumentInventoryHinter = DocumentInventory{BaseHinter: hint.NewBaseHinter(DocumentInventoryHint)}
 )
@@ -30,7 +30,7 @@ func NewDocumentInventory(documents []DocInfo) DocumentInventory {
 	if documents == nil {
 		return DocumentInventory{documents: []DocInfo{}}
 	}
-	return DocumentInventory{documents: documents}
+	return DocumentInventory{BaseHinter: hint.NewBaseHinter(DocumentInventoryHint), documents: documents}
 }
 
 func (div DocumentInventory) Bytes() []byte {

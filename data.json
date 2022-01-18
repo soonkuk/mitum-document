@@ -1,0 +1,51 @@
+{
+    "_hint": "seal-v0.0.1",
+    "hash": "4RSjCjdeXnSfXH5U51QRzeDBnsqUE8H6Vg9VUth93AVk",
+    "body_hash": "5BQK4XYJ9yd8Kjxb7GEmRPNPNHq11yWs37ZvQhwqpLAQ",
+    "signer": "rcrd3KA2wWNhKdAP8rHRzfRmgp91oR9mqopckyXRmCvGmpu",
+    "signature": "381yXZJFxmvVwnfWyo8aM2LEZgWu1Bc3SrKf527vUmN2DTo2FzuQpdGbKdRbTnhj77qK81kQRhLXqoeRRxpH7Vqzs2Faas9R",
+    "signed_at": "2022-02-01T08:36:50.484033Z",
+    "operations": [{
+        "_hint": "mitum-blockcity-create-documents-operation-v0.0.1",
+        "hash": "ASyrY5YUPkE6u4Lcc8apC18F33q61SEmR3T7bnt7ZQ3t",
+        "fact": {
+            "_hint": "mitum-blockcity-create-documents-operation-fact-v0.0.1",
+            "hash": "JDCRrHZAFhEFUS8mpqYddaAgxdWWkKMq63KbtwXoM4di",
+            "token": "MjAyMi0wMi0wMVQwODozNjo1MC40ODM2NDFa",
+            "sender": "Gu5xHjhos5WkjGo9jKmYMY7dwWWzbEGdQCs11QkyAhh8mca",
+            "items": [{
+                "_hint": "mitum-blockcity-create-documents-item-v0.0.1",
+                "doctype": "mitum-blockcity-document-voting-data",
+                "doc": {
+                    "_hint": "mitum-blockcity-document-v0.0.1",
+                    "documentdata": {
+                        "_hint": "mitum-blockcity-document-voting-data-v0.0.1",
+                        "info": {
+                            "_hint": "mitum-blockcity-document-info-v0.0.1",
+                            "docid": {
+                                "_hint": "mitum-blockcity-voting-document-id-v0.0.1",
+                                "id": "4cvi"
+                            },
+                            "doctype": "mitum-blockcity-document-voting-data"
+                        },
+                        "owner": "Gu5xHjhos5WkjGo9jKmYMY7dwWWzbEGdQCs11QkyAhh8mca",
+                        "round": 1,
+                        "candidates": [{
+                            "_hint": "mitum-blockcity-voting-candidate-v0.0.1",
+                            "address": "8sXvbEaGh1vfpSWSib7qiJQQeqxVJ5YQRPpceaa5rd9Ymca",
+                            "manifest": ""
+                        }]
+                    }
+                },
+                "currency": "MCC"
+            }]
+        },
+        "fact_signs": [{
+            "_hint": "base-fact-sign-v0.0.1",
+            "signer": "rcrd3KA2wWNhKdAP8rHRzfRmgp91oR9mqopckyXRmCvGmpu",
+            "signature": "AN1rKvt4w7KZ2BYbUsZZ8SNECyfQ6UMfezbyXZ2u6stzYLAjmN3zRmBqtAZoGPDoWMkcQcdkhHtAtemBfSTy2PU1jgpcVTV1Q",
+            "signed_at": "2022-02-01T08:36:50.484011Z"
+        }],
+        "memo": ""
+    }]
+}

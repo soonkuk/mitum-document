@@ -2,12 +2,12 @@ package cmds
 
 import (
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/document"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
@@ -22,7 +22,7 @@ type UpdateBlockcityVotingDocumentCommand struct {
 	Currency   currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
 	Seal       mitumcmds.FileLoad          `help:"seal" optional:""`
 	sender     base.Address
-	candidates []blockcity.VotingCandidate
+	candidates []document.VotingCandidate
 }
 
 func NewUpdateBlockcityVotingDocumentCommand() UpdateBlockcityVotingDocumentCommand {
@@ -74,13 +74,13 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) parseFlags() error {
 	}
 
 	{
-		candidates := make([]blockcity.VotingCandidate, len(cmd.Candidates))
+		candidates := make([]document.VotingCandidate, len(cmd.Candidates))
 		for i := range cmd.Candidates {
 			ca, err := cmd.Candidates[i].Encode(jenc)
 			if err != nil {
 				return errors.Wrapf(err, "invalid address format, %q", cmd.Candidates[i].String())
 			}
-			candidates[i] = blockcity.MustNewVotingCandidate(ca, "")
+			candidates[i] = document.MustNewVotingCandidate(ca, "")
 		}
 		cmd.candidates = candidates
 	}
@@ -93,18 +93,18 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) createOperation() (operation.Op
 	if err != nil {
 		return nil, err
 	}
-	var items []blockcity.UpdateDocumentsItem
+	var items []document.UpdateDocumentsItem
 	for j := range i {
-		if t, ok := i[j].(blockcity.UpdateDocuments); ok {
-			items = t.Fact().(blockcity.UpdateDocumentsFact).Items()
+		if t, ok := i[j].(document.UpdateDocuments); ok {
+			items = t.Fact().(document.UpdateDocumentsFact).Items()
 		}
 	}
 
-	info := blockcity.NewDocInfo(cmd.DocumentId, blockcity.CityVotingDataType)
-	votingDoc := blockcity.NewCityVotingData(info, cmd.sender, cmd.Round, cmd.candidates)
-	doc := blockcity.NewDocument(votingDoc)
+	info := document.NewDocInfo(cmd.DocumentId, document.CityVotingDataType)
+	votingDoc := document.NewCityVotingData(info, cmd.sender, cmd.Round, cmd.candidates)
+	doc := document.NewDocument(votingDoc)
 
-	item := blockcity.NewUpdateDocumentsItemImpl(
+	item := document.NewUpdateDocumentsItemImpl(
 		doc,
 		cmd.Currency.CID,
 	)
@@ -114,7 +114,7 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) createOperation() (operation.Op
 	}
 	items = append(items, item)
 
-	fact := blockcity.NewUpdateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := document.NewUpdateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
 	if err != nil {
@@ -124,7 +124,7 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) createOperation() (operation.Op
 		base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig),
 	}
 
-	op, err := blockcity.NewUpdateDocuments(fact, fs, cmd.Memo)
+	op, err := document.NewUpdateDocuments(fact, fs, cmd.Memo)
 	if err != nil {
 		return nil, errors.Errorf("failed to create update-blockcity-voting-document operation operation: %q", err)
 	}

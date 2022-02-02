@@ -1,8 +1,8 @@
 package digest
 
 import (
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -74,7 +74,7 @@ type BlockcityDocumentDoc struct {
 
 func NewBlockcityDocumentDoc(
 	enc encoder.Encoder,
-	doc blockcity.Document,
+	doc document.Document,
 	height base.Height,
 ) (BlockcityDocumentDoc, error) {
 

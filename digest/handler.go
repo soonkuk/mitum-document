@@ -175,53 +175,53 @@ func (hd *Handlers) Handler() http.Handler {
 }
 
 func (hd *Handlers) setHandlers() {
-	_ = hd.setHandler(HandlerPathCurrencies, hd.handleCurrencies, true).
+	hd.setHandler(HandlerPathCurrencies, hd.handleCurrencies, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathCurrency, hd.handleCurrency, true).
+	hd.setHandler(HandlerPathCurrency, hd.handleCurrency, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
+	hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
+	hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathBCDocument, hd.handleBCDocument, true).
+	hd.setHandler(HandlerPathBCDocument, hd.handleBCDocument, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
+	hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathOperations, hd.handleOperations, true).
+	hd.setHandler(HandlerPathOperations, hd.handleOperations, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathOperation, hd.handleOperation, true).
+	hd.setHandler(HandlerPathOperation, hd.handleOperation, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathDocumentsByHeight, hd.handleDocumentsByHeight, true).
+	hd.setHandler(HandlerPathDocumentsByHeight, hd.handleDocumentsByHeight, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathOperationsByHeight, hd.handleOperationsByHeight, true).
+	hd.setHandler(HandlerPathOperationsByHeight, hd.handleOperationsByHeight, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathManifestByHeight, hd.handleManifestByHeight, true).
+	hd.setHandler(HandlerPathManifestByHeight, hd.handleManifestByHeight, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathManifestByHash, hd.handleManifestByHash, true).
+	hd.setHandler(HandlerPathManifestByHash, hd.handleManifestByHash, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathBlockByHeight, hd.handleBlock, true).
+	hd.setHandler(HandlerPathBlockByHeight, hd.handleBlock, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathBlockByHash, hd.handleBlock, true).
+	hd.setHandler(HandlerPathBlockByHash, hd.handleBlock, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathAccount, hd.handleAccount, true).
+	hd.setHandler(HandlerPathAccount, hd.handleAccount, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathAccountOperations, hd.handleAccountOperations, true).
+	hd.setHandler(HandlerPathAccountOperations, hd.handleAccountOperations, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathAccounts, hd.handleAccounts, true).
+	hd.setHandler(HandlerPathAccounts, hd.handleAccounts, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathAccountDocuments, hd.handleAccountDocuments, true).
+	hd.setHandler(HandlerPathAccountDocuments, hd.handleAccountDocuments, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathOperationBuildFactTemplate, hd.handleOperationBuildFactTemplate, true).
+	hd.setHandler(HandlerPathOperationBuildFactTemplate, hd.handleOperationBuildFactTemplate, true).
 		Methods(http.MethodOptions, "GET")
-	_ = hd.setHandler(HandlerPathOperationBuildFact, hd.handleOperationBuildFact, false).
+	hd.setHandler(HandlerPathOperationBuildFact, hd.handleOperationBuildFact, false).
 		Methods(http.MethodOptions, http.MethodPost)
-	_ = hd.setHandler(HandlerPathOperationBuildSign, hd.handleOperationBuildSign, false).
+	hd.setHandler(HandlerPathOperationBuildSign, hd.handleOperationBuildSign, false).
 		Methods(http.MethodOptions, http.MethodPost)
-	_ = hd.setHandler(HandlerPathOperationBuild, hd.handleOperationBuild, true).
+	hd.setHandler(HandlerPathOperationBuild, hd.handleOperationBuild, true).
 		Methods(http.MethodOptions, http.MethodGet, http.MethodPost)
-	_ = hd.setHandler(HandlerPathSend, hd.handleSend, false).
+	hd.setHandler(HandlerPathSend, hd.handleSend, false).
 		Methods(http.MethodOptions, http.MethodPost)
-	_ = hd.setHandler(HandlerPathNodeInfo, hd.handleNodeInfo, true).
+	hd.setHandler(HandlerPathNodeInfo, hd.handleNodeInfo, true).
 		Methods(http.MethodOptions, "GET")
 }
 

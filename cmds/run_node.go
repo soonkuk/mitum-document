@@ -173,6 +173,7 @@ func (*RunCommand) hookSetNetworkHandlers(ctx context.Context) (context.Context,
 }
 
 func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Context, error) {
+	fmt.Println("########################POST")
 	var conf config.LocalNode
 	if err := config.LoadConfigContextValue(ctx, &conf); err != nil {
 		return nil, err

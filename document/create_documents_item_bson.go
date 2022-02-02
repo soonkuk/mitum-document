@@ -1,4 +1,4 @@
-package blockcity // nolint:dupl
+package document // nolint:dupl
 
 import (
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"

@@ -38,7 +38,7 @@ func parseDocIdFromPath(s string) (string, error) {
 		return "", errors.Errorf("empty id")
 	}
 
-	//	h, err := blockcity.ParseDocId(s)
+	//	h, err := document.ParseDocId(s)
 	//	if err != nil {
 	//		return "", err
 	//	}

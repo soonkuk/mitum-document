@@ -1,4 +1,4 @@
-package blockcity
+package document
 
 import (
 	"encoding/json"
@@ -8,15 +8,15 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 )
 
-type UpdateDocumentsItemImplJSONPacker struct {
+type CreateDocumentsItemImplJSONPacker struct {
 	jsonenc.HintedHead
 	DT hint.Type           `json:"doctype"`
 	DD Document            `json:"doc"`
 	CI currency.CurrencyID `json:"currency"`
 }
 
-func (it UpdateDocumentsItemImpl) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(UpdateDocumentsItemImplJSONPacker{
+func (it CreateDocumentsItemImpl) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(CreateDocumentsItemImplJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(it.Hint()),
 		DT:         it.doctype,
 		DD:         it.doc,
@@ -24,14 +24,14 @@ func (it UpdateDocumentsItemImpl) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type UpdateDocumentsItemImplJSONUnpacker struct {
+type CreateDocumentsItemImplJSONUnpacker struct {
 	DT string          `json:"doctype"`
 	DD json.RawMessage `json:"doc"`
 	CI string          `json:"currency"`
 }
 
-func (it *UpdateDocumentsItemImpl) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var ucd UpdateDocumentsItemImplJSONUnpacker
+func (it *CreateDocumentsItemImpl) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var ucd CreateDocumentsItemImplJSONUnpacker
 	if err := jsonenc.Unmarshal(b, &ucd); err != nil {
 		return err
 	}

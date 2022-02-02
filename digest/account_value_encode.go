@@ -2,8 +2,8 @@ package digest
 
 import (
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -41,7 +41,7 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, sd []
 
 	if hinter, err := enc.Decode(cd); err != nil {
 		return err
-	} else if l, ok := hinter.(blockcity.DocumentInventory); !ok {
+	} else if l, ok := hinter.(document.DocumentInventory); !ok {
 		return errors.Errorf("not Blockcity DocumentInventory: %T", hinter)
 	} else {
 		va.blockcityDocument = l

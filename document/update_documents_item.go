@@ -1,4 +1,4 @@
-package blockcity
+package document
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -8,35 +8,35 @@ import (
 )
 
 var (
-	CreateDocumentsItemImplType   = hint.Type("mitum-blockcity-create-documents-item")
-	CreateDocumentsItemImplHint   = hint.NewHint(CreateDocumentsItemImplType, "v0.0.1")
-	CreateDocumentsItemImplHinter = CreateDocumentsItemImpl{BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint)}
+	UpdateDocumentsItemImplType   = hint.Type("mitum-blockcity-update-documents-item")
+	UpdateDocumentsItemImplHint   = hint.NewHint(UpdateDocumentsItemImplType, "v0.0.1")
+	UpdateDocumentsItemImplHinter = UpdateDocumentsItemImpl{BaseHinter: hint.NewBaseHinter(UpdateDocumentsItemImplHint)}
 )
 
-type CreateDocumentsItemImpl struct {
+type UpdateDocumentsItemImpl struct {
 	hint.BaseHinter
 	doctype hint.Type
 	doc     Document
 	cid     currency.CurrencyID
 }
 
-func NewCreateDocumentsItemImpl(
+func NewUpdateDocumentsItemImpl(
 	doc Document,
-	cid currency.CurrencyID) CreateDocumentsItemImpl {
+	cid currency.CurrencyID) UpdateDocumentsItemImpl {
 
 	if doc.DocumentData().Hint().Type() != CityUserDataType && doc.DocumentData().Hint().Type() != CityLandDataType && doc.DocumentData().Hint().Type() != CityVotingDataType {
 		panic(util.WrongTypeError.Errorf("expected DocumentData Type, not %T", doc.Hint().Type()))
 	}
 
-	return CreateDocumentsItemImpl{
-		BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint),
+	return UpdateDocumentsItemImpl{
+		BaseHinter: hint.NewBaseHinter(UpdateDocumentsItemImplHint),
 		doctype:    doc.DocumentData().Info().docType,
 		doc:        doc,
 		cid:        cid,
 	}
 }
 
-func (it CreateDocumentsItemImpl) Bytes() []byte {
+func (it UpdateDocumentsItemImpl) Bytes() []byte {
 	bs := make([][]byte, 3)
 	bs[0] = it.doctype.Bytes()
 	bs[1] = it.doc.DocumentData().Bytes()
@@ -45,7 +45,7 @@ func (it CreateDocumentsItemImpl) Bytes() []byte {
 	return util.ConcatBytesSlice(bs...)
 }
 
-func (it CreateDocumentsItemImpl) IsValid([]byte) error {
+func (it UpdateDocumentsItemImpl) IsValid([]byte) error {
 
 	if err := isvalid.Check(
 		nil, false,
@@ -54,27 +54,27 @@ func (it CreateDocumentsItemImpl) IsValid([]byte) error {
 		it.doc,
 		it.cid,
 	); err != nil {
-		return isvalid.InvalidError.Errorf("invalid CreateDocumentsItem: %w", err)
+		return isvalid.InvalidError.Errorf("invalid UpdateDocumentsItem: %w", err)
 	}
 	return nil
 }
 
-func (it CreateDocumentsItemImpl) DocumentId() string {
+func (it UpdateDocumentsItemImpl) DocumentId() string {
 	return it.doc.DocumentId()
 }
 
-func (it CreateDocumentsItemImpl) DocType() hint.Type {
+func (it UpdateDocumentsItemImpl) DocType() hint.Type {
 	return it.doctype
 }
 
-func (it CreateDocumentsItemImpl) Doc() Document {
+func (it UpdateDocumentsItemImpl) Doc() Document {
 	return it.doc
 }
 
-func (it CreateDocumentsItemImpl) Currency() currency.CurrencyID {
+func (it UpdateDocumentsItemImpl) Currency() currency.CurrencyID {
 	return it.cid
 }
 
-func (it CreateDocumentsItemImpl) Rebuild() CreateDocumentsItem {
+func (it UpdateDocumentsItemImpl) Rebuild() UpdateDocumentsItem {
 	return it
 }

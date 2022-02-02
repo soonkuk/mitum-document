@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -1114,9 +1114,9 @@ func (st *Database) blocksignDocumentList(a base.Address) (blocksign.DocumentInv
 }
 
 // Blockcity documentList return blockcity document invetory by address
-func (st *Database) blockcityDocumentList(a base.Address) (blockcity.DocumentInventory, base.Height, base.Height, error) {
+func (st *Database) blockcityDocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
-	doc := blockcity.DocumentInventory{}
+	doc := document.DocumentInventory{}
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
@@ -1136,13 +1136,13 @@ func (st *Database) blockcityDocumentList(a base.Address) (blockcity.DocumentInv
 	); err != nil {
 		if errors.Is(err, util.NotFoundError) {
 
-			return blockcity.NewDocumentInventory([]blockcity.DocInfo{}), lastHeight, previousHeight, nil
+			return document.NewDocumentInventory([]document.DocInfo{}), lastHeight, previousHeight, nil
 		}
 	}
 
-	i, err := blockcity.StateDocumentsValue(sta)
+	i, err := document.StateDocumentsValue(sta)
 	if err != nil {
-		return blockcity.DocumentInventory{}, lastHeight, previousHeight, err
+		return document.DocumentInventory{}, lastHeight, previousHeight, err
 	}
 	doc = i
 

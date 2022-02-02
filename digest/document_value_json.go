@@ -3,8 +3,8 @@ package digest
 import (
 	"encoding/json"
 
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 )
@@ -42,8 +42,8 @@ func (dv *BlocksignDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) err
 
 type BlockcityDocumentValueJSONPacker struct {
 	jsonenc.HintedHead
-	DM blockcity.Document `json:"document"`
-	HT base.Height        `json:"height"`
+	DM document.Document `json:"document"`
+	HT base.Height       `json:"height"`
 }
 
 func (va BlockcityDocumentValue) MarshalJSON() ([]byte, error) {

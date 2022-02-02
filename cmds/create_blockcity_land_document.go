@@ -2,12 +2,12 @@ package cmds
 
 import (
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/document"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
@@ -84,18 +84,18 @@ func (cmd *CreateBlockcityLandDocumentCommand) createOperation() (operation.Oper
 	if err != nil {
 		return nil, err
 	}
-	var items []blockcity.CreateDocumentsItem
+	var items []document.CreateDocumentsItem
 	for j := range i {
-		if t, ok := i[j].(blockcity.CreateDocuments); ok {
-			items = t.Fact().(blockcity.CreateDocumentsFact).Items()
+		if t, ok := i[j].(document.CreateDocuments); ok {
+			items = t.Fact().(document.CreateDocumentsFact).Items()
 		}
 	}
 
-	info := blockcity.NewDocInfo(cmd.DocumentId, blockcity.CityUserDataType)
-	landDoc := blockcity.NewCityLandData(info, cmd.sender, cmd.lender, cmd.Starttime, cmd.Periodday)
-	doc := blockcity.NewDocument(landDoc)
+	info := document.NewDocInfo(cmd.DocumentId, document.CityUserDataType)
+	landDoc := document.NewCityLandData(info, cmd.sender, cmd.lender, cmd.Starttime, cmd.Periodday)
+	doc := document.NewDocument(landDoc)
 
-	item := blockcity.NewCreateDocumentsItemImpl(
+	item := document.NewCreateDocumentsItemImpl(
 		doc,
 		cmd.Currency.CID,
 	)
@@ -105,7 +105,7 @@ func (cmd *CreateBlockcityLandDocumentCommand) createOperation() (operation.Oper
 	}
 	items = append(items, item)
 
-	fact := blockcity.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := document.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
 	if err != nil {
@@ -115,7 +115,7 @@ func (cmd *CreateBlockcityLandDocumentCommand) createOperation() (operation.Oper
 		base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig),
 	}
 
-	op, err := blockcity.NewCreateDocuments(fact, fs, cmd.Memo)
+	op, err := document.NewCreateDocuments(fact, fs, cmd.Memo)
 	if err != nil {
 		return nil, errors.Errorf("failed to create create-blockcity-land-document operation operation: %q", err)
 	}

@@ -1,8 +1,8 @@
 package digest
 
 import (
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/hint"
 )
@@ -46,12 +46,12 @@ var (
 )
 
 type BlockcityDocumentValue struct {
-	doc    blockcity.Document
+	doc    document.Document
 	height base.Height
 }
 
 func NewBlockcityDocumentValue(
-	doc blockcity.Document,
+	doc document.Document,
 	height base.Height,
 ) BlockcityDocumentValue {
 
@@ -65,7 +65,7 @@ func (dv BlockcityDocumentValue) Hint() hint.Hint {
 	return BlockcityDocumentValueHint
 }
 
-func (dv BlockcityDocumentValue) Document() blockcity.Document {
+func (dv BlockcityDocumentValue) Document() document.Document {
 	return dv.doc
 }
 

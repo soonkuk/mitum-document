@@ -3,8 +3,8 @@ package digest
 import (
 	"encoding/json"
 
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
@@ -15,7 +15,7 @@ type AccountValueJSONPacker struct {
 	currency.AccountPackerJSON
 	BL []currency.Amount           `json:"balance,omitempty"`
 	SD blocksign.DocumentInventory `json:"blocksign_documents"`
-	CD blockcity.DocumentInventory `json:"blockcity_documents"`
+	CD document.DocumentInventory  `json:"blockcity_documents"`
 	HT base.Height                 `json:"height"`
 	PT base.Height                 `json:"previous_height"`
 }

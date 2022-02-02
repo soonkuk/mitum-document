@@ -2,12 +2,12 @@ package cmds
 
 import (
 	"github.com/pkg/errors"
+	"github.com/soonkuk/mitum-blocksign/document"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
@@ -83,18 +83,18 @@ func (cmd *UpdateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 	if err != nil {
 		return nil, err
 	}
-	var items []blockcity.UpdateDocumentsItem
+	var items []document.UpdateDocumentsItem
 	for j := range i {
-		if t, ok := i[j].(blockcity.UpdateDocuments); ok {
-			items = t.Fact().(blockcity.UpdateDocumentsFact).Items()
+		if t, ok := i[j].(document.UpdateDocuments); ok {
+			items = t.Fact().(document.UpdateDocumentsFact).Items()
 		}
 	}
-	info := blockcity.NewDocInfo(cmd.DocumentId, blockcity.CityUserDataType)
-	statistics := blockcity.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
-	userDoc := blockcity.NewCityUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
-	doc := blockcity.NewDocument(userDoc)
+	info := document.NewDocInfo(cmd.DocumentId, document.CityUserDataType)
+	statistics := document.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
+	userDoc := document.NewCityUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
+	doc := document.NewDocument(userDoc)
 
-	item := blockcity.NewUpdateDocumentsItemImpl(
+	item := document.NewUpdateDocumentsItemImpl(
 		doc,
 		cmd.Currency.CID,
 	)
@@ -104,7 +104,7 @@ func (cmd *UpdateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 	}
 	items = append(items, item)
 
-	fact := blockcity.NewUpdateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := document.NewUpdateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
 	if err != nil {
@@ -114,7 +114,7 @@ func (cmd *UpdateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 		base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig),
 	}
 
-	op, err := blockcity.NewUpdateDocuments(fact, fs, cmd.Memo)
+	op, err := document.NewUpdateDocuments(fact, fs, cmd.Memo)
 	if err != nil {
 		return nil, errors.Errorf("failed to create update-blockcity-user-document operation: %q", err)
 	}

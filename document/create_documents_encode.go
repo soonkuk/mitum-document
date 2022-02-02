@@ -1,4 +1,4 @@
-package blockcity
+package document
 
 import (
 	"github.com/spikeekips/mitum/base"

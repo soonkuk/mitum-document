@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spikeekips/mitum/base"
@@ -102,6 +102,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 }
 
 func HookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
+	fmt.Println("########################PRE")
 	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
@@ -160,9 +161,9 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(blocksign.SignDocumentsHinter, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blockcity.CreateDocumentsHinter, blockcity.NewCreateDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(document.CreateDocumentsHinter, document.NewCreateDocumentsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blockcity.UpdateDocumentsHinter, blockcity.NewUpdateDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(document.UpdateDocumentsHinter, document.NewUpdateDocumentsProcessor(cp)); err != nil {
 		return nil, err
 	}
 
@@ -225,8 +226,8 @@ func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationPr
 		currency.SuffrageInflationHinter,
 		blocksign.CreateDocumentsHinter,
 		blocksign.SignDocumentsHinter,
-		blockcity.CreateDocumentsHinter,
-		blockcity.UpdateDocumentsHinter,
+		document.CreateDocumentsHinter,
+		document.UpdateDocumentsHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

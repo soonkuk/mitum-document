@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blockcity"
 	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
@@ -249,13 +249,13 @@ func (bs *BlockSession) prepareAccounts() error {
 			} else {
 				blocksignDocumentsModels = append(blocksignDocumentsModels, j...)
 			}
-		case blockcity.IsStateDocumentDataKey(st.Key()):
+		case document.IsStateDocumentDataKey(st.Key()):
 			if j, err := bs.handleBlockcityDocumentDataState(st); err != nil {
 				return err
 			} else {
 				blockcityDocumentModels = append(blockcityDocumentModels, j...)
 			}
-		case blockcity.IsStateDocumentsKey(st.Key()):
+		case document.IsStateDocumentsKey(st.Key()):
 			if j, err := bs.handleBlockcityDocumentsState(st); err != nil {
 				return err
 			} else {
@@ -328,7 +328,7 @@ func (bs *BlockSession) handleBlocksignDocumentsState(st state.State) ([]mongo.W
 }
 
 func (bs *BlockSession) handleBlockcityDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
-	doc, err := blockcity.StateDocumentDataValue(st)
+	doc, err := document.StateDocumentDataValue(st)
 	if err != nil {
 		return nil, err
 	}

@@ -74,7 +74,7 @@ type BlockcityDocumentDoc struct {
 
 func NewBlockcityDocumentDoc(
 	enc encoder.Encoder,
-	doc document.Document,
+	doc document.DocumentData,
 	height base.Height,
 ) (BlockcityDocumentDoc, error) {
 

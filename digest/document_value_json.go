@@ -42,8 +42,8 @@ func (dv *BlocksignDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) err
 
 type BlockcityDocumentValueJSONPacker struct {
 	jsonenc.HintedHead
-	DM document.Document `json:"document"`
-	HT base.Height       `json:"height"`
+	DM document.DocumentData `json:"document"`
+	HT base.Height           `json:"height"`
 }
 
 func (va BlockcityDocumentValue) MarshalJSON() ([]byte, error) {

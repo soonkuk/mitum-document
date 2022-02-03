@@ -11,7 +11,7 @@ import (
 type UpdateDocumentsItemImplJSONPacker struct {
 	jsonenc.HintedHead
 	DT hint.Type           `json:"doctype"`
-	DD Document            `json:"doc"`
+	DD DocumentData        `json:"doc"`
 	CI currency.CurrencyID `json:"currency"`
 }
 

@@ -102,10 +102,10 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) createOperation() (operation.Op
 
 	info := document.NewDocInfo(cmd.DocumentId, document.CityVotingDataType)
 	votingDoc := document.NewCityVotingData(info, cmd.sender, cmd.Round, cmd.candidates)
-	doc := document.NewDocument(votingDoc)
+	//doc := document.NewDocument(votingDoc)
 
 	item := document.NewUpdateDocumentsItemImpl(
-		doc,
+		votingDoc,
 		cmd.Currency.CID,
 	)
 

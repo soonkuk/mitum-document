@@ -63,9 +63,9 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 
 	// check lender of LandDocumentData
 	if id.Hint().Type() == LandDocIdType {
-		d, ok := opp.item.Doc().DocumentData().(CityLandData)
+		d, ok := opp.item.Doc().(CityLandData)
 		if !ok {
-			operation.NewBaseReasonError("DocumentData type assertion to CityLandData failed, %q")
+			operation.NewBaseReasonError("DocumentData type assertion to CityLandData failed, %q", opp.item.Doc())
 		}
 		switch _, found, err := getState(currency.StateKeyAccount(d.lender)); {
 		case err != nil:
@@ -73,6 +73,24 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		case !found:
 			return operation.NewBaseReasonError("lender account of CityLandData account not found, %q", d.lender)
 		}
+	}
+
+	// check candidates of VotingDocumentData
+	if id.Hint().Type() == VotingDocIdType {
+		d, ok := opp.item.Doc().(CityVotingData)
+		if !ok {
+			operation.NewBaseReasonError("DocumentData type assertion to CityVotingData failed, %q", opp.item.Doc())
+		}
+
+		for i := range d.candidates {
+			switch _, found, err := getState(currency.StateKeyAccount(d.candidates[i].address)); {
+			case err != nil:
+				return err
+			case !found:
+				return operation.NewBaseReasonError("candidates account of CityVotingData account not found, %q", d.candidates[i].address)
+			}
+		}
+
 	}
 
 	// prepare doccInfo
@@ -247,7 +265,7 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 				return err
 			}
 
-			if err := opp.dinv.Append(doc.DocumentData().Info()); err != nil {
+			if err := opp.dinv.Append(doc.Info()); err != nil {
 				return err
 			}
 		}

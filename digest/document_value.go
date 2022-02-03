@@ -46,12 +46,12 @@ var (
 )
 
 type BlockcityDocumentValue struct {
-	doc    document.Document
+	doc    document.DocumentData
 	height base.Height
 }
 
 func NewBlockcityDocumentValue(
-	doc document.Document,
+	doc document.DocumentData,
 	height base.Height,
 ) BlockcityDocumentValue {
 
@@ -65,7 +65,7 @@ func (dv BlockcityDocumentValue) Hint() hint.Hint {
 	return BlockcityDocumentValueHint
 }
 
-func (dv BlockcityDocumentValue) Document() document.Document {
+func (dv BlockcityDocumentValue) Document() document.DocumentData {
 	return dv.doc
 }
 

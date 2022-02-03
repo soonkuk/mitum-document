@@ -19,7 +19,7 @@ func (it *UpdateDocumentsItemImpl) unpack(
 	// unpack documentdata
 	if hinter, err := enc.Decode(bdd); err != nil {
 		return err
-	} else if i, ok := hinter.(Document); !ok {
+	} else if i, ok := hinter.(DocumentData); !ok {
 		return errors.Errorf("not Document: %T", hinter)
 	} else {
 		it.doc = i

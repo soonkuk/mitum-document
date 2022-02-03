@@ -16,21 +16,25 @@ var (
 type CreateDocumentsItemImpl struct {
 	hint.BaseHinter
 	doctype hint.Type
-	doc     Document
+	doc     DocumentData
 	cid     currency.CurrencyID
 }
 
 func NewCreateDocumentsItemImpl(
-	doc Document,
+	doc DocumentData,
 	cid currency.CurrencyID) CreateDocumentsItemImpl {
 
-	if doc.DocumentData().Hint().Type() != CityUserDataType && doc.DocumentData().Hint().Type() != CityLandDataType && doc.DocumentData().Hint().Type() != CityVotingDataType {
+	if doc.Hint().Type() != CityUserDataType && doc.Hint().Type() != CityLandDataType && doc.Hint().Type() != CityVotingDataType {
 		panic(util.WrongTypeError.Errorf("expected DocumentData Type, not %T", doc.Hint().Type()))
+	}
+
+	if doc.Info().docType != doc.Hint().Type() {
+		panic(util.WrongTypeError.Errorf("Document Info Type not matched with DocumentData Type, not %v", doc.Hint().Type()))
 	}
 
 	return CreateDocumentsItemImpl{
 		BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint),
-		doctype:    doc.DocumentData().Info().docType,
+		doctype:    doc.Info().docType,
 		doc:        doc,
 		cid:        cid,
 	}
@@ -39,7 +43,7 @@ func NewCreateDocumentsItemImpl(
 func (it CreateDocumentsItemImpl) Bytes() []byte {
 	bs := make([][]byte, 3)
 	bs[0] = it.doctype.Bytes()
-	bs[1] = it.doc.DocumentData().Bytes()
+	bs[1] = it.doc.Bytes()
 	bs[2] = it.cid.Bytes()
 
 	return util.ConcatBytesSlice(bs...)
@@ -67,7 +71,7 @@ func (it CreateDocumentsItemImpl) DocType() hint.Type {
 	return it.doctype
 }
 
-func (it CreateDocumentsItemImpl) Doc() Document {
+func (it CreateDocumentsItemImpl) Doc() DocumentData {
 	return it.doc
 }
 

@@ -317,6 +317,9 @@ func (doc CityLandData) GenerateHash() valuehash.Hash {
 }
 
 func (doc CityLandData) IsValid([]byte) error {
+	if doc.info.docType != doc.Hint().Type() {
+		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
 	return nil
 }
 

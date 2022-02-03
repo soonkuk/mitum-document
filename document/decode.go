@@ -5,13 +5,13 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func DecodeDocument(b []byte, enc encoder.Encoder) (Document, error) {
+func DecodeDocument(b []byte, enc encoder.Encoder) (DocumentData, error) {
 	if i, err := enc.Decode(b); err != nil {
-		return Document{}, err
+		return nil, err
 	} else if i == nil {
-		return Document{}, nil
-	} else if v, ok := i.(Document); !ok {
-		return Document{}, util.WrongTypeError.Errorf("not blockcity Document; type=%T", i)
+		return nil, nil
+	} else if v, ok := i.(DocumentData); !ok {
+		return nil, util.WrongTypeError.Errorf("not blockcity Document; type=%T", i)
 	} else {
 		return v, nil
 	}

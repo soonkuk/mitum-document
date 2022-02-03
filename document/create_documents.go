@@ -28,7 +28,7 @@ type CreateDocumentsItem interface {
 	Bytes() []byte
 	DocumentId() string
 	DocType() hint.Type
-	Doc() Document
+	Doc() DocumentData
 	Currency() currency.CurrencyID
 	Rebuild() CreateDocumentsItem
 }

@@ -27,3 +27,5 @@ tests/*/*/coverage/
 /blockdata
 /env
 /openapi
+/sh
+.*.yml

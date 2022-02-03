@@ -24,20 +24,20 @@ func IsStateDocumentDataKey(key string) bool {
 	return strings.HasSuffix(key, StateKeyDocumentDataSuffix)
 }
 
-func StateDocumentDataValue(st state.State) (Document, error) {
+func StateDocumentDataValue(st state.State) (DocumentData, error) {
 	v := st.Value()
 	if v == nil {
-		return Document{}, util.NotFoundError.Errorf("document not found in State")
+		return nil, util.NotFoundError.Errorf("documentData not found in State")
 	}
 
-	if s, ok := v.Interface().(Document); !ok {
-		return Document{}, errors.Errorf("invalid document value found, %T", v.Interface())
+	if s, ok := v.Interface().(DocumentData); !ok {
+		return nil, errors.Errorf("invalid documentData value found, %T", v.Interface())
 	} else {
 		return s, nil
 	}
 }
 
-func SetStateDocumentDataValue(st state.State, v Document) (state.State, error) {
+func SetStateDocumentDataValue(st state.State, v DocumentData) (state.State, error) {
 	if uv, err := state.NewHintedValue(v); err != nil {
 		return nil, err
 	} else {

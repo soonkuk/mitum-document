@@ -91,12 +91,12 @@ func (cmd *CreateBlockcityLandDocumentCommand) createOperation() (operation.Oper
 		}
 	}
 
-	info := document.NewDocInfo(cmd.DocumentId, document.CityUserDataType)
+	info := document.NewDocInfo(cmd.DocumentId, document.CityLandDataType)
 	landDoc := document.NewCityLandData(info, cmd.sender, cmd.lender, cmd.Starttime, cmd.Periodday)
-	doc := document.NewDocument(landDoc)
+	// doc := document.NewDocument(landDoc)
 
 	item := document.NewCreateDocumentsItemImpl(
-		doc,
+		landDoc,
 		cmd.Currency.CID,
 	)
 

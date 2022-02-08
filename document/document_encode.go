@@ -25,7 +25,7 @@ func (doc *Document) unpack(
 	return nil
 }
 
-func (doc *CityUserData) unpack(
+func (doc *BCUserData) unpack(
 	enc encoder.Encoder,
 	di []byte,
 	us base.AddressDecoder,
@@ -64,12 +64,15 @@ func (doc *CityUserData) unpack(
 	return nil
 }
 
-func (doc *CityLandData) unpack(
+func (doc *BCLandData) unpack(
 	enc encoder.Encoder,
 	di []byte,
 	ow base.AddressDecoder,
-	ld base.AddressDecoder,
-	st string, // start time
+	ad string, // land address
+	ar string, // land area
+	rt string, // renter nickname
+	ac base.AddressDecoder, //renter account address
+	rd string, // rentdate
 	pd uint, // period day
 ) error {
 
@@ -88,28 +91,35 @@ func (doc *CityLandData) unpack(
 	}
 	doc.owner = oa
 
-	la, err := ld.Encode(enc)
+	ra, err := ac.Encode(enc)
 	if err != nil {
 		return err
 	}
-	doc.lender = la
+	doc.account = ra
 
-	doc.starttime = st
+	doc.address = ad
+	doc.area = ar
+	doc.renter = rt
+	doc.rentdate = rd
 	doc.periodday = pd
 
 	return nil
 }
 
-func (doc *CityVotingData) unpack(
+func (doc *BCVotingData) unpack(
 	enc encoder.Encoder,
-	di []byte,
+	bdi []byte,
 	ow base.AddressDecoder,
 	rd uint,
+	vt string,
 	bcd []byte,
+	bn string,
+	ac base.AddressDecoder,
+	tm string,
 ) error {
 
 	// unpack document info
-	if hinter, err := enc.Decode(di); err != nil {
+	if hinter, err := enc.Decode(bdi); err != nil {
 		return err
 	} else if i, ok := hinter.(DocInfo); !ok {
 		return errors.Errorf("not Document Info: %T", hinter)
@@ -117,18 +127,28 @@ func (doc *CityVotingData) unpack(
 		doc.info = i
 	}
 
+	// decode owner address
 	oa, err := ow.Encode(enc)
 	if err != nil {
 		return err
 	}
 	doc.owner = oa
-	doc.round = rd
 
+	// decode boss account address
+	ba, err := ac.Encode(enc)
+	if err != nil {
+		return err
+	}
+	doc.account = ba
+
+	doc.round = rd
+	doc.endVoteTime = vt
+
+	// unpack candidates
 	hits, err := enc.DecodeSlice(bcd)
 	if err != nil {
 		return err
 	}
-	// unpack candidates
 	candidates := make([]VotingCandidate, len(hits))
 
 	for i := range hits {
@@ -140,6 +160,9 @@ func (doc *CityVotingData) unpack(
 		candidates[i] = s
 	}
 	doc.candidates = candidates
+
+	doc.bossname = bn
+	doc.termofoffice = tm
 
 	return nil
 }

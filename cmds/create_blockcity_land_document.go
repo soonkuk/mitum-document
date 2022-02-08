@@ -15,15 +15,18 @@ import (
 type CreateBlockcityLandDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
-	Sender     currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	Lender     currencycmds.AddressFlag    `arg:"" name:"lender" help:"lender address" required:""`
-	Starttime  string                      `arg:"" name:"starttime" help:"starttime address" required:""`
-	Periodday  uint                        `arg:"" name:"periodday" help:"periodday address" required:""`
-	DocumentId string                      `arg:"" name:"documentid" help:"document id" required:""`
-	Currency   currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Seal       mitumcmds.FileLoad          `help:"seal" optional:""`
-	sender     base.Address
-	lender     base.Address
+	Sender        currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
+	Address       string                      `arg:"" name:"landaddress" help:"land address" required:""`
+	Area          string                      `arg:"" name:"landarea" help:"land area" required:""`
+	Renter        string                      `arg:"" name:"renter" help:"renter nickname" required:""`
+	Account       currencycmds.AddressFlag    `arg:"" name:"renteraccount" help:"renter account address" required:""`
+	Rentdate      string                      `arg:"" name:"rentdate" help:"rent date" required:""`
+	Periodday     uint                        `arg:"" name:"periodday" help:"periodday" required:""`
+	DocumentId    string                      `arg:"" name:"documentid" help:"document id" required:""`
+	Currency      currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
+	Seal          mitumcmds.FileLoad          `help:"seal" optional:""`
+	sender        base.Address
+	renterAccount base.Address
 }
 
 func NewCreateBlockcityLandDocumentCommand() CreateBlockcityLandDocumentCommand {
@@ -70,11 +73,11 @@ func (cmd *CreateBlockcityLandDocumentCommand) parseFlags() error {
 	}
 	cmd.sender = sa
 
-	la, err := cmd.Lender.Encode(jenc)
+	ra, err := cmd.Account.Encode(jenc)
 	if err != nil {
-		return errors.Wrapf(err, "invalid lender format, %q", cmd.Lender.String())
+		return errors.Wrapf(err, "invalid renter account format, %q", cmd.Account.String())
 	}
-	cmd.lender = la
+	cmd.renterAccount = ra
 
 	return nil
 }
@@ -91,12 +94,11 @@ func (cmd *CreateBlockcityLandDocumentCommand) createOperation() (operation.Oper
 		}
 	}
 
-	info := document.NewDocInfo(cmd.DocumentId, document.CityLandDataType)
-	landDoc := document.NewCityLandData(info, cmd.sender, cmd.lender, cmd.Starttime, cmd.Periodday)
-	// doc := document.NewDocument(landDoc)
+	info := document.NewDocInfo(cmd.DocumentId, document.BCLandDataType)
+	doc := document.NewBCLandData(info, cmd.sender, cmd.Address, cmd.Area, cmd.Renter, cmd.renterAccount, cmd.Rentdate, cmd.Periodday)
 
 	item := document.NewCreateDocumentsItemImpl(
-		landDoc,
+		doc,
 		cmd.Currency.CID,
 	)
 

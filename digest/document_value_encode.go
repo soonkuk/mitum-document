@@ -7,7 +7,7 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func (dv *BlocksignDocumentValue) unpack(enc encoder.Encoder, bdm []byte, height base.Height) error {
+func (dv *BSDocumentValue) unpack(enc encoder.Encoder, bdm []byte, height base.Height) error {
 
 	if bdm != nil {
 		i, err := blocksign.DecodeDocumentData(bdm, enc)
@@ -22,7 +22,7 @@ func (dv *BlocksignDocumentValue) unpack(enc encoder.Encoder, bdm []byte, height
 	return nil
 }
 
-func (dv *BlockcityDocumentValue) unpack(enc encoder.Encoder, bdm []byte, height base.Height) error {
+func (dv *BCDocumentValue) unpack(enc encoder.Encoder, bdm []byte, height base.Height) error {
 
 	if bdm != nil {
 		i, err := document.DecodeDocument(bdm, enc)

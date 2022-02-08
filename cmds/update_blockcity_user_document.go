@@ -89,9 +89,9 @@ func (cmd *UpdateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 			items = t.Fact().(document.UpdateDocumentsFact).Items()
 		}
 	}
-	info := document.NewDocInfo(cmd.DocumentId, document.CityUserDataType)
+	info := document.NewDocInfo(cmd.DocumentId, document.BCUserDataType)
 	statistics := document.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
-	userDoc := document.NewCityUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
+	userDoc := document.NewBCUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
 	// doc := document.NewDocument(userDoc)
 
 	item := document.NewUpdateDocumentsItemImpl(

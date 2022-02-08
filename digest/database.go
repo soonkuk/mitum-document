@@ -32,19 +32,23 @@ import (
 var maxLimit int64 = 50
 
 var (
-	defaultColNameAccount            = "digest_ac"
-	defaultColNameBlocksignDocument  = "digest_bs_dm"
-	defaultColNameBlockcityDocument  = "digest_bc_dm"
-	defaultColNameBlocksignDocuments = "digest_bs_dv"
-	defaultColNameBlockcityDocuments = "digest_bc_dv"
-	defaultColNameBalance            = "digest_bl"
-	defaultColNameOperation          = "digest_op"
+	defaultColNameAccount     = "digest_ac"
+	defaultColNameBSDocument  = "digest_bs_dm"
+	defaultColNameBCDocument  = "digest_bc_dm"
+	defaultColNameBSDocuments = "digst_bs_dv"
+	defaultColNameBCDocuments = "digest_bc_dv"
+	defaultColNameBalance     = "digest_bl"
+	defaultColNameOperation   = "digest_op"
 )
 
 var AllCollections = []string{
 	defaultColNameAccount,
 	defaultColNameBalance,
 	defaultColNameOperation,
+	defaultColNameBSDocument,
+	defaultColNameBCDocument,
+	defaultColNameBSDocuments,
+	defaultColNameBCDocuments,
 }
 
 var DigestStorageLastBlockKey = "digest_last_block"
@@ -193,8 +197,8 @@ func (st *Database) clean() error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		defaultColNameBlocksignDocument,
-		defaultColNameBlocksignDocuments,
+		defaultColNameBSDocument,
+		defaultColNameBSDocuments,
 	} {
 		if err := st.database.Client().Collection(col).Drop(context.Background()); err != nil {
 			return storage.MergeStorageError(err)
@@ -235,8 +239,8 @@ func (st *Database) cleanByHeight(height base.Height) error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		defaultColNameBlocksignDocument,
-		defaultColNameBlocksignDocuments,
+		defaultColNameBSDocument,
+		defaultColNameBSDocuments,
 	} {
 		res, err := st.database.Client().Collection(col).BulkWrite(
 			context.Background(),
@@ -469,7 +473,7 @@ func (st *Database) BSDocumentsByAddress(
 	reverse bool,
 	offset string,
 	limit int64,
-	callback func(currency.Big /* document id */, BlocksignDocumentValue) (bool, error),
+	callback func(currency.Big /* document id */, BSDocumentValue) (bool, error),
 ) error {
 	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
 	if err != nil {
@@ -501,11 +505,11 @@ func (st *Database) BSDocumentsByAddress(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameBlocksignDocument,
+		defaultColNameBSDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := LoadBlocksignDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBSDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -520,7 +524,7 @@ func (st *Database) BCDocumentsByAddress(
 	reverse bool,
 	offset string,
 	limit int64,
-	callback func(string /* document id */, BlockcityDocumentValue) (bool, error),
+	callback func(string /* document id */, BCDocumentValue) (bool, error),
 ) error {
 	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
 	if err != nil {
@@ -552,10 +556,10 @@ func (st *Database) BCDocumentsByAddress(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameBlockcityDocument,
+		defaultColNameBCDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
-			va, err := LoadBlockcityDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBCDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -567,15 +571,15 @@ func (st *Database) BCDocumentsByAddress(
 
 func (st *Database) BSDocument(
 	i string, /* document id */
-) (BlocksignDocumentValue, bool /* exists */, error) {
+) (BSDocumentValue, bool /* exists */, error) {
 
-	var va BlocksignDocumentValue
+	var va BSDocumentValue
 	if err := st.database.Client().GetByFilter(
-		defaultColNameBlocksignDocument,
+		defaultColNameBSDocument,
 		util.NewBSONFilter("documentid", i).D(),
 		func(res *mongo.SingleResult) error {
 
-			i, err := LoadBlocksignDocument(res.Decode, st.database.Encoders())
+			i, err := LoadBSDocument(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -587,10 +591,10 @@ func (st *Database) BSDocument(
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
 		if errors.Is(err, util.NotFoundError) {
-			return BlocksignDocumentValue{}, false, nil
+			return BSDocumentValue{}, false, nil
 		}
 
-		return BlocksignDocumentValue{}, false, err
+		return BSDocumentValue{}, false, err
 	}
 
 	return va, true, nil
@@ -598,15 +602,15 @@ func (st *Database) BSDocument(
 
 func (st *Database) BCDocument(
 	i string, /* document id */
-) (BlockcityDocumentValue, bool /* exists */, error) {
+) (BCDocumentValue, bool /* exists */, error) {
 
-	var va BlockcityDocumentValue
+	var va BCDocumentValue
 	if err := st.database.Client().GetByFilter(
-		defaultColNameBlockcityDocument,
+		defaultColNameBCDocument,
 		util.NewBSONFilter("documentid", i).D(),
 		func(res *mongo.SingleResult) error {
 
-			i, err := LoadBlockcityDocument(res.Decode, st.database.Encoders())
+			i, err := LoadBCDocument(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -618,10 +622,10 @@ func (st *Database) BCDocument(
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
 		if errors.Is(err, util.NotFoundError) {
-			return BlockcityDocumentValue{}, false, nil
+			return BCDocumentValue{}, false, nil
 		}
 
-		return BlockcityDocumentValue{}, false, err
+		return BCDocumentValue{}, false, err
 	}
 
 	return va, true, nil
@@ -631,7 +635,7 @@ func (st *Database) BSDocuments(
 	filter bson.M,
 	reverse bool,
 	limit int64,
-	callback func(currency.Big /* documentid */, BlocksignDocumentValue) (bool, error),
+	callback func(currency.Big /* documentid */, BSDocumentValue) (bool, error),
 ) error {
 	sr := 1
 	if reverse {
@@ -652,11 +656,11 @@ func (st *Database) BSDocuments(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameBlocksignDocument,
+		defaultColNameBSDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := LoadBlocksignDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBSDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -670,7 +674,7 @@ func (st *Database) BCDocuments(
 	filter bson.M,
 	reverse bool,
 	limit int64,
-	callback func(string /* documentid */, BlockcityDocumentValue) (bool, error),
+	callback func(string /* documentid */, BCDocumentValue) (bool, error),
 ) error {
 	sr := 1
 	if reverse {
@@ -691,11 +695,11 @@ func (st *Database) BCDocuments(
 
 	return st.database.Client().Find(
 		context.Background(),
-		defaultColNameBlockcityDocument,
+		defaultColNameBCDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
 
-			va, err := LoadBlockcityDocument(cursor.Decode, st.database.Encoders())
+			va, err := LoadBCDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
 			}
@@ -740,21 +744,21 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 	}
 
 	// NOTE load blocksign documents
-	switch doc, lastHeight, previousHeight, err := st.blocksignDocumentList(a); {
+	switch doc, lastHeight, previousHeight, err := st.bsDocumentList(a); {
 	case err != nil:
 		return rs, false, err
 	default:
-		rs = rs.SetBlocksignDocument(doc).
+		rs = rs.SetBSDocument(doc).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
 
 	// NOTE load blockcity documents
-	switch doc, lastHeight, previousHeight, err := st.blockcityDocumentList(a); {
+	switch doc, lastHeight, previousHeight, err := st.bcDocumentList(a); {
 	case err != nil:
 		return rs, false, err
 	default:
-		rs = rs.SetBlockcityDocument(doc).
+		rs = rs.SetBCDocument(doc).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -1033,21 +1037,21 @@ func (st *Database) filterAccountByPublickey(
 			}
 
 			// NOTE load blocksign documents
-			switch doc, lastHeight, previousHeight, err := st.blocksignDocumentList(va.Account().Address()); {
+			switch doc, lastHeight, previousHeight, err := st.bsDocumentList(va.Account().Address()); {
 			case err != nil:
 				return false, err
 			default:
-				va = va.SetBlocksignDocument(doc).
+				va = va.SetBSDocument(doc).
 					SetHeight(lastHeight).
 					SetPreviousHeight(previousHeight)
 			}
 
 			// NOTE load blockcity documents
-			switch doc, lastHeight, previousHeight, err := st.blockcityDocumentList(va.Account().Address()); {
+			switch doc, lastHeight, previousHeight, err := st.bcDocumentList(va.Account().Address()); {
 			case err != nil:
 				return false, err
 			default:
-				va = va.SetBlockcityDocument(doc).
+				va = va.SetBCDocument(doc).
 					SetHeight(lastHeight).
 					SetPreviousHeight(previousHeight)
 			}
@@ -1073,14 +1077,14 @@ func (st *Database) filterAccountByPublickey(
 }
 
 // Blocksign documentList return blocksign document invetory by address
-func (st *Database) blocksignDocumentList(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
+func (st *Database) bsDocumentList(a base.Address) (blocksign.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	doc := blocksign.DocumentInventory{}
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
 	if err := st.database.Client().GetByFilter(
-		defaultColNameBlocksignDocuments,
+		defaultColNameBSDocuments,
 		q,
 		func(res *mongo.SingleResult) error {
 			i, err := LoadDocuments(res.Decode, st.database.Encoders())
@@ -1114,14 +1118,14 @@ func (st *Database) blocksignDocumentList(a base.Address) (blocksign.DocumentInv
 }
 
 // Blockcity documentList return blockcity document invetory by address
-func (st *Database) blockcityDocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
+func (st *Database) bcDocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	doc := document.DocumentInventory{}
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
 	if err := st.database.Client().GetByFilter(
-		defaultColNameBlockcityDocuments,
+		defaultColNameBCDocuments,
 		q,
 		func(res *mongo.SingleResult) error {
 			i, err := LoadDocuments(res.Decode, st.database.Encoders())

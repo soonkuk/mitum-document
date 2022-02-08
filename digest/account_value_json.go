@@ -25,8 +25,8 @@ func (va AccountValue) MarshalJSON() ([]byte, error) {
 		HintedHead:        jsonenc.NewHintedHead(va.Hint()),
 		AccountPackerJSON: va.ac.PackerJSON(),
 		BL:                va.balance,
-		SD:                va.blocksignDocument,
-		CD:                va.blockcityDocument,
+		SD:                va.bsDocument,
+		CD:                va.bcDocument,
 		HT:                va.height,
 		PT:                va.previousHeight,
 	})

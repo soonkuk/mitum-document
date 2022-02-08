@@ -36,7 +36,7 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, sd []
 	} else if k, ok := hinter.(blocksign.DocumentInventory); !ok {
 		return errors.Errorf("not Blocksign DocumentInventory: %T", hinter)
 	} else {
-		va.blocksignDocument = k
+		va.bsDocument = k
 	}
 
 	if hinter, err := enc.Decode(cd); err != nil {
@@ -44,7 +44,7 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, sd []
 	} else if l, ok := hinter.(document.DocumentInventory); !ok {
 		return errors.Errorf("not Blockcity DocumentInventory: %T", hinter)
 	} else {
-		va.blockcityDocument = l
+		va.bcDocument = l
 	}
 
 	va.height = height

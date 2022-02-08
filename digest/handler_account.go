@@ -513,8 +513,8 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 
 	if err := hd.database.BSDocumentsByAddress(
 		address, reverse, offset, limit,
-		func(_ currency.Big, va BlocksignDocumentValue) (bool, error) {
-			hal, err := hd.buildBlocksignDocumentHal(va)
+		func(_ currency.Big, va BSDocumentValue) (bool, error) {
+			hal, err := hd.buildBSDocumentHal(va)
 			if err != nil {
 				return false, err
 			}
@@ -528,8 +528,8 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 
 	if err := hd.database.BCDocumentsByAddress(
 		address, reverse, offset, limit,
-		func(_ string, va BlockcityDocumentValue) (bool, error) {
-			hal, err := hd.buildBlockcityDocumentHal(va)
+		func(_ string, va BCDocumentValue) (bool, error) {
+			hal, err := hd.buildBCDocumentHal(va)
 			if err != nil {
 				return false, err
 			}
@@ -582,7 +582,7 @@ func (hd *Handlers) buildAccountDocumentsHal(
 
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BlockcityDocumentValue)
+		va := vas[len(vas)-1].Interface().(BCDocumentValue)
 		nextoffset = buildOffsetByString(va.Height(), va.Document().DocumentId())
 	}
 

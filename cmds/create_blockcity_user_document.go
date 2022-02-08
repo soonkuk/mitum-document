@@ -89,13 +89,12 @@ func (cmd *CreateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 			items = t.Fact().(document.CreateDocumentsFact).Items()
 		}
 	}
-	info := document.NewDocInfo(cmd.DocumentId, document.CityUserDataType)
+	info := document.NewDocInfo(cmd.DocumentId, document.BCUserDataType)
 	statistics := document.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
-	userDoc := document.NewCityUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
-	// doc := document.NewDocument(userDoc)
+	doc := document.NewBCUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
 
 	item := document.NewCreateDocumentsItemImpl(
-		userDoc,
+		doc,
 		cmd.Currency.CID,
 	)
 

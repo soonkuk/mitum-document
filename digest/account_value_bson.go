@@ -12,8 +12,8 @@ func (va AccountValue) MarshalBSON() ([]byte, error) {
 		bson.M{
 			"ac":                  va.ac,
 			"balance":             va.balance,
-			"blocksign_documents": va.blocksignDocument,
-			"blockcity_documents": va.blockcityDocument,
+			"blocksign_documents": va.bsDocument,
+			"blockcity_documents": va.bcDocument,
 			"height":              va.height,
 			"previous_height":     va.previousHeight,
 		},

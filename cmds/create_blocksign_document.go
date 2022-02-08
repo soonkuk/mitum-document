@@ -17,7 +17,7 @@ import (
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
 
-type CreateBlocksignDocumentCommand struct {
+type CreateBSDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
 	Sender     currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
@@ -34,13 +34,13 @@ type CreateBlocksignDocumentCommand struct {
 	signcodes  []string
 }
 
-func NewCreateBlocksignDocumentCommand() CreateBlocksignDocumentCommand {
-	return CreateBlocksignDocumentCommand{
+func NewCreateBSDocumentCommand() CreateBSDocumentCommand {
+	return CreateBSDocumentCommand{
 		BaseCommand: NewBaseCommand("create-document-operation"),
 	}
 }
 
-func (cmd *CreateBlocksignDocumentCommand) Run(version util.Version) error { // nolint:dupl
+func (cmd *CreateBSDocumentCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
 		return errors.Errorf("failed to initialize command: %q", err)
 	}
@@ -67,7 +67,7 @@ func (cmd *CreateBlocksignDocumentCommand) Run(version util.Version) error { // 
 	return nil
 }
 
-func (cmd *CreateBlocksignDocumentCommand) parseFlags() error {
+func (cmd *CreateBSDocumentCommand) parseFlags() error {
 	if err := cmd.OperationFlags.IsValid(nil); err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (cmd *CreateBlocksignDocumentCommand) parseFlags() error {
 	return nil
 }
 
-func (cmd *CreateBlocksignDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
+func (cmd *CreateBSDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
 	i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID())
 	if err != nil {
 		return nil, err

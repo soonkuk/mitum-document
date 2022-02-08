@@ -43,7 +43,7 @@ type UserDataJSONPacker struct {
 	ST UserStatistics `json:"statistics"`
 }
 
-func (doc CityUserData) MarshalJSON() ([]byte, error) {
+func (doc BCUserData) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(UserDataJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
 		DI:         doc.info,
@@ -62,7 +62,7 @@ type UserDataJSONUnpacker struct {
 	ST json.RawMessage     `json:"statistics"`
 }
 
-func (doc *CityUserData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+func (doc *BCUserData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	var udoc UserDataJSONUnpacker
 	if err := enc.Unmarshal(b, &udoc); err != nil {
 		return err
@@ -75,18 +75,24 @@ type LandDataJSONPacker struct {
 	jsonenc.HintedHead
 	DI DocInfo      `json:"info"`
 	OW base.Address `json:"owner"`
-	LD base.Address `json:"lender"`
-	ST string       `json:"starttime"`
+	AD string       `json:"address"`
+	AR string       `json:"area"`
+	RT string       `json:"renter"`
+	AC base.Address `json:"account"`
+	RD string       `json:"rentdate"`
 	PD uint         `json:"periodday"`
 }
 
-func (doc CityLandData) MarshalJSON() ([]byte, error) {
+func (doc BCLandData) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(LandDataJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
 		DI:         doc.info,
 		OW:         doc.owner,
-		LD:         doc.lender,
-		ST:         doc.starttime,
+		AD:         doc.address,
+		AR:         doc.area,
+		RT:         doc.renter,
+		AC:         doc.account,
+		RD:         doc.rentdate,
 		PD:         doc.periodday,
 	})
 }
@@ -94,18 +100,21 @@ func (doc CityLandData) MarshalJSON() ([]byte, error) {
 type LandDataJSONUnpacker struct {
 	DI json.RawMessage     `json:"info"`
 	OW base.AddressDecoder `json:"owner"`
-	LD base.AddressDecoder `json:"lender"`
-	ST string              `json:"starttime"`
+	AD string              `json:"address"`
+	AR string              `json:"area"`
+	RT string              `json:"renter"`
+	AC base.AddressDecoder `json:"account"`
+	RD string              `json:"rentdate"`
 	PD uint                `json:"periodday"`
 }
 
-func (doc *CityLandData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+func (doc *BCLandData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	var uld LandDataJSONUnpacker
 	if err := enc.Unmarshal(b, &uld); err != nil {
 		return err
 	}
 
-	return doc.unpack(enc, uld.DI, uld.OW, uld.LD, uld.ST, uld.PD)
+	return doc.unpack(enc, uld.DI, uld.OW, uld.AD, uld.AR, uld.RT, uld.AC, uld.RD, uld.PD)
 }
 
 type VotingDataJSONPacker struct {
@@ -113,16 +122,24 @@ type VotingDataJSONPacker struct {
 	DI DocInfo           `json:"info"`
 	OW base.Address      `json:"owner"`
 	RD uint              `json:"round"`
+	VT string            `json:"endvotetime"`
 	CD []VotingCandidate `json:"candidates"`
+	BN string            `json:"bossname"`
+	AC base.Address      `json:"account"`
+	TM string            `json:"termofoffice"`
 }
 
-func (doc CityVotingData) MarshalJSON() ([]byte, error) {
+func (doc BCVotingData) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(VotingDataJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
 		DI:         doc.info,
 		OW:         doc.owner,
 		RD:         doc.round,
+		VT:         doc.endVoteTime,
 		CD:         doc.candidates,
+		BN:         doc.bossname,
+		AC:         doc.account,
+		TM:         doc.termofoffice,
 	})
 }
 
@@ -130,16 +147,20 @@ type VotingDataJSONUnpacker struct {
 	DI json.RawMessage     `json:"info"`
 	OW base.AddressDecoder `json:"owner"`
 	RD uint                `json:"round"`
+	VT string              `json:"endvotetime"`
 	CD json.RawMessage     `json:"candidates"`
+	BN string              `json:"bossname"`
+	AC base.AddressDecoder `json:"account"`
+	TM string              `json:"termofoffice"`
 }
 
-func (doc *CityVotingData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var uld VotingDataJSONUnpacker
-	if err := enc.Unmarshal(b, &uld); err != nil {
+func (doc *BCVotingData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uvd VotingDataJSONUnpacker
+	if err := enc.Unmarshal(b, &uvd); err != nil {
 		return err
 	}
 
-	return doc.unpack(enc, uld.DI, uld.OW, uld.RD, uld.CD)
+	return doc.unpack(enc, uvd.DI, uvd.OW, uvd.RD, uvd.VT, uvd.CD, uvd.BN, uvd.AC, uvd.TM)
 }
 
 type UserStatisticsJSONPacker struct {

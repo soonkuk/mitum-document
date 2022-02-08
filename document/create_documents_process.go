@@ -61,36 +61,14 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 
 	id := NewDocId(opp.item.DocumentId())
 
-	// check lender of LandDocumentData
-	if id.Hint().Type() == LandDocIdType {
-		d, ok := opp.item.Doc().(CityLandData)
-		if !ok {
-			operation.NewBaseReasonError("DocumentData type assertion to CityLandData failed, %q", opp.item.Doc())
-		}
-		switch _, found, err := getState(currency.StateKeyAccount(d.lender)); {
+	// check existence of DocumentData related accounts
+	for i := range opp.item.Doc().Accounts() {
+		switch _, found, err := getState(currency.StateKeyAccount(opp.item.Doc().Accounts()[i])); {
 		case err != nil:
 			return err
 		case !found:
-			return operation.NewBaseReasonError("lender account of CityLandData account not found, %q", d.lender)
+			return operation.NewBaseReasonError("DocumentData related accounts not found, document type : %q, address : %q", opp.item.DocType(), opp.item.Doc().Accounts()[i])
 		}
-	}
-
-	// check candidates of VotingDocumentData
-	if id.Hint().Type() == VotingDocIdType {
-		d, ok := opp.item.Doc().(CityVotingData)
-		if !ok {
-			operation.NewBaseReasonError("DocumentData type assertion to CityVotingData failed, %q", opp.item.Doc())
-		}
-
-		for i := range d.candidates {
-			switch _, found, err := getState(currency.StateKeyAccount(d.candidates[i].address)); {
-			case err != nil:
-				return err
-			case !found:
-				return operation.NewBaseReasonError("candidates account of CityVotingData account not found, %q", d.candidates[i].address)
-			}
-		}
-
 	}
 
 	// prepare doccInfo

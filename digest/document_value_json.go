@@ -9,27 +9,27 @@ import (
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 )
 
-type BlocksignDocumentValueJSONPacker struct {
+type BSDocumentValueJSONPacker struct {
 	jsonenc.HintedHead
 	DM blocksign.DocumentData `json:"document"`
 	HT base.Height            `json:"height"`
 }
 
-func (va BlocksignDocumentValue) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(BlocksignDocumentValueJSONPacker{
+func (va BSDocumentValue) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(BSDocumentValueJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(va.Hint()),
 		DM:         va.doc,
 		HT:         va.height,
 	})
 }
 
-type BlocksignDocumentValueJSONUnpacker struct {
+type BSDocumentValueJSONUnpacker struct {
 	DM json.RawMessage `json:"document"`
 	HT base.Height     `json:"height"`
 }
 
-func (dv *BlocksignDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var uva BlocksignDocumentValueJSONUnpacker
+func (dv *BSDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uva BSDocumentValueJSONUnpacker
 	if err := enc.Unmarshal(b, &uva); err != nil {
 		return err
 	}
@@ -40,27 +40,27 @@ func (dv *BlocksignDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) err
 	return nil
 }
 
-type BlockcityDocumentValueJSONPacker struct {
+type BCDocumentValueJSONPacker struct {
 	jsonenc.HintedHead
 	DM document.DocumentData `json:"document"`
 	HT base.Height           `json:"height"`
 }
 
-func (va BlockcityDocumentValue) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(BlockcityDocumentValueJSONPacker{
+func (va BCDocumentValue) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(BCDocumentValueJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(va.Hint()),
 		DM:         va.doc,
 		HT:         va.height,
 	})
 }
 
-type BlockcityDocumentValueJSONUnpacker struct {
+type BCDocumentValueJSONUnpacker struct {
 	DM json.RawMessage `json:"document"`
 	HT base.Height     `json:"height"`
 }
 
-func (dv *BlockcityDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var uva BlockcityDocumentValueJSONUnpacker
+func (dv *BCDocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uva BCDocumentValueJSONUnpacker
 	if err := enc.Unmarshal(b, &uva); err != nil {
 		return err
 	}

@@ -102,7 +102,6 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 }
 
 func HookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
-	fmt.Println("########################PRE")
 	var log *logging.Logging
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err

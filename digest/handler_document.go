@@ -49,7 +49,7 @@ func (hd *Handlers) handleBSDocumentInGroup(i string) ([]byte, error) {
 	case !found:
 		return nil, util.NotFoundError.Errorf("document value not found")
 	default:
-		hal, err := hd.buildBlocksignDocumentHal(va)
+		hal, err := hd.buildBSDocumentHal(va)
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +173,7 @@ func (hd *Handlers) handleBCDocumentInGroup(i string) ([]byte, error) {
 	case !found:
 		return nil, util.NotFoundError.Errorf("document value not found")
 	default:
-		hal, err := hd.buildBlockcityDocumentHal(va)
+		hal, err := hd.buildBCDocumentHal(va)
 		if err != nil {
 			return nil, err
 		}
@@ -275,7 +275,7 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	return b, int64(len(vas)) == limit, err
 }
 
-func (hd *Handlers) buildBlocksignDocumentHal(va BlocksignDocumentValue) (Hal, error) {
+func (hd *Handlers) buildBSDocumentHal(va BSDocumentValue) (Hal, error) {
 	var hal Hal
 
 	h, err := hd.combineURL(HandlerPathBSDocument, "documentid", va.Document().Info().Index().String())
@@ -299,7 +299,7 @@ func (hd *Handlers) buildBlocksignDocumentHal(va BlocksignDocumentValue) (Hal, e
 	return hal, nil
 }
 
-func (hd *Handlers) buildBlockcityDocumentHal(va BlockcityDocumentValue) (Hal, error) {
+func (hd *Handlers) buildBCDocumentHal(va BCDocumentValue) (Hal, error) {
 	var hal Hal
 
 	h, err := hd.combineURL(HandlerPathBCDocument, "documentid", va.Document().DocumentId())
@@ -399,7 +399,7 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BlocksignDocumentValue)
+		va := vas[len(vas)-1].Interface().(BSDocumentValue)
 		nextoffset = buildOffset(va.Height(), va.Document().Info().Index().Uint64())
 	}
 
@@ -422,7 +422,7 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BlocksignDocumentValue)
+		va := vas[len(vas)-1].Interface().(BSDocumentValue)
 		nextoffset = fmt.Sprintf("%d", va.Document().Info().Index().Uint64())
 	}
 
@@ -446,8 +446,8 @@ func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, li
 	var vas []Hal
 	if err := hd.database.BSDocuments(
 		filter, reverse, limit,
-		func(_ currency.Big, va BlocksignDocumentValue) (bool, error) {
-			hal, err := hd.buildBlocksignDocumentHal(va)
+		func(_ currency.Big, va BSDocumentValue) (bool, error) {
+			hal, err := hd.buildBSDocumentHal(va)
 			if err != nil {
 				return false, err
 			}
@@ -463,8 +463,8 @@ func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, li
 
 	if err := hd.database.BCDocuments(
 		filter, reverse, limit,
-		func(_ string, va BlockcityDocumentValue) (bool, error) {
-			hal, err := hd.buildBlockcityDocumentHal(va)
+		func(_ string, va BCDocumentValue) (bool, error) {
+			hal, err := hd.buildBCDocumentHal(va)
 			if err != nil {
 				return false, err
 			}

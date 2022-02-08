@@ -15,14 +15,19 @@ import (
 type CreateBlockcityVotingDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
-	Sender     currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	Round      uint                        `arg:"" name:"round" help:"voting round" required:""`
-	Candidates []currencycmds.AddressFlag  `name:"candidates" help:"candidates address" required:""`
-	DocumentId string                      `arg:"" name:"documentid" help:"document id" required:""`
-	Currency   currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
-	Seal       mitumcmds.FileLoad          `help:"seal" optional:""`
-	sender     base.Address
-	candidates []document.VotingCandidate
+	Sender      currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
+	Round       uint                        `arg:"" name:"round" help:"voting round" required:""`
+	EndVoteTime string                      `arg:"" name:"endvotetime" help:"end vote time" required:""`
+	Candidates  []currencycmds.AddressFlag  `name:"candidates" help:"candidates address" required:""`
+	BossName    string                      `arg:"" name:"bossname" help:"boss name" required:""`
+	Account     currencycmds.AddressFlag    `arg:"" name:"bossaccount" help:"boss account address" required:""`
+	Term        string                      `arg:"" name:"termofoffice" help:"term of office" required:""`
+	DocumentId  string                      `arg:"" name:"documentid" help:"document id" required:""`
+	Currency    currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
+	Seal        mitumcmds.FileLoad          `help:"seal" optional:""`
+	sender      base.Address
+	candidates  []document.VotingCandidate
+	account     base.Address
 }
 
 func NewCreateBlockcityVotingDocumentCommand() CreateBlockcityVotingDocumentCommand {
@@ -69,6 +74,12 @@ func (cmd *CreateBlockcityVotingDocumentCommand) parseFlags() error {
 	}
 	cmd.sender = sa
 
+	ba, err := cmd.Account.Encode(jenc)
+	if err != nil {
+		return errors.Wrapf(err, "invalid boss account format, %q", cmd.Account.String())
+	}
+	cmd.account = ba
+
 	if len(cmd.Candidates) < 1 {
 		return errors.Errorf("empty candidates, must be given at least one")
 	}
@@ -100,11 +111,10 @@ func (cmd *CreateBlockcityVotingDocumentCommand) createOperation() (operation.Op
 		}
 	}
 
-	info := document.NewDocInfo(cmd.DocumentId, document.CityVotingDataType)
-	votingDoc := document.NewCityVotingData(info, cmd.sender, cmd.Round, cmd.candidates)
-	// doc := document.NewDocument(votingDoc)
+	info := document.NewDocInfo(cmd.DocumentId, document.BCVotingDataType)
+	doc := document.NewBCVotingData(info, cmd.sender, cmd.Round, cmd.EndVoteTime, cmd.candidates, cmd.BossName, cmd.account, cmd.Term)
 	item := document.NewCreateDocumentsItemImpl(
-		votingDoc,
+		doc,
 		cmd.Currency.CID,
 	)
 

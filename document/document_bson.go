@@ -29,7 +29,7 @@ func (doc *Document) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return doc.unpack(enc, dod.DC)
 }
 
-func (doc CityUserData) MarshalBSON() ([]byte, error) {
+func (doc BCUserData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(doc.Hint()),
 		bson.M{
@@ -42,7 +42,7 @@ func (doc CityUserData) MarshalBSON() ([]byte, error) {
 	)
 }
 
-type CityUserDataBSONUnpacker struct {
+type BCUserDataBSONUnpacker struct {
 	DI bson.Raw            `bson:"info"`
 	US base.AddressDecoder `bson:"owner"`
 	GD currency.Big        `bson:"gold"`
@@ -50,8 +50,8 @@ type CityUserDataBSONUnpacker struct {
 	ST bson.Raw            `bson:"statistics"`
 }
 
-func (doc *CityUserData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udoc CityUserDataBSONUnpacker
+func (doc *BCUserData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var udoc BCUserDataBSONUnpacker
 	if err := enc.Unmarshal(b, &udoc); err != nil {
 		return err
 	}
@@ -59,62 +59,76 @@ func (doc *CityUserData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return doc.unpack(enc, udoc.DI, udoc.US, udoc.GD, udoc.BG, udoc.ST)
 }
 
-func (doc CityLandData) MarshalBSON() ([]byte, error) {
+func (doc BCLandData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(doc.Hint()),
 		bson.M{
 			"info":      doc.info,
 			"owner":     doc.owner,
-			"lender":    doc.lender,
-			"starttime": doc.starttime,
+			"address":   doc.address,
+			"area":      doc.area,
+			"renter":    doc.renter,
+			"account":   doc.account,
+			"rentdate":  doc.rentdate,
 			"periodday": doc.periodday,
 		}),
 	)
 }
 
-type CityLandDataBSONUnpacker struct {
-	IN bson.Raw            `bson:"info"`
+type BCLandDataBSONUnpacker struct {
+	DI bson.Raw            `bson:"info"`
 	OW base.AddressDecoder `bson:"owner"`
-	LD base.AddressDecoder `bson:"lender"`
-	ST string              `bson:"starttime"`
+	AD string              `bson:"address"`
+	AR string              `bson:"area"`
+	RT string              `bson:"renter"`
+	AC base.AddressDecoder `bson:"account"`
+	RD string              `bson:"rentdate"`
 	PD uint                `bson:"periodday"`
 }
 
-func (doc *CityLandData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var uld CityLandDataBSONUnpacker
+func (doc *BCLandData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uld BCLandDataBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &uld); err != nil {
 		return err
 	}
 
-	return doc.unpack(enc, uld.IN, uld.OW, uld.LD, uld.ST, uld.PD)
+	return doc.unpack(enc, uld.DI, uld.OW, uld.AD, uld.AR, uld.RT, uld.AC, uld.RD, uld.PD)
 }
 
-func (doc CityVotingData) MarshalBSON() ([]byte, error) {
+func (doc BCVotingData) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(doc.Hint()),
 		bson.M{
-			"info":       doc.info,
-			"owner":      doc.owner,
-			"round":      doc.round,
-			"candidates": doc.candidates,
+			"info":         doc.info,
+			"owner":        doc.owner,
+			"round":        doc.round,
+			"endvotetime":  doc.endVoteTime,
+			"candidates":   doc.candidates,
+			"bossname":     doc.bossname,
+			"account":      doc.account,
+			"termofoffice": doc.termofoffice,
 		}),
 	)
 }
 
-type CityVotingDataBSONUnpacker struct {
-	IN bson.Raw            `bson:"info"`
+type BCVotingDataBSONUnpacker struct {
+	DI bson.Raw            `bson:"info"`
 	OW base.AddressDecoder `bson:"owner"`
 	RD uint                `bson:"round"`
+	VT string              `bson:"endvotetime"`
 	CD bson.Raw            `bson:"candidates"`
+	BN string              `bson:"bossname"`
+	AC base.AddressDecoder `bson:"account"`
+	TM string              `bson:"termofoffice"`
 }
 
-func (doc *CityVotingData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var uld CityVotingDataBSONUnpacker
-	if err := bsonenc.Unmarshal(b, &uld); err != nil {
+func (doc *BCVotingData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uvd BCVotingDataBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uvd); err != nil {
 		return err
 	}
 
-	return doc.unpack(enc, uld.IN, uld.OW, uld.RD, uld.CD)
+	return doc.unpack(enc, uvd.DI, uvd.OW, uvd.RD, uvd.VT, uvd.CD, uvd.BN, uvd.AC, uvd.TM)
 }
 
 func (us UserStatistics) MarshalBSON() ([]byte, error) {

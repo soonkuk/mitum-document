@@ -17,12 +17,12 @@ var (
 )
 
 type AccountValue struct {
-	ac                currency.Account
-	balance           []currency.Amount
-	blocksignDocument blocksign.DocumentInventory
-	blockcityDocument document.DocumentInventory
-	height            base.Height
-	previousHeight    base.Height
+	ac             currency.Account
+	balance        []currency.Amount
+	bsDocument     blocksign.DocumentInventory
+	bcDocument     document.DocumentInventory
+	height         base.Height
+	previousHeight base.Height
 }
 
 func NewAccountValue(st state.State) (AccountValue, error) {
@@ -55,12 +55,12 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
-func (va AccountValue) BlocksignDocument() blocksign.DocumentInventory {
-	return va.blocksignDocument
+func (va AccountValue) BSDocument() blocksign.DocumentInventory {
+	return va.bsDocument
 }
 
-func (va AccountValue) BlockcityDocument() document.DocumentInventory {
-	return va.blockcityDocument
+func (va AccountValue) BCDocument() document.DocumentInventory {
+	return va.bcDocument
 }
 
 func (va AccountValue) Height() base.Height {
@@ -93,14 +93,14 @@ func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	return va
 }
 
-func (va AccountValue) SetBlocksignDocument(document blocksign.DocumentInventory) AccountValue {
-	va.blocksignDocument = document
+func (va AccountValue) SetBSDocument(document blocksign.DocumentInventory) AccountValue {
+	va.bsDocument = document
 
 	return va
 }
 
-func (va AccountValue) SetBlockcityDocument(document document.DocumentInventory) AccountValue {
-	va.blockcityDocument = document
+func (va AccountValue) SetBCDocument(document document.DocumentInventory) AccountValue {
+	va.bcDocument = document
 
 	return va
 }

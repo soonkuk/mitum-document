@@ -94,6 +94,7 @@ type DocumentData interface {
 	Hash() valuehash.Hash
 	GenerateHash() valuehash.Hash
 	Owner() base.Address
+	Accounts() []base.Address
 	Info() DocInfo
 	IsValid([]byte) error
 }
@@ -115,12 +116,12 @@ type SignDocuData struct {
 }
 
 var (
-	CityUserDataType   = hint.Type("mitum-blockcity-document-user-data")
-	CityUserDataHint   = hint.NewHint(CityUserDataType, "v0.0.1")
-	CityUserDataHinter = CityUserData{BaseHinter: hint.NewBaseHinter(CityUserDataHint)}
+	BCUserDataType   = hint.Type("mitum-blockcity-document-user-data")
+	BCUserDataHint   = hint.NewHint(BCUserDataType, "v0.0.1")
+	BCUserDataHinter = BCUserData{BaseHinter: hint.NewBaseHinter(BCUserDataHint)}
 )
 
-type CityUserData struct {
+type BCUserData struct {
 	hint.BaseHinter
 	info       DocInfo
 	owner      base.Address
@@ -129,14 +130,14 @@ type CityUserData struct {
 	statistics UserStatistics
 }
 
-func NewCityUserData(info DocInfo,
+func NewBCUserData(info DocInfo,
 	owner base.Address,
 	gold,
 	bankgold currency.Big,
 	statistics UserStatistics,
-) CityUserData {
-	doc := CityUserData{
-		BaseHinter: hint.NewBaseHinter(CityUserDataHint),
+) BCUserData {
+	doc := BCUserData{
+		BaseHinter: hint.NewBaseHinter(BCUserDataHint),
 		info:       info,
 		owner:      owner,
 		gold:       gold,
@@ -147,8 +148,8 @@ func NewCityUserData(info DocInfo,
 	return doc
 }
 
-func MustNewCityUserData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) CityUserData {
-	doc := NewCityUserData(info, owner, gold, bankgold, statistics)
+func MustNewBCUserData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) BCUserData {
+	doc := NewBCUserData(info, owner, gold, bankgold, statistics)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -156,15 +157,15 @@ func MustNewCityUserData(info DocInfo, owner base.Address, gold, bankgold curren
 	return doc
 }
 
-func (doc CityUserData) DocumentId() string {
+func (doc BCUserData) DocumentId() string {
 	return doc.info.DocumentId()
 }
 
-func (doc CityUserData) DocumentType() hint.Type {
+func (doc BCUserData) DocumentType() hint.Type {
 	return doc.info.docType
 }
 
-func (doc CityUserData) Bytes() []byte {
+func (doc BCUserData) Bytes() []byte {
 	bs := make([][]byte, 5)
 
 	bs[0] = doc.info.Bytes()
@@ -176,19 +177,23 @@ func (doc CityUserData) Bytes() []byte {
 	return util.ConcatBytesSlice(bs...)
 }
 
-func (doc CityUserData) Hash() valuehash.Hash {
+func (doc BCUserData) Hash() valuehash.Hash {
 	return doc.GenerateHash()
 }
 
-func (doc CityUserData) GenerateHash() valuehash.Hash {
+func (doc BCUserData) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(doc.Bytes())
 }
 
-func (doc CityUserData) IsEmpty() bool {
+func (doc BCUserData) IsEmpty() bool {
 	return len(doc.info.DocType()) < 1
 }
 
-func (doc CityUserData) IsValid([]byte) error {
+func (doc BCUserData) IsValid([]byte) error {
+	if doc.info.docType != doc.Hint().Type() {
+		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
+
 	if err := isvalid.Check(
 		nil, false,
 		doc.BaseHinter,
@@ -198,29 +203,25 @@ func (doc CityUserData) IsValid([]byte) error {
 		doc.bankgold,
 		doc.statistics,
 	); err != nil {
-		return isvalid.InvalidError.Errorf("invalid Document User Data: %w", err)
+		return isvalid.InvalidError.Errorf("invalid User Document Data: %w", err)
 	}
 
 	return nil
 }
 
-func (doc CityUserData) Owner() base.Address {
+func (doc BCUserData) Owner() base.Address {
 	return doc.owner
 }
 
-func (doc CityUserData) Gold() currency.Big {
-	return doc.gold
+func (doc BCUserData) Accounts() []base.Address {
+	return nil
 }
 
-func (doc CityUserData) Bankgold() currency.Big {
-	return doc.bankgold
-}
-
-func (doc CityUserData) Info() DocInfo {
+func (doc BCUserData) Info() DocInfo {
 	return doc.info
 }
 
-func (doc CityUserData) Equal(b CityUserData) bool {
+func (doc BCUserData) Equal(b BCUserData) bool {
 
 	if doc.info.DocType() != b.info.DocType() {
 		return false
@@ -245,7 +246,7 @@ func (doc CityUserData) Equal(b CityUserData) bool {
 	return true
 }
 
-func (doc CityUserData) WithData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) CityUserData {
+func (doc BCUserData) WithData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) BCUserData {
 	doc.info = info
 	doc.owner = owner
 	doc.gold = gold
@@ -255,101 +256,144 @@ func (doc CityUserData) WithData(info DocInfo, owner base.Address, gold, bankgol
 }
 
 var (
-	CityLandDataType   = hint.Type("mitum-blockcity-document-land-data")
-	CityLandDataHint   = hint.NewHint(CityLandDataType, "v0.0.1")
-	CityLandDataHinter = CityLandData{BaseHinter: hint.NewBaseHinter(CityLandDataHint)}
+	BCLandDataType   = hint.Type("mitum-blockcity-document-land-data")
+	BCLandDataHint   = hint.NewHint(BCLandDataType, "v0.0.1")
+	BCLandDataHinter = BCLandData{BaseHinter: hint.NewBaseHinter(BCLandDataHint)}
 )
 
-type CityLandData struct {
+type BCLandData struct {
 	hint.BaseHinter
 	info      DocInfo
 	owner     base.Address
-	lender    base.Address
-	starttime string
+	address   string
+	area      string
+	renter    string
+	account   base.Address
+	rentdate  string
 	periodday uint
 }
 
-func NewCityLandData(info DocInfo, owner, lender base.Address, starttime string, periodday uint) CityLandData {
-	doc := CityLandData{
-		BaseHinter: hint.NewBaseHinter(CityLandDataHint),
+func NewBCLandData(info DocInfo,
+	owner base.Address,
+	address, area, renter string,
+	account base.Address,
+	rentdate string,
+	periodday uint,
+) BCLandData {
+	doc := BCLandData{
+		BaseHinter: hint.NewBaseHinter(BCLandDataHint),
 		info:       info,
 		owner:      owner,
-		lender:     lender,
-		starttime:  starttime,
+		address:    address,
+		area:       area,
+		renter:     renter,
+		account:    account,
+		rentdate:   rentdate,
 		periodday:  periodday,
 	}
 	return doc
 }
 
-func MustNewCityLandData(info DocInfo, owner, lender base.Address, starttime string, periodday uint) CityLandData {
-	doc := NewCityLandData(info, owner, lender, starttime, periodday)
+func MustNewBCLandData(info DocInfo,
+	owner base.Address,
+	address, area, renter string,
+	account base.Address,
+	rentdate string,
+	periodday uint,
+) BCLandData {
+	doc := NewBCLandData(info, owner, address, area, renter, account, rentdate, periodday)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
 	return doc
 }
 
-func (doc CityLandData) DocumentId() string {
+func (doc BCLandData) DocumentId() string {
 	return doc.info.DocumentId()
 }
 
-func (doc CityLandData) DocumentType() hint.Type {
+func (doc BCLandData) DocumentType() hint.Type {
 	return doc.info.docType
 }
 
-func (doc CityLandData) Bytes() []byte {
-	bs := make([][]byte, 5)
+func (doc BCLandData) Bytes() []byte {
+	bs := make([][]byte, 8)
 
 	bs[0] = doc.info.Bytes()
 	bs[1] = doc.owner.Bytes()
-	bs[2] = doc.lender.Bytes()
-	bs[3] = []byte(doc.starttime)
-	bs[4] = util.UintToBytes(doc.periodday)
+	bs[2] = []byte(doc.address)
+	bs[3] = []byte(doc.area)
+	bs[4] = []byte(doc.renter)
+	bs[5] = doc.account.Bytes()
+	bs[6] = []byte(doc.rentdate)
+	bs[7] = util.UintToBytes(doc.periodday)
 	return util.ConcatBytesSlice(bs...)
 }
 
-func (doc CityLandData) Hash() valuehash.Hash {
+func (doc BCLandData) Hash() valuehash.Hash {
 	return doc.GenerateHash()
 }
 
-func (doc CityLandData) GenerateHash() valuehash.Hash {
+func (doc BCLandData) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(doc.Bytes())
 }
 
-func (doc CityLandData) IsValid([]byte) error {
+func (doc BCLandData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
 		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
+
+	if err := isvalid.Check(
+		nil, false,
+		doc.BaseHinter,
+		doc.info,
+		doc.owner,
+		doc.account,
+	); err != nil {
+		return errors.Wrap(err, "Invalid Land document data")
 	}
 	return nil
 }
 
-func (doc CityLandData) Info() DocInfo {
+func (doc BCLandData) Info() DocInfo {
 	return doc.info
 }
 
-func (doc CityLandData) Owner() base.Address {
+func (doc BCLandData) Accounts() []base.Address {
+	return []base.Address{doc.account}
+}
+
+func (doc BCLandData) Owner() base.Address {
 	return doc.owner
 }
 
-func (doc CityLandData) Lender() base.Address {
-	return doc.lender
+func (doc BCLandData) RenterAddress() base.Address {
+	return doc.account
 }
 
-func (doc CityLandData) Starttime() string {
-	return doc.starttime
-}
-
-func (doc CityLandData) Periodday() uint {
-	return doc.periodday
-}
-
-func (doc CityLandData) Equal(b CityLandData) bool {
+func (doc BCLandData) Equal(b BCLandData) bool {
 
 	if !doc.info.Equal(b.info) {
 		return false
 	}
 
-	if doc.starttime != b.starttime {
+	if doc.address != b.address {
+		return false
+	}
+
+	if doc.area != b.area {
+		return false
+	}
+
+	if doc.renter != b.renter {
+		return false
+	}
+
+	if !doc.account.Equal(b.account) {
+		return false
+	}
+
+	if doc.rentdate != b.rentdate {
 		return false
 	}
 
@@ -361,48 +405,73 @@ func (doc CityLandData) Equal(b CityLandData) bool {
 }
 
 var (
-	CityVotingDataType   = hint.Type("mitum-blockcity-document-voting-data")
-	CityVotingDataHint   = hint.NewHint(CityVotingDataType, "v0.0.1")
-	CityVotingDataHinter = CityVotingData{BaseHinter: hint.NewBaseHinter(CityVotingDataHint)}
+	BCVotingDataType   = hint.Type("mitum-blockcity-document-voting-data")
+	BCVotingDataHint   = hint.NewHint(BCVotingDataType, "v0.0.1")
+	BCVotingDataHinter = BCVotingData{BaseHinter: hint.NewBaseHinter(BCVotingDataHint)}
 )
 
-type CityVotingData struct {
+type BCVotingData struct {
 	hint.BaseHinter
-	info       DocInfo
-	owner      base.Address
-	round      uint
-	candidates []VotingCandidate
+	info         DocInfo
+	owner        base.Address
+	round        uint
+	endVoteTime  string
+	candidates   []VotingCandidate
+	bossname     string
+	account      base.Address
+	termofoffice string
 }
 
-func NewCityVotingData(info DocInfo, owner base.Address, round uint, candidate []VotingCandidate) CityVotingData {
-	doc := CityVotingData{
-		BaseHinter: hint.NewBaseHinter(CityVotingDataHint),
-		info:       info,
-		owner:      owner,
-		round:      round,
-		candidates: candidate,
+func NewBCVotingData(info DocInfo,
+	owner base.Address,
+	round uint,
+	endVoteTime string,
+	candidates []VotingCandidate,
+	bossname string,
+	account base.Address,
+	termofoffice string,
+) BCVotingData {
+	doc := BCVotingData{
+		BaseHinter:   hint.NewBaseHinter(BCVotingDataHint),
+		info:         info,
+		owner:        owner,
+		round:        round,
+		endVoteTime:  endVoteTime,
+		candidates:   candidates,
+		bossname:     bossname,
+		account:      account,
+		termofoffice: termofoffice,
 	}
 	return doc
 }
 
-func MustNewCityVotingData(info DocInfo, owner base.Address, round uint, candidate []VotingCandidate) CityVotingData {
-	doc := NewCityVotingData(info, owner, round, candidate)
+func MustNewBCVotingData(
+	info DocInfo,
+	owner base.Address,
+	round uint,
+	endVoteTime string,
+	candidates []VotingCandidate,
+	bossname string,
+	account base.Address,
+	termofoffice string,
+) BCVotingData {
+	doc := NewBCVotingData(info, owner, round, endVoteTime, candidates, bossname, account, termofoffice)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
 	}
 	return doc
 }
 
-func (doc CityVotingData) DocumentId() string {
+func (doc BCVotingData) DocumentId() string {
 	return doc.info.DocumentId()
 }
 
-func (doc CityVotingData) DocumentType() hint.Type {
+func (doc BCVotingData) DocumentType() hint.Type {
 	return doc.info.docType
 }
 
-func (doc CityVotingData) Bytes() []byte {
-	bs := make([][]byte, len(doc.candidates)+3)
+func (doc BCVotingData) Bytes() []byte {
+	bs := make([][]byte, len(doc.candidates)+7)
 
 	sort.Slice(doc.candidates, func(i, j int) bool {
 		return bytes.Compare(doc.candidates[i].Bytes(), doc.candidates[j].Bytes()) < 0
@@ -411,32 +480,41 @@ func (doc CityVotingData) Bytes() []byte {
 	bs[0] = doc.info.Bytes()
 	bs[1] = doc.owner.Bytes()
 	bs[2] = util.UintToBytes(doc.round)
+	bs[3] = []byte(doc.endVoteTime)
+	bs[4] = []byte(doc.bossname)
+	bs[5] = doc.account.Bytes()
+	bs[6] = []byte(doc.termofoffice)
 	for i := range doc.candidates {
-		bs[i+3] = doc.candidates[i].Bytes()
+		bs[i+7] = doc.candidates[i].Bytes()
 	}
 	return util.ConcatBytesSlice(bs...)
 }
 
-func (doc CityVotingData) Hash() valuehash.Hash {
+func (doc BCVotingData) Hash() valuehash.Hash {
 	return doc.GenerateHash()
 }
 
-func (doc CityVotingData) GenerateHash() valuehash.Hash {
+func (doc BCVotingData) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(doc.Bytes())
 }
 
-func (doc CityVotingData) IsValid([]byte) error {
+func (doc BCVotingData) IsValid([]byte) error {
+	if doc.info.docType != doc.Hint().Type() {
+		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
+
 	if err := isvalid.Check(
 		nil, false,
 		doc.BaseHinter,
 		doc.info,
-		doc.owner); err != nil {
-		return errors.Wrap(err, "invalid document data")
+		doc.owner,
+		doc.account,
+	); err != nil {
+		return errors.Wrap(err, "Invalid Voting document data")
 	}
 
 	for i := range doc.candidates {
-		c := doc.candidates[i]
-		if err := c.IsValid(nil); err != nil {
+		if err := doc.candidates[i].IsValid(nil); err != nil {
 			return err
 		}
 	}
@@ -444,26 +522,31 @@ func (doc CityVotingData) IsValid([]byte) error {
 	return nil
 }
 
-func (doc CityVotingData) Info() DocInfo {
+func (doc BCVotingData) Info() DocInfo {
 	return doc.info
 }
 
-func (doc CityVotingData) Owner() base.Address {
+func (doc BCVotingData) Accounts() []base.Address {
+	var accounts []base.Address
+	accounts = append(accounts, doc.account)
+	for i := range doc.candidates {
+		accounts = append(accounts, doc.candidates[i].address)
+	}
+	return accounts
+}
+
+func (doc BCVotingData) Owner() base.Address {
 	return doc.owner
 }
 
-func (doc CityVotingData) Round() uint {
-	return doc.round
-}
-
-func (doc CityVotingData) Candidates() []VotingCandidate {
+func (doc BCVotingData) Candidates() []VotingCandidate {
 	sort.Slice(doc.candidates, func(i, j int) bool {
 		return bytes.Compare(doc.candidates[i].Bytes(), doc.candidates[j].Bytes()) < 0
 	})
 	return doc.candidates
 }
 
-func (doc CityVotingData) Equal(b CityVotingData) bool {
+func (doc BCVotingData) Equal(b BCVotingData) bool {
 
 	if !doc.info.Equal(b.info) {
 		return false

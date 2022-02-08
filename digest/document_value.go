@@ -8,67 +8,67 @@ import (
 )
 
 var (
-	BlocksignDocumentValueType = hint.Type("mitum-blocksign-document-value")
-	BlocksignDocumentValueHint = hint.NewHint(BlocksignDocumentValueType, "v0.0.1")
+	BSDocumentValueType = hint.Type("mitum-blocksign-document-value")
+	BSDocumentValueHint = hint.NewHint(BSDocumentValueType, "v0.0.1")
 )
 
-type BlocksignDocumentValue struct {
+type BSDocumentValue struct {
 	doc    blocksign.DocumentData
 	height base.Height
 }
 
-func NewBlocksignDocumentValue(
+func NewBSDocumentValue(
 	doc blocksign.DocumentData,
 	height base.Height,
-) BlocksignDocumentValue {
+) BSDocumentValue {
 
-	return BlocksignDocumentValue{
+	return BSDocumentValue{
 		doc:    doc,
 		height: height,
 	}
 }
 
-func (dv BlocksignDocumentValue) Hint() hint.Hint {
-	return BlocksignDocumentValueHint
+func (dv BSDocumentValue) Hint() hint.Hint {
+	return BSDocumentValueHint
 }
 
-func (dv BlocksignDocumentValue) Document() blocksign.DocumentData {
+func (dv BSDocumentValue) Document() blocksign.DocumentData {
 	return dv.doc
 }
 
-func (dv BlocksignDocumentValue) Height() base.Height {
+func (dv BSDocumentValue) Height() base.Height {
 	return dv.height
 }
 
 var (
-	BlockcityDocumentValueType = hint.Type("mitum-blockcity-document-value")
-	BlockcityDocumentValueHint = hint.NewHint(BlockcityDocumentValueType, "v0.0.1")
+	BCDocumentValueType = hint.Type("mitum-blockcity-document-value")
+	BCDocumentValueHint = hint.NewHint(BCDocumentValueType, "v0.0.1")
 )
 
-type BlockcityDocumentValue struct {
+type BCDocumentValue struct {
 	doc    document.DocumentData
 	height base.Height
 }
 
-func NewBlockcityDocumentValue(
+func NewBCDocumentValue(
 	doc document.DocumentData,
 	height base.Height,
-) BlockcityDocumentValue {
+) BCDocumentValue {
 
-	return BlockcityDocumentValue{
+	return BCDocumentValue{
 		doc:    doc,
 		height: height,
 	}
 }
 
-func (dv BlockcityDocumentValue) Hint() hint.Hint {
-	return BlockcityDocumentValueHint
+func (dv BCDocumentValue) Hint() hint.Hint {
+	return BCDocumentValueHint
 }
 
-func (dv BlockcityDocumentValue) Document() document.DocumentData {
+func (dv BCDocumentValue) Document() document.DocumentData {
 	return dv.doc
 }
 
-func (dv BlockcityDocumentValue) Height() base.Height {
+func (dv BCDocumentValue) Height() base.Height {
 	return dv.height
 }

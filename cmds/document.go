@@ -1,7 +1,7 @@
 package cmds
 
 type DocumentCommand struct {
-	CreateBlocksignDocument       CreateBlocksignDocumentCommand       `cmd:"" name:"create-blocksign-document" help:"create new blocksign document"`
+	CreateBSDocument              CreateBSDocumentCommand              `cmd:"" name:"create-blocksign-document" help:"create new blocksign document"`
 	CreateBlockcityUserDocument   CreateBlockcityUserDocumentCommand   `cmd:"" name:"create-blockcity-user-document" help:"create new blockcity user document"`
 	CreateBlockcityLandDocument   CreateBlockcityLandDocumentCommand   `cmd:"" name:"create-blockcity-land-document" help:"create new blockcity land document"`
 	CreateBlockcityVotingDocument CreateBlockcityVotingDocumentCommand `cmd:"" name:"create-blockcity-voting-document" help:"create new blockcity voting document"`
@@ -12,7 +12,7 @@ type DocumentCommand struct {
 
 func NewDocumentCommand() DocumentCommand {
 	return DocumentCommand{
-		CreateBlocksignDocument:       NewCreateBlocksignDocumentCommand(),
+		CreateBSDocument:              NewCreateBSDocumentCommand(),
 		CreateBlockcityUserDocument:   NewCreateBlockcityUserDocumentCommand(),
 		CreateBlockcityLandDocument:   NewCreateBlockcityLandDocumentCommand(),
 		CreateBlockcityVotingDocument: NewCreateBlockcityVotingDocumentCommand(),

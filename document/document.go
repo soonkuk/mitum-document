@@ -131,11 +131,11 @@ type DocInfo struct {
 func NewDocInfo(id string, docType hint.Type) DocInfo {
 	var i DocId
 	switch docType {
-	case CityUserDataType:
+	case BCUserDataType:
 		i = NewUserDocId(id)
-	case CityLandDataType:
+	case BCLandDataType:
 		i = NewLandDocId(id)
-	case CityVotingDataType:
+	case BCVotingDataType:
 		i = NewVotingDocId(id)
 	default:
 		return DocInfo{}
@@ -201,11 +201,11 @@ func (di DocInfo) WithData(id string, docType hint.Type) DocInfo {
 	var i DocId
 
 	switch docType {
-	case CityUserDataType:
+	case BCUserDataType:
 		i = NewUserDocId(id)
-	case CityLandDataType:
+	case BCLandDataType:
 		i = NewLandDocId(id)
-	case CityVotingDataType:
+	case BCVotingDataType:
 		i = NewVotingDocId(id)
 	default:
 		i = nil
@@ -415,7 +415,6 @@ func (vc VotingCandidate) IsValid([]byte) error {
 	if err := isvalid.Check(nil, false,
 		vc.address,
 	); err != nil {
-		fmt.Println(vc.address)
 		return isvalid.InvalidError.Errorf("invalid VotingCandidate: %w", err)
 	}
 	return nil

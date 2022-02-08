@@ -111,9 +111,9 @@ var operationIndexModels = []mongo.IndexModel{
 }
 
 var defaultIndexes = map[string] /* collection */ []mongo.IndexModel{
-	defaultColNameAccount:            accountIndexModels,
-	defaultColNameBalance:            balanceIndexModels,
-	defaultColNameBlocksignDocument:  documentIndexModels,
-	defaultColNameBlocksignDocuments: documentsIndexModels,
-	defaultColNameOperation:          operationIndexModels,
+	defaultColNameAccount:     accountIndexModels,
+	defaultColNameBalance:     balanceIndexModels,
+	defaultColNameBSDocument:  documentIndexModels,
+	defaultColNameBSDocuments: documentsIndexModels,
+	defaultColNameOperation:   operationIndexModels,
 }

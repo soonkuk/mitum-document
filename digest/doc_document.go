@@ -10,35 +10,35 @@ import (
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 )
 
-type BlocksignDocumentDoc struct {
+type BSDocumentDoc struct {
 	mongodbstorage.BaseDoc
-	va        BlocksignDocumentValue
+	va        BSDocumentValue
 	addresses []string
 	height    base.Height
 }
 
-func NewBlocksignDocumentDoc(
+func NewBSDocumentDoc(
 	enc encoder.Encoder,
 	doc blocksign.DocumentData,
 	height base.Height,
-) (BlocksignDocumentDoc, error) {
+) (BSDocumentDoc, error) {
 
 	var addresses []string
 	ads, err := doc.Addresses()
 	if err != nil {
-		return BlocksignDocumentDoc{}, err
+		return BSDocumentDoc{}, err
 	}
 	addresses = make([]string, len(ads))
 	for i := range ads {
 		addresses[i] = ads[i].String()
 	}
-	va := NewBlocksignDocumentValue(doc, height)
+	va := NewBSDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)
 	if err != nil {
-		return BlocksignDocumentDoc{}, err
+		return BSDocumentDoc{}, err
 	}
 
-	return BlocksignDocumentDoc{
+	return BSDocumentDoc{
 		BaseDoc:   b,
 		va:        va,
 		addresses: addresses,
@@ -46,11 +46,11 @@ func NewBlocksignDocumentDoc(
 	}, nil
 }
 
-func (doc BlocksignDocumentDoc) DocumentId() currency.Big {
+func (doc BSDocumentDoc) DocumentId() currency.Big {
 	return doc.va.doc.Info().Index()
 }
 
-func (doc BlocksignDocumentDoc) MarshalBSON() ([]byte, error) {
+func (doc BSDocumentDoc) MarshalBSON() ([]byte, error) {
 	m, err := doc.BaseDoc.M()
 	if err != nil {
 		return nil, err
@@ -65,28 +65,28 @@ func (doc BlocksignDocumentDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
-type BlockcityDocumentDoc struct {
+type BCDocumentDoc struct {
 	mongodbstorage.BaseDoc
-	va        BlockcityDocumentValue
+	va        BCDocumentValue
 	addresses []string
 	height    base.Height
 }
 
-func NewBlockcityDocumentDoc(
+func NewBCDocumentDoc(
 	enc encoder.Encoder,
 	doc document.DocumentData,
 	height base.Height,
-) (BlockcityDocumentDoc, error) {
+) (BCDocumentDoc, error) {
 
 	var addresses = make([]string, 1)
 	addresses[0] = doc.Owner().String()
-	va := NewBlockcityDocumentValue(doc, height)
+	va := NewBCDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)
 	if err != nil {
-		return BlockcityDocumentDoc{}, err
+		return BCDocumentDoc{}, err
 	}
 
-	return BlockcityDocumentDoc{
+	return BCDocumentDoc{
 		BaseDoc:   b,
 		va:        va,
 		addresses: addresses,
@@ -94,11 +94,11 @@ func NewBlockcityDocumentDoc(
 	}, nil
 }
 
-func (doc BlockcityDocumentDoc) DocumentId() string {
+func (doc BCDocumentDoc) DocumentId() string {
 	return doc.va.doc.DocumentId()
 }
 
-func (doc BlockcityDocumentDoc) MarshalBSON() ([]byte, error) {
+func (doc BCDocumentDoc) MarshalBSON() ([]byte, error) {
 	m, err := doc.BaseDoc.M()
 	if err != nil {
 		return nil, err

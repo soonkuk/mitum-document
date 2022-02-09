@@ -24,10 +24,6 @@ func NewUpdateDocumentsItemImpl(
 	doc DocumentData,
 	cid currency.CurrencyID) UpdateDocumentsItemImpl {
 
-	if doc.Hint().Type() != BCUserDataType && doc.Hint().Type() != BCLandDataType && doc.Hint().Type() != BCVotingDataType {
-		panic(util.WrongTypeError.Errorf("expected DocumentData Type, not %T", doc.Hint().Type()))
-	}
-
 	return UpdateDocumentsItemImpl{
 		BaseHinter: hint.NewBaseHinter(UpdateDocumentsItemImplHint),
 		doctype:    doc.Info().docType,

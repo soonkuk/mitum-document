@@ -137,6 +137,8 @@ func NewDocInfo(id string, docType hint.Type) DocInfo {
 		i = NewLandDocId(id)
 	case BCVotingDataType:
 		i = NewVotingDocId(id)
+	case BCHistoryDataType:
+		i = NewHistoryDocId(id)
 	default:
 		return DocInfo{}
 	}
@@ -179,6 +181,12 @@ func (di DocInfo) GenerateHash() valuehash.Hash {
 }
 
 func (di DocInfo) IsValid([]byte) error {
+	if di.id == nil {
+		return isvalid.InvalidError.Errorf("DocId in Docinfo is empty")
+	}
+	if di.docType == hint.Type("") {
+		return isvalid.InvalidError.Errorf("DocType in Docinfo is empty")
+	}
 
 	if err := isvalid.Check(nil, false,
 		di.BaseHinter,
@@ -195,25 +203,6 @@ func (di DocInfo) String() string {
 
 func (di DocInfo) Equal(b DocInfo) bool {
 	return bytes.Equal(di.id.Bytes(), b.id.Bytes()) && di.docType == b.docType
-}
-
-func (di DocInfo) WithData(id string, docType hint.Type) DocInfo {
-	var i DocId
-
-	switch docType {
-	case BCUserDataType:
-		i = NewUserDocId(id)
-	case BCLandDataType:
-		i = NewLandDocId(id)
-	case BCVotingDataType:
-		i = NewVotingDocId(id)
-	default:
-		i = nil
-	}
-
-	di.id = i
-	di.docType = docType
-	return di
 }
 
 type Nickname string

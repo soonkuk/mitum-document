@@ -367,10 +367,6 @@ func (doc BCLandData) Owner() base.Address {
 	return doc.owner
 }
 
-func (doc BCLandData) RenterAddress() base.Address {
-	return doc.account
-}
-
 func (doc BCLandData) Equal(b BCLandData) bool {
 
 	if !doc.info.Equal(b.info) {
@@ -569,5 +565,142 @@ func (doc BCVotingData) Equal(b BCVotingData) bool {
 			return false
 		}
 	}
+	return true
+}
+
+var (
+	BCHistoryDataType   = hint.Type("mitum-blockcity-document-history-data")
+	BCHistoryDataHint   = hint.NewHint(BCHistoryDataType, "v0.0.1")
+	BCHistoryDataHinter = BCHistoryData{BaseHinter: hint.NewBaseHinter(BCHistoryDataHint)}
+)
+
+type BCHistoryData struct {
+	hint.BaseHinter
+	info        DocInfo
+	owner       base.Address
+	name        string
+	account     base.Address
+	date        string
+	usage       string
+	application string
+}
+
+func NewBCHistoryData(info DocInfo,
+	owner base.Address,
+	name string,
+	account base.Address,
+	date, usage, application string,
+) BCHistoryData {
+	doc := BCHistoryData{
+		BaseHinter:  hint.NewBaseHinter(BCHistoryDataHint),
+		info:        info,
+		owner:       owner,
+		name:        name,
+		account:     account,
+		date:        date,
+		usage:       usage,
+		application: application,
+	}
+	return doc
+}
+
+func MustNewBCHistoryData(info DocInfo,
+	owner base.Address,
+	name string,
+	account base.Address,
+	date, usage, application string,
+) BCHistoryData {
+	doc := NewBCHistoryData(info, owner, name, account, date, usage, application)
+	if err := doc.IsValid(nil); err != nil {
+		panic(err)
+	}
+	return doc
+}
+
+func (doc BCHistoryData) DocumentId() string {
+	return doc.info.DocumentId()
+}
+
+func (doc BCHistoryData) DocumentType() hint.Type {
+	return doc.info.docType
+}
+
+func (doc BCHistoryData) Bytes() []byte {
+	bs := make([][]byte, 7)
+
+	bs[0] = doc.info.Bytes()
+	bs[1] = doc.owner.Bytes()
+	bs[2] = []byte(doc.name)
+	bs[3] = doc.account.Bytes()
+	bs[4] = []byte(doc.date)
+	bs[5] = []byte(doc.usage)
+	bs[6] = []byte(doc.application)
+
+	return util.ConcatBytesSlice(bs...)
+}
+
+func (doc BCHistoryData) Hash() valuehash.Hash {
+	return doc.GenerateHash()
+}
+
+func (doc BCHistoryData) GenerateHash() valuehash.Hash {
+	return valuehash.NewSHA256(doc.Bytes())
+}
+
+func (doc BCHistoryData) IsValid([]byte) error {
+	if doc.info.docType != doc.Hint().Type() {
+		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
+
+	if err := isvalid.Check(
+		nil, false,
+		doc.BaseHinter,
+		doc.info,
+		doc.owner,
+		doc.account,
+	); err != nil {
+		return errors.Wrap(err, "Invalid history document data")
+	}
+	return nil
+}
+
+func (doc BCHistoryData) Info() DocInfo {
+	return doc.info
+}
+
+func (doc BCHistoryData) Accounts() []base.Address {
+	return []base.Address{doc.account}
+}
+
+func (doc BCHistoryData) Owner() base.Address {
+	return doc.owner
+}
+
+func (doc BCHistoryData) Equal(b BCHistoryData) bool {
+
+	if !doc.info.Equal(b.info) {
+		return false
+	}
+
+	if doc.name != b.name {
+		return false
+	}
+
+	if !doc.account.Equal(b.account) {
+		return false
+	}
+
+	if doc.date != b.date {
+		return false
+	}
+
+	if doc.usage != b.usage {
+		return false
+	}
+
+	if doc.application != b.application {
+		return false
+	}
+
 	return true
 }

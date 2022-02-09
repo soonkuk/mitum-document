@@ -25,6 +25,8 @@ func NewDocId(id string) (did DocId) {
 		did = NewLandDocId(id)
 	case VotingDocIdType:
 		did = NewVotingDocId(id)
+	case HistoryDocIdType:
+		did = NewHistoryDocId(id)
 	default:
 		did = nil
 	}
@@ -37,6 +39,7 @@ var DocIdShortTypeMap = map[string]hint.Type{
 	"cui": UserDocIdType,
 	"cli": LandDocIdType,
 	"cvi": VotingDocIdType,
+	"chi": HistoryDocIdType,
 }
 
 var (
@@ -217,6 +220,70 @@ func (ui VotingDocId) Bytes() []byte {
 
 func (ui VotingDocId) Equal(b VotingDocId) bool {
 	if (b == VotingDocId{}) {
+		return false
+	}
+
+	if ui.Hint().Type() != b.Hint().Type() {
+		return false
+	}
+
+	if err := b.IsValid(nil); err != nil {
+		return false
+	}
+
+	return ui.s == b.String()
+}
+
+var (
+	HistoryDocIdType   = hint.Type("mitum-blockcity-history-document-id")
+	HistoryDocIdHint   = hint.NewHint(HistoryDocIdType, "v0.0.1")
+	HistoryDocIdHinter = HistoryDocId{BaseHinter: hint.NewBaseHinter(HistoryDocIdHint)}
+)
+
+type HistoryDocId struct {
+	hint.BaseHinter
+	s string
+}
+
+func NewHistoryDocId(id string) HistoryDocId {
+	return NewHistoryDocIdWithHint(HistoryDocIdHint, id)
+}
+
+func NewHistoryDocIdWithHint(ht hint.Hint, id string) HistoryDocId {
+
+	return HistoryDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
+}
+
+func MustNewHistoryDocId(id string) HistoryDocId {
+	uid := NewHistoryDocId(id)
+	if err := uid.IsValid(nil); err != nil {
+		panic(err)
+	}
+
+	return uid
+}
+
+func (ui HistoryDocId) IsValid([]byte) error {
+	if _, _, err := ParseDocId(ui.s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ui HistoryDocId) String() string {
+	return ui.s
+}
+
+func (ui HistoryDocId) Hint() hint.Hint {
+	return ui.BaseHinter.Hint()
+}
+
+func (ui HistoryDocId) Bytes() []byte {
+	return []byte(ui.s)
+}
+
+func (ui HistoryDocId) Equal(b HistoryDocId) bool {
+	if (b == HistoryDocId{}) {
 		return false
 	}
 

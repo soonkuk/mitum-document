@@ -167,6 +167,46 @@ func (doc *BCVotingData) unpack(
 	return nil
 }
 
+func (doc *BCHistoryData) unpack(
+	enc encoder.Encoder,
+	bdi []byte,
+	ow base.AddressDecoder,
+	snm string, // name
+	ac base.AddressDecoder, // account address
+	sdt string, // date
+	sus string, // usage
+	sap string, // application
+) error {
+
+	// unpack document info
+	if hinter, err := enc.Decode(bdi); err != nil {
+		return err
+	} else if i, ok := hinter.(DocInfo); !ok {
+		return errors.Errorf("not Document Info: %T", hinter)
+	} else {
+		doc.info = i
+	}
+
+	oa, err := ow.Encode(enc)
+	if err != nil {
+		return err
+	}
+	doc.owner = oa
+
+	ba, err := ac.Encode(enc)
+	if err != nil {
+		return err
+	}
+	doc.account = ba
+
+	doc.name = snm
+	doc.date = sdt
+	doc.usage = sus
+	doc.application = sap
+
+	return nil
+}
+
 func (us *UserStatistics) unpack(
 	enc encoder.Encoder,
 	hp,
@@ -249,6 +289,16 @@ func (di *LandDocId) unpack(
 }
 
 func (di *VotingDocId) unpack(
+	enc encoder.Encoder,
+	si string,
+) error {
+	// unpack document id
+	di.s = si
+
+	return nil
+}
+
+func (di *HistoryDocId) unpack(
 	enc encoder.Encoder,
 	si string,
 ) error {

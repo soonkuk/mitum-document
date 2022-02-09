@@ -131,6 +131,40 @@ func (doc *BCVotingData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return doc.unpack(enc, uvd.DI, uvd.OW, uvd.RD, uvd.VT, uvd.CD, uvd.BN, uvd.AC, uvd.TM)
 }
 
+func (doc BCHistoryData) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(doc.Hint()),
+		bson.M{
+			"info":        doc.info,
+			"owner":       doc.owner,
+			"name":        doc.name,
+			"account":     doc.account,
+			"date":        doc.date,
+			"usage":       doc.usage,
+			"application": doc.application,
+		}),
+	)
+}
+
+type BCHistoryDataBSONUnpacker struct {
+	DI bson.Raw            `bson:"info"`
+	OW base.AddressDecoder `bson:"owner"`
+	NM string              `bson:"name"`
+	AC base.AddressDecoder `bson:"account"`
+	DT string              `bson:"date"`
+	US string              `bson:"usage"`
+	AP string              `bson:"application"`
+}
+
+func (doc *BCHistoryData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uhd BCHistoryDataBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uhd); err != nil {
+		return err
+	}
+
+	return doc.unpack(enc, uhd.DI, uhd.OW, uhd.NM, uhd.AC, uhd.DT, uhd.US, uhd.AP)
+}
+
 func (us UserStatistics) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(us.Hint()),
@@ -222,12 +256,12 @@ func (di UserDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-type UserDocIdBSONUnpacker struct {
+type DocIdBSONUnpacker struct {
 	BI string `bson:"id"`
 }
 
 func (di *UserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi UserDocIdBSONUnpacker
+	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
@@ -244,12 +278,8 @@ func (di LandDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-type LandDocIdBSONUnpacker struct {
-	BI string `bson:"id"`
-}
-
 func (di *LandDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi LandDocIdBSONUnpacker
+	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
@@ -266,12 +296,26 @@ func (di VotingDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-type VotingDocIdBSONUnpacker struct {
-	BI string `bson:"id"`
+func (di *VotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var udi DocIdBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	return di.unpack(enc, udi.BI)
 }
 
-func (di *VotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi VotingDocIdBSONUnpacker
+func (di HistoryDocId) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(di.Hint()),
+		bson.M{
+			"id": di.s,
+		}),
+	)
+}
+
+func (di *HistoryDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}

@@ -163,6 +163,49 @@ func (doc *BCVotingData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return doc.unpack(enc, uvd.DI, uvd.OW, uvd.RD, uvd.VT, uvd.CD, uvd.BN, uvd.AC, uvd.TM)
 }
 
+type HistoryDataJSONPacker struct {
+	jsonenc.HintedHead
+	DI DocInfo      `json:"info"`
+	OW base.Address `json:"owner"`
+	NM string       `json:"name"`
+	AC base.Address `json:"account"`
+	DT string       `json:"date"`
+	US string       `json:"usage"`
+	AP string       `json:"application"`
+}
+
+func (doc BCHistoryData) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(HistoryDataJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
+		DI:         doc.info,
+		OW:         doc.owner,
+		NM:         doc.name,
+		AC:         doc.account,
+		DT:         doc.date,
+		US:         doc.usage,
+		AP:         doc.application,
+	})
+}
+
+type HistoryDataJSONUnpacker struct {
+	DI json.RawMessage     `json:"info"`
+	OW base.AddressDecoder `json:"owner"`
+	NM string              `json:"name"`
+	AC base.AddressDecoder `json:"account"`
+	DT string              `json:"date"`
+	US string              `json:"usage"`
+	AP string              `json:"application"`
+}
+
+func (doc *BCHistoryData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uhd HistoryDataJSONUnpacker
+	if err := enc.Unmarshal(b, &uhd); err != nil {
+		return err
+	}
+
+	return doc.unpack(enc, uhd.DI, uhd.OW, uhd.NM, uhd.AC, uhd.DT, uhd.US, uhd.AP)
+}
+
 type UserStatisticsJSONPacker struct {
 	jsonenc.HintedHead
 	HP uint `json:"hp"`
@@ -262,49 +305,40 @@ func (vc *VotingCandidate) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return vc.unpack(enc, uvc.AD, uvc.MA)
 }
 
-type UserDocIdJSONPacker struct {
+type DocIdJSONPacker struct {
 	jsonenc.HintedHead
+	SI string `json:"id"`
+}
+
+type DocIdJSONUnpacker struct {
 	SI string `json:"id"`
 }
 
 func (di UserDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(UserDocIdJSONPacker{
+	return jsonenc.Marshal(DocIdJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
-}
-
-type UserDocIdJSONUnpacker struct {
-	SI string `json:"id"`
 }
 
 func (di *UserDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi UserDocIdJSONUnpacker
+	var udi DocIdJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
 	return di.unpack(enc, udi.SI)
-}
-
-type LandDocIdJSONPacker struct {
-	jsonenc.HintedHead
-	SI string `json:"id"`
 }
 
 func (di LandDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(LandDocIdJSONPacker{
+	return jsonenc.Marshal(DocIdJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-type LandDocIdJSONUnpacker struct {
-	SI string `json:"id"`
-}
-
 func (di *LandDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi LandDocIdJSONUnpacker
+	var udi DocIdJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
@@ -312,24 +346,31 @@ func (di *LandDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return di.unpack(enc, udi.SI)
 }
 
-type VotingDocIdJSONPacker struct {
-	jsonenc.HintedHead
-	SI string `json:"id"`
-}
-
 func (di VotingDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(VotingDocIdJSONPacker{
+	return jsonenc.Marshal(DocIdJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-type VotingDocIdJSONUnpacker struct {
-	SI string `json:"id"`
+func (di *VotingDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIdJSONUnpacker
+	if err := enc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	return di.unpack(enc, udi.SI)
 }
 
-func (di *VotingDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi VotingDocIdJSONUnpacker
+func (di HistoryDocId) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIdJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(di.Hint()),
+		SI:         di.s,
+	})
+}
+
+func (di *HistoryDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIdJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}

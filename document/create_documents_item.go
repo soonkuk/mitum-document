@@ -24,10 +24,6 @@ func NewCreateDocumentsItemImpl(
 	doc DocumentData,
 	cid currency.CurrencyID) CreateDocumentsItemImpl {
 
-	if doc.Hint().Type() != BCUserDataType && doc.Hint().Type() != BCLandDataType && doc.Hint().Type() != BCVotingDataType {
-		panic(util.WrongTypeError.Errorf("expected DocumentData Type, not %T", doc.Hint().Type()))
-	}
-
 	if doc.Info().docType != doc.Hint().Type() {
 		panic(util.WrongTypeError.Errorf("Document Info Type not matched with DocumentData Type, not %v", doc.Hint().Type()))
 	}

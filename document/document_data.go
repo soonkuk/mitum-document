@@ -360,7 +360,7 @@ func (doc BCLandData) Info() DocInfo {
 }
 
 func (doc BCLandData) Accounts() []base.Address {
-	return []base.Address{doc.account}
+	return []base.Address{}
 }
 
 func (doc BCLandData) Owner() base.Address {

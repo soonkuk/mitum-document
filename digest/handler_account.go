@@ -468,31 +468,37 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
+	v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
-	}); err != nil {
+	})
+
+	if err != nil {
+		hd.Log().Error().Err(err).Stringer("address", address).Msg("failed to get documents")
+
 		HTTP2HandleError(w, err)
-	} else {
-		var b []byte
-		var filled bool
-		{
-			l := v.([]interface{})
-			b = l[0].([]byte)
-			filled = l[1].(bool)
+
+		return
+	}
+
+	var b []byte
+	var filled bool
+	{
+		l := v.([]interface{})
+		b = l[0].([]byte)
+		filled = l[1].(bool)
+	}
+
+	HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
+
+	if !shared {
+		expire := hd.expireNotFilled
+		if len(offset) > 0 && filled {
+			expire = time.Hour * 30
 		}
 
-		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
-
-		if !shared {
-			expire := hd.expireNotFilled
-			if len(offset) > 0 && filled {
-				expire = time.Hour * 30
-			}
-
-			HTTP2WriteCache(w, cachekey, expire)
-		}
+		HTTP2WriteCache(w, cachekey, expire)
 	}
 }
 

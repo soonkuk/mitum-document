@@ -3,7 +3,6 @@ package document
 import (
 	"encoding/json"
 
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/hint"
@@ -38,8 +37,8 @@ type UserDataJSONPacker struct {
 	jsonenc.HintedHead
 	DI DocInfo        `json:"info"`
 	OW base.Address   `json:"owner"`
-	GD currency.Big   `json:"gold"`
-	BG currency.Big   `json:"bankgold"`
+	GD uint           `json:"gold"`
+	BG uint           `json:"bankgold"`
 	ST UserStatistics `json:"statistics"`
 }
 
@@ -57,8 +56,8 @@ func (doc BCUserData) MarshalJSON() ([]byte, error) {
 type UserDataJSONUnpacker struct {
 	DI json.RawMessage     `json:"info"`
 	OW base.AddressDecoder `json:"owner"`
-	GD currency.Big        `json:"gold"`
-	BG currency.Big        `json:"bankgold"`
+	GD uint                `json:"gold"`
+	BG uint                `json:"bankgold"`
 	ST json.RawMessage     `json:"statistics"`
 }
 
@@ -280,6 +279,7 @@ func (di *DocInfo) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 type VotingCandidatesJSONPacker struct {
 	jsonenc.HintedHead
 	AD base.Address `json:"address"`
+	NC string       `json:"nickname"`
 	MA string       `json:"manifest"`
 }
 
@@ -287,12 +287,14 @@ func (vc VotingCandidate) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(VotingCandidatesJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(vc.Hint()),
 		AD:         vc.address,
+		NC:         vc.nickname,
 		MA:         vc.manifest,
 	})
 }
 
 type VotingCandidatesJSONUnpacker struct {
 	AD base.AddressDecoder `json:"address"`
+	NC string              `json:"nickname"`
 	MA string              `json:"manifest"`
 }
 
@@ -302,7 +304,7 @@ func (vc *VotingCandidate) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return vc.unpack(enc, uvc.AD, uvc.MA)
+	return vc.unpack(enc, uvc.AD, uvc.NC, uvc.MA)
 }
 
 type DocIdJSONPacker struct {

@@ -125,15 +125,15 @@ type BCUserData struct {
 	hint.BaseHinter
 	info       DocInfo
 	owner      base.Address
-	gold       currency.Big
-	bankgold   currency.Big
+	gold       uint
+	bankgold   uint
 	statistics UserStatistics
 }
 
 func NewBCUserData(info DocInfo,
 	owner base.Address,
 	gold,
-	bankgold currency.Big,
+	bankgold uint,
 	statistics UserStatistics,
 ) BCUserData {
 	doc := BCUserData{
@@ -148,7 +148,7 @@ func NewBCUserData(info DocInfo,
 	return doc
 }
 
-func MustNewBCUserData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) BCUserData {
+func MustNewBCUserData(info DocInfo, owner base.Address, gold, bankgold uint, statistics UserStatistics) BCUserData {
 	doc := NewBCUserData(info, owner, gold, bankgold, statistics)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
@@ -170,8 +170,8 @@ func (doc BCUserData) Bytes() []byte {
 
 	bs[0] = doc.info.Bytes()
 	bs[1] = doc.owner.Bytes()
-	bs[2] = doc.gold.Bytes()
-	bs[3] = doc.bankgold.Bytes()
+	bs[2] = util.UintToBytes(doc.gold)
+	bs[3] = util.UintToBytes(doc.bankgold)
 	bs[4] = doc.statistics.Bytes()
 
 	return util.ConcatBytesSlice(bs...)
@@ -199,8 +199,6 @@ func (doc BCUserData) IsValid([]byte) error {
 		doc.BaseHinter,
 		doc.info,
 		doc.owner,
-		doc.gold,
-		doc.bankgold,
 		doc.statistics,
 	); err != nil {
 		return isvalid.InvalidError.Errorf("invalid User Document Data: %w", err)
@@ -244,15 +242,6 @@ func (doc BCUserData) Equal(b BCUserData) bool {
 	}
 
 	return true
-}
-
-func (doc BCUserData) WithData(info DocInfo, owner base.Address, gold, bankgold currency.Big, statistics UserStatistics) BCUserData {
-	doc.info = info
-	doc.owner = owner
-	doc.gold = gold
-	doc.bankgold = bankgold
-	doc.statistics = statistics
-	return doc
 }
 
 var (
@@ -348,7 +337,6 @@ func (doc BCLandData) IsValid([]byte) error {
 		doc.BaseHinter,
 		doc.info,
 		doc.owner,
-		doc.account,
 	); err != nil {
 		return errors.Wrap(err, "Invalid Land document data")
 	}
@@ -504,7 +492,6 @@ func (doc BCVotingData) IsValid([]byte) error {
 		doc.BaseHinter,
 		doc.info,
 		doc.owner,
-		doc.account,
 	); err != nil {
 		return errors.Wrap(err, "Invalid Voting document data")
 	}

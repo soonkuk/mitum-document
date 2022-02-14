@@ -16,8 +16,8 @@ type CreateBlockcityUserDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
 	Sender       currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	Gold         currencycmds.BigFlag        `arg:"" name:"gold" help:"gold" required:""`
-	Bankgold     currencycmds.BigFlag        `arg:"" name:"bankgold" help:"bankgold" required:""`
+	Gold         uint                        `arg:"" name:"gold" help:"gold" required:""`
+	Bankgold     uint                        `arg:"" name:"bankgold" help:"bankgold" required:""`
 	Hp           uint                        `arg:"" name:"hp" help:"hp" required:""`
 	Strength     uint                        `arg:"" name:"strength" help:"strength" required:""`
 	Agility      uint                        `arg:"" name:"agility" help:"agility" required:""`
@@ -91,7 +91,7 @@ func (cmd *CreateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 	}
 	info := document.NewDocInfo(cmd.DocumentId, document.BCUserDataType)
 	statistics := document.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
-	doc := document.NewBCUserData(info, cmd.sender, cmd.Gold.Big, cmd.Bankgold.Big, statistics)
+	doc := document.NewBCUserData(info, cmd.sender, cmd.Gold, cmd.Bankgold, statistics)
 
 	item := document.NewCreateDocumentsItemImpl(
 		doc,

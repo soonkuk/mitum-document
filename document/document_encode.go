@@ -2,7 +2,6 @@ package document
 
 import (
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 	"github.com/spikeekips/mitum/util/hint"
@@ -29,8 +28,8 @@ func (doc *BCUserData) unpack(
 	enc encoder.Encoder,
 	di []byte,
 	us base.AddressDecoder,
-	gd currency.Big, // gold
-	bg currency.Big, // bankgold
+	gd uint, // gold
+	bg uint, // bankgold
 	st []byte, // statistics
 ) error {
 
@@ -252,7 +251,8 @@ func (di *DocInfo) unpack(
 func (vc *VotingCandidate) unpack(
 	enc encoder.Encoder,
 	ad base.AddressDecoder,
-	ma string,
+	snc string,
+	sma string,
 ) error {
 
 	// decode address
@@ -261,7 +261,8 @@ func (vc *VotingCandidate) unpack(
 		return err
 	}
 	vc.address = va
-	vc.manifest = ma
+	vc.nickname = snc
+	vc.manifest = sma
 
 	return nil
 }

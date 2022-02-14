@@ -1,7 +1,6 @@
 package document
 
 import (
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"go.mongodb.org/mongo-driver/bson"
@@ -45,8 +44,8 @@ func (doc BCUserData) MarshalBSON() ([]byte, error) {
 type BCUserDataBSONUnpacker struct {
 	DI bson.Raw            `bson:"info"`
 	US base.AddressDecoder `bson:"owner"`
-	GD currency.Big        `bson:"gold"`
-	BG currency.Big        `bson:"bankgold"`
+	GD uint                `bson:"gold"`
+	BG uint                `bson:"bankgold"`
 	ST bson.Raw            `bson:"statistics"`
 }
 
@@ -228,6 +227,7 @@ func (di VotingCandidate) MarshalBSON() ([]byte, error) {
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
 			"address":  di.address,
+			"nickname": di.nickname,
 			"manifest": di.manifest,
 		}),
 	)
@@ -235,16 +235,17 @@ func (di VotingCandidate) MarshalBSON() ([]byte, error) {
 
 type VotingCandidateBSONUnpacker struct {
 	AD base.AddressDecoder `bson:"address"`
+	NC string              `bson:"nickname"`
 	MA string              `bson:"manifest"`
 }
 
 func (di *VotingCandidate) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi VotingCandidateBSONUnpacker
-	if err := bsonenc.Unmarshal(b, &udi); err != nil {
+	var uvc VotingCandidateBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uvc); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.AD, udi.MA)
+	return di.unpack(enc, uvc.AD, uvc.NC, uvc.MA)
 }
 
 func (di UserDocId) MarshalBSON() ([]byte, error) {

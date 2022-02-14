@@ -127,6 +127,14 @@ func (fact UpdateDocumentsFact) Items() []UpdateDocumentsItem {
 	return fact.items
 }
 
+func (fact UpdateDocumentsFact) Addresses() ([]base.Address, error) {
+	var as []base.Address
+
+	as = append(as, fact.Sender())
+
+	return as, nil
+}
+
 func (fact UpdateDocumentsFact) Rebuild() UpdateDocumentsFact {
 	items := make([]UpdateDocumentsItem, len(fact.items))
 	for i := range fact.items {

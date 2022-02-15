@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -12,18 +13,18 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
 
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
 
-type CreateBSDocumentCommand struct {
+type CreateBlockSignDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
 	Sender     currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
 	FileHash   string                      `arg:"" name:"filehash" help:"filehash" required:""`
 	Signcode   string                      `arg:"" name:"signcode" help:"signcode" required:""`
-	DocumentId currencycmds.BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
+	DocumentId string                      `arg:"" name:"documentid" help:"document id" required:""`
 	Title      string                      `arg:"" name:"title" help:"title" required:""`
 	Size       currencycmds.BigFlag        `arg:"" name:"size" help:"size" required:""`
 	Currency   currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
@@ -34,13 +35,13 @@ type CreateBSDocumentCommand struct {
 	signcodes  []string
 }
 
-func NewCreateBSDocumentCommand() CreateBSDocumentCommand {
-	return CreateBSDocumentCommand{
+func NewCreateBlockSignDocumentCommand() CreateBlockSignDocumentCommand {
+	return CreateBlockSignDocumentCommand{
 		BaseCommand: NewBaseCommand("create-document-operation"),
 	}
 }
 
-func (cmd *CreateBSDocumentCommand) Run(version util.Version) error { // nolint:dupl
+func (cmd *CreateBlockSignDocumentCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
 		return errors.Errorf("failed to initialize command: %q", err)
 	}
@@ -67,7 +68,7 @@ func (cmd *CreateBSDocumentCommand) Run(version util.Version) error { // nolint:
 	return nil
 }
 
-func (cmd *CreateBSDocumentCommand) parseFlags() error {
+func (cmd *CreateBlockSignDocumentCommand) parseFlags() error {
 	if err := cmd.OperationFlags.IsValid(nil); err != nil {
 		return err
 	}
@@ -97,26 +98,28 @@ func (cmd *CreateBSDocumentCommand) parseFlags() error {
 	return nil
 }
 
-func (cmd *CreateBSDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
+func (cmd *CreateBlockSignDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
 	i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID())
 	if err != nil {
 		return nil, err
 	}
-	var items []blocksign.CreateDocumentsItem
+	var items []document.CreateDocumentsItem
 	for j := range i {
-		if t, ok := i[j].(blocksign.CreateDocuments); ok {
-			items = t.Fact().(blocksign.CreateDocumentsFact).Items()
+		if t, ok := i[j].(document.CreateDocuments); ok {
+			items = t.Fact().(document.CreateDocumentsFact).Items()
 		}
 	}
 
-	item := blocksign.NewCreateDocumentsItemSingleFile(
-		blocksign.FileHash(cmd.FileHash),
-		cmd.DocumentId.Big,
-		cmd.Signcode,
-		cmd.Title,
-		cmd.Size.Big,
-		cmd.signers,
-		cmd.signcodes,
+	info := document.NewDocInfo(cmd.DocumentId, document.BSDocDataType)
+	docsign := document.NewDocSign(cmd.sender, cmd.Signcode, true)
+	var signers []document.DocSign
+	for i := range cmd.signers {
+		docsign := document.NewDocSign(cmd.signers[i], cmd.signcodes[i], false)
+		signers = append(signers, docsign)
+	}
+	doc := document.NewBSDocData(info, cmd.sender, document.FileHash(cmd.FileHash), docsign, cmd.Title, cmd.Size.Big, signers)
+	item := document.NewCreateDocumentsItemImpl(
+		doc,
 		cmd.Currency.CID,
 	)
 
@@ -125,7 +128,7 @@ func (cmd *CreateBSDocumentCommand) createOperation() (operation.Operation, erro
 	}
 	items = append(items, item)
 
-	fact := blocksign.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := document.NewCreateDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
 	if err != nil {
@@ -135,10 +138,11 @@ func (cmd *CreateBSDocumentCommand) createOperation() (operation.Operation, erro
 		base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig),
 	}
 
-	op, err := blocksign.NewCreateDocuments(fact, fs, cmd.Memo)
+	op, err := document.NewCreateDocuments(fact, fs, cmd.Memo)
 	if err != nil {
-		return nil, errors.Errorf("failed to create create-account operation: %q", err)
+		return nil, errors.Errorf("failed to create create-blocksign-document operation: %q", err)
 	}
+	fmt.Println(op.Fact())
 	return op, nil
 }
 

@@ -9,7 +9,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -20,14 +20,14 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-func IsDocumentState(st state.State) (blocksign.DocumentData, bool, error) {
-	if !blocksign.IsStateDocumentDataKey(st.Key()) {
-		return blocksign.DocumentData{}, false, nil
+func IsDocumentState(st state.State) (document.DocumentData, bool, error) {
+	if !document.IsStateDocumentDataKey(st.Key()) {
+		return nil, false, nil
 	}
 
-	doc, err := blocksign.StateDocumentDataValue(st)
+	doc, err := document.StateDocumentDataValue(st)
 	if err != nil {
-		return blocksign.DocumentData{}, false, err
+		return nil, false, err
 	}
 	return doc, true, nil
 }

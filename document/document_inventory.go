@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	DocumentInventoryType   = hint.Type("mitum-blockcity-document-inventory")
+	DocumentInventoryType   = hint.Type("mitum-document-inventory")
 	DocumentInventoryHint   = hint.NewHint(DocumentInventoryType, "v0.0.1")
 	DocumentInventoryHinter = DocumentInventory{BaseHinter: hint.NewBaseHinter(DocumentInventoryHint)}
 )

@@ -2,6 +2,7 @@ package document
 
 import (
 	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 	"github.com/spikeekips/mitum/util/hint"
@@ -24,10 +25,79 @@ func (doc *Document) unpack(
 	return nil
 }
 
+func (doc *BSDocData) unpack(
+	enc encoder.Encoder,
+	bdi []byte,
+	ow base.AddressDecoder,
+	sfh string,
+	bcr []byte, // creator
+	stl string,
+	sz currency.Big,
+	bsg []byte, // signers
+) error {
+
+	// unpack document info
+	if hinter, err := enc.Decode(bdi); err != nil {
+		return err
+	} else if i, ok := hinter.(DocInfo); !ok {
+		return errors.Errorf("not DocInfo: %T", hinter)
+	} else {
+		doc.info = i
+	}
+
+	a, err := ow.Encode(enc)
+	if err != nil {
+		return err
+	}
+	doc.owner = a
+
+	doc.fileHash = FileHash(sfh)
+
+	// unpack creator
+	if hinter, err := enc.Decode(bcr); err != nil {
+		return err
+	} else if i, ok := hinter.(DocSign); !ok {
+		return errors.Errorf("not DocSign: %T", hinter)
+	} else {
+		doc.creator = i
+	}
+
+	// unpack creator
+	if hinter, err := enc.Decode(bcr); err != nil {
+		return err
+	} else if i, ok := hinter.(DocSign); !ok {
+		return errors.Errorf("not DocSign: %T", hinter)
+	} else {
+		doc.creator = i
+	}
+
+	doc.title = stl
+	doc.size = sz
+
+	hits, err := enc.DecodeSlice(bsg)
+	if err != nil {
+		return err
+	}
+	// unpack signers
+	signers := make([]DocSign, len(hits))
+
+	for i := range hits {
+		s, ok := hits[i].(DocSign)
+		if !ok {
+			return errors.Errorf("not DocSign : %T", s)
+		}
+
+		signers[i] = s
+	}
+	doc.signers = signers
+
+	return nil
+}
+
 func (doc *BCUserData) unpack(
 	enc encoder.Encoder,
 	di []byte,
-	us base.AddressDecoder,
+	ow base.AddressDecoder,
 	gd uint, // gold
 	bg uint, // bankgold
 	st []byte, // statistics
@@ -42,7 +112,7 @@ func (doc *BCUserData) unpack(
 		doc.info = i
 	}
 
-	a, err := us.Encode(enc)
+	a, err := ow.Encode(enc)
 	if err != nil {
 		return err
 	}
@@ -248,6 +318,24 @@ func (di *DocInfo) unpack(
 	return nil
 }
 
+func (ds *DocSign) unpack(
+	enc encoder.Encoder,
+	ad base.AddressDecoder, // address
+	sc string,
+	sg bool, // signed
+) error {
+
+	a, err := ad.Encode(enc)
+	if err != nil {
+		return err
+	}
+	ds.address = a
+	ds.signcode = sc
+	ds.signed = sg
+
+	return nil
+}
+
 func (vc *VotingCandidate) unpack(
 	enc encoder.Encoder,
 	ad base.AddressDecoder,
@@ -263,6 +351,17 @@ func (vc *VotingCandidate) unpack(
 	vc.address = va
 	vc.nickname = snc
 	vc.manifest = sma
+
+	return nil
+}
+
+func (di *BSDocId) unpack(
+	enc encoder.Encoder,
+	si string,
+) error {
+
+	// unpack document id
+	di.s = si
 
 	return nil
 }

@@ -3,6 +3,7 @@ package document
 import (
 	"encoding/json"
 
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/hint"
@@ -31,6 +32,49 @@ func (doc *Document) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	}
 
 	return doc.unpack(enc, dod.DC)
+}
+
+type BSDocDataJSONPacker struct {
+	jsonenc.HintedHead
+	DI DocInfo      `json:"info"`
+	OW base.Address `json:"owner"`
+	FH FileHash     `json:"filehash"`
+	CR DocSign      `json:"creator"`
+	TL string       `json:"title"`
+	SZ currency.Big `json:"size"`
+	SG []DocSign    `json:"signers"`
+}
+
+func (doc BSDocData) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(BSDocDataJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(doc.Hint()),
+		DI:         doc.info,
+		OW:         doc.owner,
+		FH:         doc.fileHash,
+		CR:         doc.creator,
+		TL:         doc.title,
+		SZ:         doc.size,
+		SG:         doc.signers,
+	})
+}
+
+type BSDocDataJSONUnpacker struct {
+	DI json.RawMessage     `json:"info"`
+	OW base.AddressDecoder `json:"owner"`
+	FH string              `json:"filehash"`
+	CR json.RawMessage     `json:"creator"`
+	TL string              `json:"title"`
+	SZ currency.Big        `json:"size"`
+	SG json.RawMessage     `json:"signers"`
+}
+
+func (doc *BSDocData) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udoc BSDocDataJSONUnpacker
+	if err := enc.Unmarshal(b, &udoc); err != nil {
+		return err
+	}
+
+	return doc.unpack(enc, udoc.DI, udoc.OW, udoc.FH, udoc.CR, udoc.TL, udoc.SZ, udoc.SG)
 }
 
 type UserDataJSONPacker struct {
@@ -276,6 +320,37 @@ func (di *DocInfo) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return di.unpack(enc, udi.ID, udi.DT)
 }
 
+type DocSignJSONPacker struct {
+	jsonenc.HintedHead
+	AD base.Address `json:"address"`
+	SC string       `json:"signcode"`
+	SG bool         `json:"signed"`
+}
+
+func (ds DocSign) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocSignJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(ds.Hint()),
+		AD:         ds.address,
+		SC:         ds.signcode,
+		SG:         ds.signed,
+	})
+}
+
+type DocSignJSONUnpacker struct {
+	AD base.AddressDecoder `json:"address"`
+	SC string              `json:"signcode"`
+	SG bool                `json:"signed"`
+}
+
+func (ds *DocSign) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var uds DocSignJSONUnpacker
+	if err := enc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
+}
+
 type VotingCandidatesJSONPacker struct {
 	jsonenc.HintedHead
 	AD base.Address `json:"address"`
@@ -314,6 +389,22 @@ type DocIdJSONPacker struct {
 
 type DocIdJSONUnpacker struct {
 	SI string `json:"id"`
+}
+
+func (di BSDocId) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIdJSONPacker{
+		HintedHead: jsonenc.NewHintedHead(di.Hint()),
+		SI:         di.s,
+	})
+}
+
+func (di *BSDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIdJSONUnpacker
+	if err := enc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	return di.unpack(enc, udi.SI)
 }
 
 func (di UserDocId) MarshalJSON() ([]byte, error) {

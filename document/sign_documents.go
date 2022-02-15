@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/pkg/errors"
@@ -25,7 +25,7 @@ type SignDocumentItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	DocumentId() currency.Big
+	DocumentId() string
 	Owner() base.Address
 	Currency() currency.CurrencyID
 	Rebuild() SignDocumentItem
@@ -41,9 +41,10 @@ type SignDocumentsFact struct {
 
 func NewSignDocumentsFact(token []byte, sender base.Address, items []SignDocumentItem) SignDocumentsFact {
 	fact := SignDocumentsFact{
-		token:  token,
-		sender: sender,
-		items:  items,
+		BaseHinter: hint.NewBaseHinter(SignDocumentsFactHint),
+		token:      token,
+		sender:     sender,
+		items:      items,
 	}
 	fact.h = fact.GenerateHash()
 
@@ -100,7 +101,7 @@ func (fact SignDocumentsFact) IsValid(b []byte) error {
 		if err := fact.items[i].IsValid(nil); err != nil {
 			return err
 		}
-		k := fact.items[i].DocumentId().String()
+		k := fact.items[i].DocumentId()
 		if _, found := foundDocId[k]; found {
 			return errors.Errorf("duplicated document found, %s", k)
 		}

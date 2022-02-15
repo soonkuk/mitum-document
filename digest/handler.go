@@ -28,12 +28,12 @@ var (
 )
 
 var (
-	HandlerPathNodeInfo                   = `/`
-	HandlerPathCurrencies                 = `/currency`
-	HandlerPathCurrency                   = `/currency/{currencyid:.*}`
-	HandlerPathDocuments                  = `/block/documents`
-	HandlerPathBSDocument                 = `/block/bsdocument/{documentid:[0-9a-z]+}`
-	HandlerPathBCDocument                 = `/block/bcdocument/{documentid:[0-9a-z]+}`
+	HandlerPathNodeInfo   = `/`
+	HandlerPathCurrencies = `/currency`
+	HandlerPathCurrency   = `/currency/{currencyid:.*}`
+	HandlerPathDocuments  = `/block/documents`
+	// HandlerPathBSDocument                 = `/block/bsdocument/{documentid:[0-9a-z]+}`
+	HandlerPathDocument                   = `/block/document/{documentid:[0-9a-z]+}`
 	HandlerPathManifests                  = `/block/manifests`
 	HandlerPathOperations                 = `/block/operations`
 	HandlerPathOperation                  = `/block/operation/{hash:(?i)[0-9a-z][0-9a-z]+}`
@@ -55,12 +55,12 @@ var (
 )
 
 var RateLimitHandlerMap = map[string]string{
-	"node-info":                       HandlerPathNodeInfo,
-	"currencies":                      HandlerPathCurrencies,
-	"currency":                        HandlerPathCurrency,
-	"documents":                       HandlerPathDocuments,
-	"bsdocument":                      HandlerPathBSDocument,
-	"bcdocument":                      HandlerPathBCDocument,
+	"node-info":  HandlerPathNodeInfo,
+	"currencies": HandlerPathCurrencies,
+	"currency":   HandlerPathCurrency,
+	"documents":  HandlerPathDocuments,
+	// "bsdocument":                      HandlerPathBSDocument,
+	"document":                        HandlerPathDocument,
 	"block-manifests":                 HandlerPathManifests,
 	"block-operations":                HandlerPathOperations,
 	"block-operation":                 HandlerPathOperation,
@@ -181,10 +181,13 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
 		Methods(http.MethodOptions, "GET")
-	hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
+		/*
+			hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
+				Methods(http.MethodOptions, "GET")
+		*/
+	hd.setHandler(HandlerPathDocument, hd.handleDocument, true).
 		Methods(http.MethodOptions, "GET")
-	hd.setHandler(HandlerPathBCDocument, hd.handleBCDocument, true).
-		Methods(http.MethodOptions, "GET")
+
 	hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathOperations, hd.handleOperations, true).

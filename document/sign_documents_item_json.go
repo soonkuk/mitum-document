@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -8,7 +8,7 @@ import (
 
 type SignDocumentsItemJSONPacker struct {
 	jsonenc.HintedHead
-	DI currency.Big        `json:"documentid"`
+	DI string              `json:"documentid"`
 	OW base.Address        `json:"owner"`
 	CI currency.CurrencyID `json:"currency"`
 }
@@ -23,7 +23,7 @@ func (it BaseSignDocumentsItem) MarshalJSON() ([]byte, error) {
 }
 
 type SignDocumentsItemJSONUnpacker struct {
-	DI currency.Big        `json:"documentid"`
+	DI string              `json:"documentid"`
 	OW base.AddressDecoder `json:"owner"`
 	CI string              `json:"currency"`
 }

@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/block"
@@ -26,19 +25,19 @@ var bulkWriteLimit = 500
 
 type BlockSession struct {
 	sync.RWMutex
-	block             block.Block
-	st                *Database
-	opsTreeNodes      map[string]operation.FixedTreeNode
-	operationModels   []mongo.WriteModel
-	accountModels     []mongo.WriteModel
-	bsDocumentModels  []mongo.WriteModel
-	bcDocumentModels  []mongo.WriteModel
-	bsDocumentsModels []mongo.WriteModel
-	bcDocumentsModels []mongo.WriteModel
-	balanceModels     []mongo.WriteModel
-	statesValue       *sync.Map
-	bsDocumentList    []currency.Big
-	bcDocumentList    []string
+	block           block.Block
+	st              *Database
+	opsTreeNodes    map[string]operation.FixedTreeNode
+	operationModels []mongo.WriteModel
+	accountModels   []mongo.WriteModel
+	//bsDocumentModels  []mongo.WriteModel
+	documentModels []mongo.WriteModel
+	//bsDocumentsModels []mongo.WriteModel
+	documentsModels []mongo.WriteModel
+	balanceModels   []mongo.WriteModel
+	statesValue     *sync.Map
+	// bsDocumentList    []currency.Big
+	documentList []string
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -100,40 +99,42 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 		return err
 	}
 
-	if len(bs.bsDocumentModels) > 0 {
+	/*
+		if len(bs.bsDocumentModels) > 0 {
 
-		for i := range bs.bsDocumentList {
-			if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameBSDocument, bs.bsDocumentList[i].String()); err != nil {
+			for i := range bs.bsDocumentList {
+				if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameBSDocument, bs.bsDocumentList[i].String()); err != nil {
+					return err
+				}
+			}
+
+			if err := bs.writeModels(ctx, defaultColNameBSDocument, bs.bsDocumentModels); err != nil {
 				return err
 			}
 		}
 
-		if err := bs.writeModels(ctx, defaultColNameBSDocument, bs.bsDocumentModels); err != nil {
-			return err
+		if len(bs.bsDocumentsModels) > 0 {
+			if err := bs.writeModels(ctx, defaultColNameBSDocuments, bs.bsDocumentsModels); err != nil {
+				return err
+			}
 		}
-	}
+	*/
 
-	if len(bs.bsDocumentsModels) > 0 {
-		if err := bs.writeModels(ctx, defaultColNameBSDocuments, bs.bsDocumentsModels); err != nil {
-			return err
-		}
-	}
+	if len(bs.documentModels) > 0 {
 
-	if len(bs.bcDocumentModels) > 0 {
-
-		for i := range bs.bcDocumentList {
-			if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameBCDocument, bs.bcDocumentList[i]); err != nil {
+		for i := range bs.documentList {
+			if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameDocument, bs.documentList[i]); err != nil {
 				return err
 			}
 		}
 
-		if err := bs.writeModels(ctx, defaultColNameBCDocument, bs.bcDocumentModels); err != nil {
+		if err := bs.writeModels(ctx, defaultColNameDocument, bs.documentModels); err != nil {
 			return err
 		}
 	}
 
-	if len(bs.bcDocumentsModels) > 0 {
-		if err := bs.writeModels(ctx, defaultColNameBCDocuments, bs.bcDocumentsModels); err != nil {
+	if len(bs.documentsModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameDocuments, bs.documentsModels); err != nil {
 			return err
 		}
 	}
@@ -214,10 +215,10 @@ func (bs *BlockSession) prepareAccounts() error {
 
 	var accountModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
-	var bsDocumentModels []mongo.WriteModel
-	var bsDocumentsModels []mongo.WriteModel
-	var bcDocumentModels []mongo.WriteModel
-	var bcDocumentsModels []mongo.WriteModel
+	// var bsDocumentModels []mongo.WriteModel
+	// var bsDocumentsModels []mongo.WriteModel
+	var documentModels []mongo.WriteModel
+	var documentsModels []mongo.WriteModel
 
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
@@ -228,38 +229,23 @@ func (bs *BlockSession) prepareAccounts() error {
 				return err
 			}
 			accountModels = append(accountModels, j...)
-
 		case currency.IsStateBalanceKey(st.Key()):
 			j, err := bs.handleBalanceState(st)
 			if err != nil {
 				return err
 			}
 			balanceModels = append(balanceModels, j...)
-
-		case blocksign.IsStateDocumentDataKey(st.Key()):
-			if j, err := bs.handleBSDocumentDataState(st); err != nil {
-				return err
-			} else {
-
-				bsDocumentModels = append(bsDocumentModels, j...)
-			}
-		case blocksign.IsStateDocumentsKey(st.Key()):
-			if j, err := bs.handleBSDocumentsState(st); err != nil {
-				return err
-			} else {
-				bsDocumentsModels = append(bsDocumentsModels, j...)
-			}
 		case document.IsStateDocumentDataKey(st.Key()):
-			if j, err := bs.handleBCDocumentDataState(st); err != nil {
+			if j, err := bs.handleDocumentDataState(st); err != nil {
 				return err
 			} else {
-				bcDocumentModels = append(bcDocumentModels, j...)
+				documentModels = append(documentModels, j...)
 			}
 		case document.IsStateDocumentsKey(st.Key()):
-			if j, err := bs.handleBCDocumentsState(st); err != nil {
+			if j, err := bs.handleDocumentsState(st); err != nil {
 				return err
 			} else {
-				bcDocumentsModels = append(bcDocumentsModels, j...)
+				documentsModels = append(documentsModels, j...)
 			}
 		default:
 			continue
@@ -269,20 +255,21 @@ func (bs *BlockSession) prepareAccounts() error {
 	bs.accountModels = accountModels
 	bs.balanceModels = balanceModels
 
-	if len(bsDocumentModels) > 0 {
-		bs.bsDocumentModels = bsDocumentModels
+	/*
+		if len(bsDocumentModels) > 0 {
+			bs.bsDocumentModels = bsDocumentModels
+		}
+
+		if len(bsDocumentsModels) > 0 {
+			bs.bsDocumentsModels = bsDocumentsModels
+		}
+	*/
+	if len(documentModels) > 0 {
+		bs.documentModels = documentModels
 	}
 
-	if len(bsDocumentsModels) > 0 {
-		bs.bsDocumentsModels = bsDocumentsModels
-	}
-
-	if len(bcDocumentModels) > 0 {
-		bs.bcDocumentModels = bcDocumentModels
-	}
-
-	if len(bcDocumentsModels) > 0 {
-		bs.bcDocumentsModels = bcDocumentsModels
+	if len(documentsModels) > 0 {
+		bs.documentsModels = documentsModels
 	}
 
 	return nil
@@ -306,41 +293,20 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 }
 
-func (bs *BlockSession) handleBSDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
-	doc, err := blocksign.StateDocumentDataValue(st)
-	if err != nil {
-		return nil, err
-	}
-	if ndoc, err := NewBSDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
-		return nil, err
-	} else {
-		bs.bsDocumentList = append(bs.bsDocumentList, ndoc.DocumentId())
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
-	}
-}
-
-func (bs *BlockSession) handleBSDocumentsState(st state.State) ([]mongo.WriteModel, error) {
-	if doc, err := NewDocumentsDoc(st, bs.st.database.Encoder()); err != nil {
-		return nil, err
-	} else {
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
-	}
-}
-
-func (bs *BlockSession) handleBCDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
+func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteModel, error) {
 	doc, err := document.StateDocumentDataValue(st)
 	if err != nil {
 		return nil, err
 	}
-	if ndoc, err := NewBCDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
+	if ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
 		return nil, err
 	} else {
-		bs.bcDocumentList = append(bs.bcDocumentList, ndoc.DocumentId())
+		bs.documentList = append(bs.documentList, ndoc.DocumentId())
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 	}
 }
 
-func (bs *BlockSession) handleBCDocumentsState(st state.State) ([]mongo.WriteModel, error) {
+func (bs *BlockSession) handleDocumentsState(st state.State) ([]mongo.WriteModel, error) {
 	if doc, err := NewDocumentsDoc(st, bs.st.database.Encoder()); err != nil {
 		return nil, err
 	} else {
@@ -397,8 +363,10 @@ func (bs *BlockSession) close() error {
 	bs.operationModels = nil
 	bs.accountModels = nil
 	bs.balanceModels = nil
-	bs.bsDocumentModels = nil
-	bs.bsDocumentsModels = nil
+	bs.documentModels = nil
+	bs.documentsModels = nil
+	// bs.bsDocumentModels = nil
+	// bs.bsDocumentsModels = nil
 
 	return bs.st.Close()
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/util"
@@ -517,25 +516,27 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 
 	var vas []Hal
 
-	if err := hd.database.BSDocumentsByAddress(
-		address, reverse, offset, limit,
-		func(_ currency.Big, va BSDocumentValue) (bool, error) {
-			hal, err := hd.buildBSDocumentHal(va)
-			if err != nil {
-				return false, err
-			}
-			vas = append(vas, hal)
+	/*
+		if err := hd.database.BSDocumentsByAddress(
+			address, reverse, offset, limit,
+			func(_ currency.Big, va BSDocumentValue) (bool, error) {
+				hal, err := hd.buildBSDocumentHal(va)
+				if err != nil {
+					return false, err
+				}
+				vas = append(vas, hal)
 
-			return true, nil
-		},
-	); err != nil {
-		return nil, false, err
-	}
+				return true, nil
+			},
+		); err != nil {
+			return nil, false, err
+		}
+	*/
 
-	if err := hd.database.BCDocumentsByAddress(
+	if err := hd.database.DocumentsByAddress(
 		address, reverse, offset, limit,
-		func(_ string, va BCDocumentValue) (bool, error) {
-			hal, err := hd.buildBCDocumentHal(va)
+		func(_ string, va DocumentValue) (bool, error) {
+			hal, err := hd.buildDocumentHal(va)
 			if err != nil {
 				return false, err
 			}
@@ -588,7 +589,7 @@ func (hd *Handlers) buildAccountDocumentsHal(
 
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BCDocumentValue)
+		va := vas[len(vas)-1].Interface().(DocumentValue)
 		nextoffset = buildOffsetByString(va.Height(), va.Document().DocumentId())
 	}
 

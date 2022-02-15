@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/encoder"
 )
@@ -28,11 +28,11 @@ func (v *AddressFlag) Encode(enc encoder.Encoder) (base.Address, error) {
 }
 
 type FileHashFlag struct {
-	FH blocksign.FileHash
+	FH document.FileHash
 }
 
 func (v *FileHashFlag) UnmarshalText(b []byte) error {
-	fh := blocksign.FileHash(string(b))
+	fh := document.FileHash(string(b))
 	if err := fh.IsValid(nil); err != nil {
 		return err
 	}

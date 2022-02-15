@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -8,7 +8,7 @@ import (
 
 func (it *BaseSignDocumentsItem) unpack(
 	enc encoder.Encoder,
-	di currency.Big,
+	di string,
 	ow base.AddressDecoder,
 	scid string,
 

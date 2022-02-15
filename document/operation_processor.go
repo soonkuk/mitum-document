@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
@@ -151,12 +150,11 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*currency.CurrencyRegisterProcessor,
 		*currency.CurrencyPolicyUpdaterProcessor,
 		*currency.SuffrageInflationProcessor,
-		*CreateDocumentsProcessor,
 		*SignDocumentsProcessor,
-		*document.CreateDocumentsProcessor,
-		*document.UpdateDocumentsProcessor:
+		*CreateDocumentsProcessor,
+		*UpdateDocumentsProcessor:
 		return opr.process(op)
-	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, CreateDocuments, SignDocuments, document.CreateDocuments, document.UpdateDocuments:
+	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, SignDocuments, CreateDocuments, UpdateDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -177,13 +175,11 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 		sp = t
 	case *currency.KeyUpdaterProcessor:
 		sp = t
-	case *CreateDocumentsProcessor:
-		sp = t
 	case *SignDocumentsProcessor:
 		sp = t
-	case *document.CreateDocumentsProcessor:
+	case *CreateDocumentsProcessor:
 		sp = t
-	case *document.UpdateDocumentsProcessor:
+	case *UpdateDocumentsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -222,17 +218,14 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
 	case currency.CurrencyPolicyUpdater:
 		did = t.Fact().(currency.CurrencyPolicyUpdaterFact).Currency().String()
 		didtype = DuplicationTypeCurrency
-	case CreateDocuments:
-		did = t.Fact().(CreateDocumentsFact).Sender().String()
-		didtype = DuplicationTypeSender
 	case SignDocuments:
 		did = t.Fact().(SignDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
-	case document.CreateDocuments:
-		did = t.Fact().(document.CreateDocumentsFact).Sender().String()
+	case CreateDocuments:
+		did = t.Fact().(CreateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
-	case document.UpdateDocuments:
-		did = t.Fact().(document.UpdateDocumentsFact).Sender().String()
+	case UpdateDocuments:
+		did = t.Fact().(UpdateDocumentsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	default:
 		return nil
@@ -319,10 +312,9 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		currency.CurrencyRegister,
 		currency.CurrencyPolicyUpdater,
 		currency.SuffrageInflation,
-		CreateDocuments,
 		SignDocuments,
-		document.UpdateDocuments,
-		document.CreateDocuments:
+		UpdateDocuments,
+		CreateDocuments:
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil

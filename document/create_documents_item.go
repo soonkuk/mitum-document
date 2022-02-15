@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	CreateDocumentsItemImplType   = hint.Type("mitum-blockcity-create-documents-item")
+	CreateDocumentsItemImplType   = hint.Type("mitum-create-documents-item")
 	CreateDocumentsItemImplHint   = hint.NewHint(CreateDocumentsItemImplType, "v0.0.1")
 	CreateDocumentsItemImplHinter = CreateDocumentsItemImpl{BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint)}
 )

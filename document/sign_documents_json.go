@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"encoding/json"

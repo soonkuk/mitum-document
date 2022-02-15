@@ -1,6 +1,7 @@
 package document
 
 import (
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,6 +27,40 @@ func (doc *Document) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	}
 
 	return doc.unpack(enc, dod.DC)
+}
+
+func (doc BSDocData) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(doc.Hint()),
+		bson.M{
+			"info":     doc.info,
+			"owner":    doc.owner,
+			"filehash": doc.fileHash,
+			"creator":  doc.creator,
+			"title":    doc.title,
+			"size":     doc.size,
+			"signers":  doc.signers,
+		}),
+	)
+}
+
+type BSDocDataBSONUnpacker struct {
+	DI bson.Raw            `bson:"info"`
+	OW base.AddressDecoder `bson:"owner"`
+	FH string              `bson:"filehash"`
+	CR bson.Raw            `bson:"creator"`
+	TL string              `bson:"title"`
+	SZ currency.Big        `bson:"size"`
+	SG bson.Raw            `bson:"signers"`
+}
+
+func (doc *BSDocData) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var udoc BSDocDataBSONUnpacker
+	if err := enc.Unmarshal(b, &udoc); err != nil {
+		return err
+	}
+
+	return doc.unpack(enc, udoc.DI, udoc.OW, udoc.FH, udoc.CR, udoc.TL, udoc.SZ, udoc.SG)
 }
 
 func (doc BCUserData) MarshalBSON() ([]byte, error) {
@@ -222,6 +257,32 @@ func (di *DocInfo) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, udi.ID, udi.DT)
 }
 
+func (ds DocSign) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(ds.Hint()),
+		bson.M{
+			"address":  ds.address,
+			"signcode": ds.signcode,
+			"signed":   ds.signed,
+		}),
+	)
+}
+
+type DocSignBSONUnpacker struct {
+	AD base.AddressDecoder `bson:"address"`
+	SC string              `bson:"signcode"`
+	SG bool                `bson:"signed"`
+}
+
+func (ds *DocSign) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uds DocSignBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &uds); err != nil {
+		return err
+	}
+
+	return ds.unpack(enc, uds.AD, uds.SC, uds.SG)
+}
+
 func (di VotingCandidate) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
@@ -248,7 +309,11 @@ func (di *VotingCandidate) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, uvc.AD, uvc.NC, uvc.MA)
 }
 
-func (di UserDocId) MarshalBSON() ([]byte, error) {
+type DocIdBSONUnpacker struct {
+	BI string `bson:"id"`
+}
+
+func (di BSDocId) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -257,8 +322,22 @@ func (di UserDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-type DocIdBSONUnpacker struct {
-	BI string `bson:"id"`
+func (di *BSDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var udi DocIdBSONUnpacker
+	if err := bsonenc.Unmarshal(b, &udi); err != nil {
+		return err
+	}
+
+	return di.unpack(enc, udi.BI)
+}
+
+func (di UserDocId) MarshalBSON() ([]byte, error) {
+	return bsonenc.Marshal(bsonenc.MergeBSONM(
+		bsonenc.NewHintedDoc(di.Hint()),
+		bson.M{
+			"id": di.s,
+		}),
+	)
 }
 
 func (di *UserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {

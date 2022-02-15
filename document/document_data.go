@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	DocumentType   = hint.Type("mitum-blockcity-document")
+	DocumentType   = hint.Type("mitum-document")
 	DocumentHint   = hint.NewHint(DocumentType, "v0.0.1")
 	DocumentHinter = Document{BaseHinter: hint.NewBaseHinter(DocumentHint)}
 )
@@ -100,19 +100,178 @@ type DocumentData interface {
 }
 
 var (
-	SignDocuDataType   = hint.Type("mitum-blocksign-document-data")
-	SignDocuDataHint   = hint.NewHint(SignDocuDataType, "v0.0.1")
-	SignDocuDataHinter = SignDocuData{BaseHinter: hint.NewBaseHinter(SignDocuDataHint)}
+	BSDocDataType   = hint.Type("mitum-blocksign-document-data")
+	BSDocDataHint   = hint.NewHint(BSDocDataType, "v0.0.1")
+	BSDocDataHinter = BSDocData{BaseHinter: hint.NewBaseHinter(BSDocDataHint)}
 )
 
-type SignDocuData struct {
+type BSDocData struct {
 	hint.BaseHinter
 	info     DocInfo
+	owner    base.Address
 	fileHash FileHash
 	creator  DocSign
 	title    string
 	size     currency.Big
 	signers  []DocSign
+}
+
+func NewBSDocData(info DocInfo,
+	owner base.Address,
+	fileHash FileHash,
+	creator DocSign,
+	title string,
+	size currency.Big,
+	signers []DocSign,
+) BSDocData {
+	doc := BSDocData{
+		BaseHinter: hint.NewBaseHinter(BSDocDataHint),
+		info:       info,
+		owner:      owner,
+		fileHash:   fileHash,
+		creator:    creator,
+		title:      title,
+		size:       size,
+		signers:    signers,
+	}
+
+	return doc
+}
+
+func MustNewBSDocData(info DocInfo, owner base.Address, fileHash FileHash, creator DocSign, title string, size currency.Big, signers []DocSign) BSDocData {
+	doc := NewBSDocData(info, owner, fileHash, creator, title, size, signers)
+	if err := doc.IsValid(nil); err != nil {
+		panic(err)
+	}
+
+	return doc
+}
+
+func (doc BSDocData) DocumentId() string {
+	return doc.info.DocumentId()
+}
+
+func (doc BSDocData) DocumentType() hint.Type {
+	return doc.info.docType
+}
+
+func (doc BSDocData) Bytes() []byte {
+	bs := make([][]byte, len(doc.signers)+6)
+
+	bs[0] = doc.info.Bytes()
+	bs[1] = doc.owner.Bytes()
+	bs[2] = doc.fileHash.Bytes()
+	bs[3] = doc.creator.Bytes()
+	bs[4] = []byte(doc.title)
+	bs[5] = doc.size.Bytes()
+	for i := range doc.signers {
+		bs[i+6] = doc.signers[i].Bytes()
+	}
+
+	return util.ConcatBytesSlice(bs...)
+}
+
+func (doc BSDocData) Hash() valuehash.Hash {
+	return doc.GenerateHash()
+}
+
+func (doc BSDocData) GenerateHash() valuehash.Hash {
+	return valuehash.NewSHA256(doc.Bytes())
+}
+
+func (doc BSDocData) IsEmpty() bool {
+	return len(doc.info.DocType()) < 1
+}
+
+func (doc BSDocData) IsValid([]byte) error {
+	if doc.info.docType != doc.Hint().Type() {
+		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+	}
+
+	if err := isvalid.Check(
+		nil, false,
+		doc.BaseHinter,
+		doc.info,
+		doc.owner,
+		doc.creator,
+	); err != nil {
+		return isvalid.InvalidError.Errorf("invalid User Document Data: %w", err)
+	}
+
+	for i := range doc.signers {
+		c := doc.signers[i]
+		if err := c.IsValid(nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (doc BSDocData) Owner() base.Address {
+	return doc.owner
+}
+
+func (doc BSDocData) Creator() DocSign {
+	return doc.creator
+}
+
+func (doc BSDocData) Signers() []DocSign {
+	return doc.signers
+}
+
+func (doc BSDocData) Accounts() []base.Address {
+	var as []base.Address
+	for i := range doc.signers {
+		as = append(as, doc.signers[i].Address())
+	}
+	return as
+}
+
+func (doc BSDocData) Info() DocInfo {
+	return doc.info
+}
+
+func (doc BSDocData) Equal(b BSDocData) bool {
+
+	if doc.info.DocType() != b.info.DocType() {
+		return false
+	}
+
+	if !doc.owner.Equal(b.owner) {
+		return false
+	}
+
+	if !doc.creator.Equal(b.creator) {
+		return false
+	}
+
+	if !doc.fileHash.Equal(b.fileHash) {
+		return false
+	}
+
+	if doc.title != b.title {
+		return false
+	}
+
+	if doc.size != b.size {
+		return false
+	}
+
+	sort.Slice(doc.signers, func(i, j int) bool {
+		return bytes.Compare(doc.signers[i].Bytes(), doc.signers[j].Bytes()) < 0
+	})
+	sort.Slice(b.signers, func(i, j int) bool {
+		return bytes.Compare(b.signers[i].Bytes(), b.signers[j].Bytes()) < 0
+	})
+
+	for i := range doc.signers {
+		if !doc.signers[i].Equal(b.signers[i]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 var (

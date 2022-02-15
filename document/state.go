@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	StateKeyDocumentsSuffix    = ":bcDocuments"
-	StateKeyDocumentDataSuffix = ":bcDocumentData"
+	StateKeyDocumentsSuffix    = ":Documents"
+	StateKeyDocumentDataSuffix = ":DocumentData"
 )
 
 func StateKeyDocumentData(documentid string) string {

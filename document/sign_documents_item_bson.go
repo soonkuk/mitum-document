@@ -1,7 +1,6 @@
-package blocksign // nolint:dupl
+package document // nolint:dupl
 
 import (
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +18,7 @@ func (it BaseSignDocumentsItem) MarshalBSON() ([]byte, error) {
 }
 
 type SignDocumentsItemBSONUnpacker struct {
-	DI currency.Big        `bson:"documentid"`
+	DI string              `bson:"documentid"`
 	OW base.AddressDecoder `bson:"owner"`
 	CI string              `bson:"currency"`
 }

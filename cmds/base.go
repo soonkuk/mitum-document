@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
 	"github.com/soonkuk/mitum-blocksign/document"
 	"gopkg.in/yaml.v3"
 
@@ -148,17 +147,15 @@ func AttachProposalProcessor(
 	nodepool *network.Nodepool,
 	suffrage base.Suffrage,
 	cp *currency.CurrencyPool,
-) (*blocksign.OperationProcessor, error) {
-	opr := blocksign.NewOperationProcessor(cp)
+) (*document.OperationProcessor, error) {
+	opr := document.NewOperationProcessor(cp)
 	if _, err := opr.SetProcessor(currency.CreateAccountsHinter, currency.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.KeyUpdaterHinter, currency.NewKeyUpdaterProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.TransfersHinter, currency.NewTransfersProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(blocksign.CreateDocumentsHinter, blocksign.NewCreateDocumentsProcessor(cp)); err != nil {
-		return nil, err
-	} else if _, err := opr.SetProcessor(blocksign.SignDocumentsHinter, blocksign.NewSignDocumentsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(document.SignDocumentsHinter, document.NewSignDocumentsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(document.CreateDocumentsHinter, document.NewCreateDocumentsProcessor(cp)); err != nil {
 		return nil, err
@@ -202,7 +199,7 @@ func AttachProposalProcessor(
 	return opr, nil
 }
 
-func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationProcessor) (context.Context, error) {
+func InitializeProposalProcessor(ctx context.Context, opr *document.OperationProcessor) (context.Context, error) {
 	var oprs *hint.Hintmap
 	if err := process.LoadOperationProcessorsContextValue(ctx, &oprs); err != nil {
 		if !errors.Is(err, util.ContextValueNotFoundError) {
@@ -223,8 +220,7 @@ func InitializeProposalProcessor(ctx context.Context, opr *blocksign.OperationPr
 		currency.CurrencyPolicyUpdaterHinter,
 		currency.CurrencyRegisterHinter,
 		currency.SuffrageInflationHinter,
-		blocksign.CreateDocumentsHinter,
-		blocksign.SignDocumentsHinter,
+		document.SignDocumentsHinter,
 		document.CreateDocumentsHinter,
 		document.UpdateDocumentsHinter,
 	} {

@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	CreateDocumentsFactType   = hint.Type("mitum-blockcity-create-documents-operation-fact")
+	CreateDocumentsFactType   = hint.Type("mitum-create-documents-operation-fact")
 	CreateDocumentsFactHint   = hint.NewHint(CreateDocumentsFactType, "v0.0.1")
 	CreateDocumentsFactHinter = CreateDocumentsFact{BaseHinter: hint.NewBaseHinter(CreateDocumentsFactHint)}
-	CreateDocumentsType       = hint.Type("mitum-blockcity-create-documents-operation")
+	CreateDocumentsType       = hint.Type("mitum-create-documents-operation")
 	CreateDocumentsHint       = hint.NewHint(CreateDocumentsType, "v0.0.1")
 	CreateDocumentsHinter     = CreateDocuments{BaseOperation: operationHinter(CreateDocumentsHint)}
 )

@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	UpdateDocumentsFactType   = hint.Type("mitum-blockcity-update-documents-operation-fact")
+	UpdateDocumentsFactType   = hint.Type("mitum-update-documents-operation-fact")
 	UpdateDocumentsFactHint   = hint.NewHint(UpdateDocumentsFactType, "v0.0.1")
 	UpdateDocumentsFactHinter = UpdateDocumentsFact{BaseHinter: hint.NewBaseHinter(UpdateDocumentsFactHint)}
-	UpdateDocumentsType       = hint.Type("mitum-blockcity-update-documents-operation")
+	UpdateDocumentsType       = hint.Type("mitum-update-documents-operation")
 	UpdateDocumentsHint       = hint.NewHint(UpdateDocumentsType, "v0.0.1")
 	UpdateDocumentsHinter     = UpdateDocuments{BaseOperation: operationHinter(UpdateDocumentsHint)}
 )

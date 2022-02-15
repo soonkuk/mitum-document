@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"sync"
@@ -71,17 +71,17 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		opp.ndinvs = st
 	}
 
-	docinfo, err := opp.dinv.Get(opp.item.DocumentId())
+	_, err := opp.dinv.Get(opp.item.DocumentId())
 	if err != nil {
 		return err
 	}
 
 	// check existence of new document state with documentid
-	switch st, found, err := getState(StateKeyDocumentData(DocId(docinfo.Index()))); {
+	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentId())); {
 	case err != nil:
 		return err
 	case !found:
-		return operation.NewBaseReasonError("document not registered with documentid, %q", docinfo.Index())
+		return operation.NewBaseReasonError("document not registered with documentid, %q", opp.item.DocumentId())
 	default:
 		opp.nds = st
 	}
@@ -91,20 +91,24 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		return err
 	}
 
-	if !dd.Creator().Equal(opp.item.Owner()) {
+	v, ok := dd.(BSDocData)
+	if !ok {
+		return operation.NewBaseReasonError("Document is not Blocksign Document, %v", opp.item.DocumentId())
+	}
+	if !v.Creator().Address().Equal(opp.item.Owner()) {
 		return operation.NewBaseReasonError("Owner not matched with creator in document, %v", opp.item.Owner())
 	}
 
-	if len(dd.Signers()) < 1 {
+	if len(v.Signers()) < 1 {
 		return operation.NewBaseReasonError("sender not found in document Signers, %v", opp.sender)
 	}
 	// check signer exist in document data signers
-	for i := range dd.Signers() {
-		if dd.Signers()[i].Address().Equal(opp.sender) {
-			dd.Signers()[i].SetSigned()
+	for i := range v.Signers() {
+		if v.Signers()[i].Address().Equal(opp.sender) {
+			v.Signers()[i].SetSigned()
 			break
 		}
-		if i == (len(dd.Signers()) - 1) {
+		if i == (len(v.Signers()) - 1) {
 			return operation.NewBaseReasonError("sender not found in document Signers, %v", opp.sender)
 		}
 	}

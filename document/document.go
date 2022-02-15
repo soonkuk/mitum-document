@@ -117,7 +117,7 @@ func (us UserStatistics) Equal(b UserStatistics) bool {
 }
 
 var (
-	DocInfoType   = hint.Type("mitum-blockcity-document-info")
+	DocInfoType   = hint.Type("mitum-document-info")
 	DocInfoHint   = hint.NewHint(DocInfoType, "v0.0.1")
 	DocInfoHinter = DocInfo{BaseHinter: hint.NewBaseHinter(DocInfoHint)}
 )
@@ -131,6 +131,8 @@ type DocInfo struct {
 func NewDocInfo(id string, docType hint.Type) DocInfo {
 	var i DocId
 	switch docType {
+	case BSDocDataType:
+		i = NewBSDocId(id)
 	case BCUserDataType:
 		i = NewUserDocId(id)
 	case BCLandDataType:

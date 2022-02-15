@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/util/hint"
 )
@@ -18,8 +18,8 @@ var factTypesByHint = map[string]hint.Hinter{
 	"create-accounts":   currency.CreateAccountsHinter,
 	"key-updater":       currency.KeyUpdaterHinter,
 	"transfers":         currency.TransfersHinter,
-	"create-documents":  blocksign.CreateDocumentsHinter,
-	"sign-documents":    blocksign.SignDocumentsHinter,
+	"create-documents":  document.CreateDocumentsHinter,
+	"sign-documents":    document.SignDocumentsHinter,
 	"currency-register": currency.CurrencyRegisterHinter,
 }
 

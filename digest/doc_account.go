@@ -2,7 +2,7 @@ package digest
 
 import (
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -117,7 +117,7 @@ func (doc DocumentsDoc) MarshalBSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	address := doc.st.Key()[:len(doc.st.Key())-len(blocksign.StateKeyDocumentsSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(document.StateKeyDocumentsSuffix)]
 	m["address"] = address
 	m["height"] = doc.st.Height()
 

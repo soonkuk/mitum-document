@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -9,12 +9,12 @@ import (
 
 type BaseSignDocumentsItem struct {
 	hint.BaseHinter
-	id    currency.Big
+	id    string
 	owner base.Address
 	cid   currency.CurrencyID
 }
 
-func NewBaseSignDocumentsItem(ht hint.Hint, id currency.Big, owner base.Address, cid currency.CurrencyID) BaseSignDocumentsItem {
+func NewBaseSignDocumentsItem(ht hint.Hint, id string, owner base.Address, cid currency.CurrencyID) BaseSignDocumentsItem {
 	return BaseSignDocumentsItem{
 		BaseHinter: hint.NewBaseHinter(ht),
 		id:         id,
@@ -25,7 +25,7 @@ func NewBaseSignDocumentsItem(ht hint.Hint, id currency.Big, owner base.Address,
 
 func (it BaseSignDocumentsItem) Bytes() []byte {
 	bs := make([][]byte, 3)
-	bs[0] = it.id.Bytes()
+	bs[0] = []byte(it.id)
 	bs[1] = it.owner.Bytes()
 	bs[2] = it.cid.Bytes()
 
@@ -33,10 +33,6 @@ func (it BaseSignDocumentsItem) Bytes() []byte {
 }
 
 func (it BaseSignDocumentsItem) IsValid([]byte) error {
-
-	if err := it.id.IsValid(nil); err != nil {
-		return err
-	}
 
 	if err := it.owner.IsValid(nil); err != nil {
 		return err
@@ -50,7 +46,7 @@ func (it BaseSignDocumentsItem) IsValid([]byte) error {
 }
 
 // FileHash return BaseCreateDocumetsItem's owner address.
-func (it BaseSignDocumentsItem) DocumentId() currency.Big {
+func (it BaseSignDocumentsItem) DocumentId() string {
 	return it.id
 }
 

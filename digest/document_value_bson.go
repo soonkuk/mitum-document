@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+/*
 func (dv BSDocumentValue) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(dv.Hint()),
@@ -29,8 +30,9 @@ func (dv *BSDocumentValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 
 	return dv.unpack(enc, uva.DM, uva.HT)
 }
+*/
 
-func (dv BCDocumentValue) MarshalBSON() ([]byte, error) {
+func (dv DocumentValue) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(dv.Hint()),
 		bson.M{
@@ -40,13 +42,13 @@ func (dv BCDocumentValue) MarshalBSON() ([]byte, error) {
 	))
 }
 
-type BCDocumentValueBSONUnpacker struct {
+type DocumentValueBSONUnpacker struct {
 	DM bson.Raw    `bson:"document"`
 	HT base.Height `bson:"height"`
 }
 
-func (dv *BCDocumentValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var uva BSDocumentValueBSONUnpacker
+func (dv *DocumentValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uva DocumentValueBSONUnpacker
 	if err := enc.Unmarshal(b, &uva); err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -16,7 +16,7 @@ type SignDocumentsItemSingleFile struct {
 	BaseSignDocumentsItem
 }
 
-func NewSignDocumentsItemSingleFile(docId currency.Big, owner base.Address, cid currency.CurrencyID) SignDocumentsItemSingleFile {
+func NewSignDocumentsItemSingleFile(docId string, owner base.Address, cid currency.CurrencyID) SignDocumentsItemSingleFile {
 	return SignDocumentsItemSingleFile{
 		BaseSignDocumentsItem: NewBaseSignDocumentsItem(SignItemSingleDocumentHint, docId, owner, cid),
 	}

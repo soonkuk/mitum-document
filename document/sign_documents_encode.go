@@ -1,4 +1,4 @@
-package blocksign
+package document
 
 import (
 	"github.com/spikeekips/mitum/base"

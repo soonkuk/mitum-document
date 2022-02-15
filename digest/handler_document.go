@@ -8,12 +8,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+/*
 func (hd *Handlers) handleBSDocument(w http.ResponseWriter, r *http.Request) {
 
 	cachekey := CacheKeyPath(r)
@@ -41,7 +41,9 @@ func (hd *Handlers) handleBSDocument(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+*/
 
+/*
 func (hd *Handlers) handleBSDocumentInGroup(i string) ([]byte, error) {
 	switch va, found, err := hd.database.BSDocument(i); {
 	case err != nil:
@@ -59,6 +61,7 @@ func (hd *Handlers) handleBSDocumentInGroup(i string) ([]byte, error) {
 		return hd.enc.Marshal(hal)
 	}
 }
+*/
 
 func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
@@ -138,7 +141,7 @@ func (hd *Handlers) handleDocumentsInGroup(
 	return b, int64(len(vas)) == limit, err
 }
 
-func (hd *Handlers) handleBCDocument(w http.ResponseWriter, r *http.Request) {
+func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 
 	cachekey := CacheKeyPath(r)
 
@@ -154,7 +157,7 @@ func (hd *Handlers) handleBCDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		return hd.handleBCDocumentInGroup(h)
+		return hd.handleDocumentInGroup(h)
 	}); err != nil {
 		HTTP2HandleError(w, err)
 	} else {
@@ -166,18 +169,18 @@ func (hd *Handlers) handleBCDocument(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (hd *Handlers) handleBCDocumentInGroup(i string) ([]byte, error) {
-	switch va, found, err := hd.database.BCDocument(i); {
+func (hd *Handlers) handleDocumentInGroup(i string) ([]byte, error) {
+	switch va, found, err := hd.database.Document(i); {
 	case err != nil:
 		return nil, err
 	case !found:
 		return nil, util.NotFoundError.Errorf("document value not found")
 	default:
-		hal, err := hd.buildBCDocumentHal(va)
+		hal, err := hd.buildDocumentHal(va)
 		if err != nil {
 			return nil, err
 		}
-		hal = hal.AddLink("bcdocument:{documentid}", NewHalLink(HandlerPathBCDocument, nil).SetTemplated())
+		hal = hal.AddLink("bcdocument:{documentid}", NewHalLink(HandlerPathDocument, nil).SetTemplated())
 		hal = hal.AddLink("block:{height}", NewHalLink(HandlerPathBlockByHeight, nil).SetTemplated())
 
 		return hd.enc.Marshal(hal)
@@ -275,6 +278,7 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	return b, int64(len(vas)) == limit, err
 }
 
+/*
 func (hd *Handlers) buildBSDocumentHal(va BSDocumentValue) (Hal, error) {
 	var hal Hal
 
@@ -298,11 +302,11 @@ func (hd *Handlers) buildBSDocumentHal(va BSDocumentValue) (Hal, error) {
 
 	return hal, nil
 }
-
-func (hd *Handlers) buildBCDocumentHal(va BCDocumentValue) (Hal, error) {
+*/
+func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
 	var hal Hal
 
-	h, err := hd.combineURL(HandlerPathBCDocument, "documentid", va.Document().DocumentId())
+	h, err := hd.combineURL(HandlerPathDocument, "documentid", va.Document().DocumentId())
 	if err != nil {
 		return nil, err
 	}
@@ -399,8 +403,8 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, rev
 func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BSDocumentValue)
-		nextoffset = buildOffset(va.Height(), va.Document().Info().Index().Uint64())
+		va := vas[len(vas)-1].Interface().(DocumentValue)
+		nextoffset = buildOffsetByString(va.Height(), va.Document().DocumentId())
 	}
 
 	if len(nextoffset) < 1 {
@@ -422,8 +426,8 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
-		va := vas[len(vas)-1].Interface().(BSDocumentValue)
-		nextoffset = fmt.Sprintf("%d", va.Document().Info().Index().Uint64())
+		va := vas[len(vas)-1].Interface().(DocumentValue)
+		nextoffset = fmt.Sprintf("%s", va.Document().DocumentId())
 	}
 
 	if len(nextoffset) < 1 {
@@ -444,27 +448,30 @@ func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) str
 
 func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, limit int64) ([]Hal, error) {
 	var vas []Hal
-	if err := hd.database.BSDocuments(
-		filter, reverse, limit,
-		func(_ currency.Big, va BSDocumentValue) (bool, error) {
-			hal, err := hd.buildBSDocumentHal(va)
-			if err != nil {
-				return false, err
-			}
-			vas = append(vas, hal)
 
-			return true, nil
-		},
-	); err != nil {
-		return nil, err
-	} else if len(vas) < 1 {
-		return nil, nil
-	}
+	/*
+		if err := hd.database.BSDocuments(
+			filter, reverse, limit,
+			func(_ currency.Big, va BSDocumentValue) (bool, error) {
+				hal, err := hd.buildBSDocumentHal(va)
+				if err != nil {
+					return false, err
+				}
+				vas = append(vas, hal)
 
-	if err := hd.database.BCDocuments(
+				return true, nil
+			},
+		); err != nil {
+			return nil, err
+		} else if len(vas) < 1 {
+			return nil, nil
+		}
+	*/
+
+	if err := hd.database.Documents(
 		filter, reverse, limit,
-		func(_ string, va BCDocumentValue) (bool, error) {
-			hal, err := hd.buildBCDocumentHal(va)
+		func(_ string, va DocumentValue) (bool, error) {
+			hal, err := hd.buildDocumentHal(va)
 			if err != nil {
 				return false, err
 			}

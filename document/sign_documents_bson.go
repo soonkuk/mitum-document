@@ -1,4 +1,4 @@
-package blocksign // nolint: dupl
+package document // nolint: dupl
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
@@ -9,7 +9,7 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-func (fact CreateDocumentsFact) MarshalBSON() ([]byte, error) {
+func (fact SignDocumentsFact) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(fact.Hint()),
 			bson.M{
@@ -20,15 +20,15 @@ func (fact CreateDocumentsFact) MarshalBSON() ([]byte, error) {
 			}))
 }
 
-type CreateDocumentsFactBSONUnpacker struct {
+type SignDocumentsFactBSONUnpacker struct {
 	H  valuehash.Bytes     `bson:"hash"`
 	TK []byte              `bson:"token"`
 	SD base.AddressDecoder `bson:"sender"`
 	IT bson.Raw            `bson:"items"`
 }
 
-func (fact *CreateDocumentsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var uca CreateDocumentsFactBSONUnpacker
+func (fact *SignDocumentsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+	var uca SignDocumentsFactBSONUnpacker
 	if err := bson.Unmarshal(b, &uca); err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (fact *CreateDocumentsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) erro
 	return fact.unpack(enc, uca.H, uca.TK, uca.SD, uca.IT)
 }
 
-func (op *CreateDocuments) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (op *SignDocuments) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var ubo currency.BaseOperation
 	if err := ubo.UnpackBSON(b, enc); err != nil {
 		return err

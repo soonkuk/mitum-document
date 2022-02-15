@@ -7,7 +7,7 @@ import (
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/util"
 
-	"github.com/soonkuk/mitum-blocksign/blocksign"
+	"github.com/soonkuk/mitum-blocksign/document"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 )
@@ -16,7 +16,7 @@ type SignDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
 	Sender   currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	DocId    currencycmds.BigFlag        `arg:"" name:"documentid" help:"document id" required:""`
+	DocId    string                      `arg:"" name:"documentid" help:"document id" required:""`
 	Owner    currencycmds.AddressFlag    `arg:"" name:"owner" help:"owner address" required:""`
 	Currency currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
 	Seal     mitumcmds.FileLoad          `help:"seal" optional:""`
@@ -80,18 +80,18 @@ func (cmd *SignDocumentCommand) parseFlags() error {
 }
 
 func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
-	var items []blocksign.SignDocumentItem
+	var items []document.SignDocumentItem
 	if i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID()); err != nil {
 		return nil, err
 	} else {
 		for j := range i {
-			if t, ok := i[j].(blocksign.SignDocuments); ok {
-				items = t.Fact().(blocksign.SignDocumentsFact).Items()
+			if t, ok := i[j].(document.SignDocuments); ok {
+				items = t.Fact().(document.SignDocumentsFact).Items()
 			}
 		}
 	}
 
-	item := blocksign.NewSignDocumentsItemSingleFile(cmd.DocId.Big, cmd.owner, cmd.Currency.CID)
+	item := document.NewSignDocumentsItemSingleFile(cmd.DocId, cmd.owner, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 		items = append(items, item)
 	}
 
-	fact := blocksign.NewSignDocumentsFact([]byte(cmd.Token), cmd.sender, items)
+	fact := document.NewSignDocumentsFact([]byte(cmd.Token), cmd.sender, items)
 
 	var fs []base.FactSign
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
@@ -108,7 +108,7 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 	}
 	fs = append(fs, base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 
-	op, err := blocksign.NewSignDocuments(fact, fs, cmd.Memo)
+	op, err := document.NewSignDocuments(fact, fs, cmd.Memo)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create sign-document operation")
 	}

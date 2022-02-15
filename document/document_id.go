@@ -19,6 +19,8 @@ func NewDocId(id string) (did DocId) {
 	}
 
 	switch ty {
+	case BSDocIdType:
+		did = NewBSDocId(id)
 	case UserDocIdType:
 		did = NewUserDocId(id)
 	case LandDocIdType:
@@ -36,10 +38,75 @@ func NewDocId(id string) (did DocId) {
 var DocIdShortTypeSize = 3
 
 var DocIdShortTypeMap = map[string]hint.Type{
+	"sdi": BSDocIdType,
 	"cui": UserDocIdType,
 	"cli": LandDocIdType,
 	"cvi": VotingDocIdType,
 	"chi": HistoryDocIdType,
+}
+
+var (
+	BSDocIdType   = hint.Type("mitum-document-id")
+	BSDocIdHint   = hint.NewHint(BSDocIdType, "v0.0.1")
+	BSDocIdHinter = BSDocId{BaseHinter: hint.NewBaseHinter(BSDocIdHint)}
+)
+
+type BSDocId struct {
+	hint.BaseHinter
+	s string
+}
+
+func NewBSDocId(id string) BSDocId {
+	return NewBSDocIdWithHint(BSDocIdHint, id)
+}
+
+func NewBSDocIdWithHint(ht hint.Hint, id string) BSDocId {
+
+	return BSDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
+}
+
+func MustNewBSDocId(id string) BSDocId {
+	uid := NewBSDocId(id)
+	if err := uid.IsValid(nil); err != nil {
+		panic(err)
+	}
+
+	return uid
+}
+
+func (ui BSDocId) IsValid([]byte) error {
+	if _, _, err := ParseDocId(string(ui.s)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ui BSDocId) String() string {
+	return ui.s
+}
+
+func (ui BSDocId) Hint() hint.Hint {
+	return ui.BaseHinter.Hint()
+}
+
+func (ui BSDocId) Bytes() []byte {
+	return []byte(ui.s)
+}
+
+func (ui BSDocId) Equal(b UserDocId) bool {
+	if (b == UserDocId{}) {
+		return false
+	}
+
+	if ui.Hint().Type() != b.Hint().Type() {
+		return false
+	}
+
+	if err := b.IsValid(nil); err != nil {
+		return false
+	}
+
+	return string(ui.s) == b.String()
 }
 
 var (

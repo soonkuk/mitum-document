@@ -358,20 +358,22 @@ type VotingCandidate struct {
 	address  base.Address
 	nickname string
 	manifest string
+	count    uint
 }
 
-func NewVotingCandidate(address base.Address, nickname, manifest string) VotingCandidate {
+func NewVotingCandidate(address base.Address, nickname, manifest string, count uint) VotingCandidate {
 	votingCandidate := VotingCandidate{
 		BaseHinter: hint.NewBaseHinter(VotingCandidateHint),
 		address:    address,
 		nickname:   nickname,
 		manifest:   manifest,
+		count:      count,
 	}
 	return votingCandidate
 }
 
-func MustNewVotingCandidate(address base.Address, nickname, manifest string) VotingCandidate {
-	votingCandidate := NewVotingCandidate(address, nickname, manifest)
+func MustNewVotingCandidate(address base.Address, nickname, manifest string, count uint) VotingCandidate {
+	votingCandidate := NewVotingCandidate(address, nickname, manifest, count)
 	if err := votingCandidate.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -384,7 +386,7 @@ func (vc VotingCandidate) Address() base.Address {
 
 func (vc VotingCandidate) Bytes() []byte {
 
-	return util.ConcatBytesSlice(vc.address.Bytes(), []byte(vc.nickname), []byte(vc.manifest))
+	return util.ConcatBytesSlice(vc.address.Bytes(), []byte(vc.nickname), []byte(vc.manifest), util.UintToBytes(vc.count))
 }
 
 func (vc VotingCandidate) Hash() valuehash.Hash {
@@ -410,9 +412,9 @@ func (vc VotingCandidate) IsValid([]byte) error {
 }
 
 func (vc VotingCandidate) String() string {
-	return fmt.Sprintf("%s:%s:%s", vc.address.String(), vc.nickname, vc.manifest)
+	return fmt.Sprintf("%s:%s:%s:%s", vc.address.String(), vc.nickname, vc.manifest, fmt.Sprint(vc.count))
 }
 
 func (vc VotingCandidate) Equal(b VotingCandidate) bool {
-	return vc.address.Equal(b.address) && vc.nickname == b.nickname && vc.manifest == b.manifest
+	return vc.address.Equal(b.address) && vc.nickname == b.nickname && vc.manifest == b.manifest && vc.count == b.count
 }

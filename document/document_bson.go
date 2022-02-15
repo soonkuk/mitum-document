@@ -290,6 +290,7 @@ func (di VotingCandidate) MarshalBSON() ([]byte, error) {
 			"address":  di.address,
 			"nickname": di.nickname,
 			"manifest": di.manifest,
+			"count":    di.count,
 		}),
 	)
 }
@@ -298,6 +299,7 @@ type VotingCandidateBSONUnpacker struct {
 	AD base.AddressDecoder `bson:"address"`
 	NC string              `bson:"nickname"`
 	MA string              `bson:"manifest"`
+	CT uint                `bson:"count"`
 }
 
 func (di *VotingCandidate) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
@@ -306,7 +308,7 @@ func (di *VotingCandidate) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return di.unpack(enc, uvc.AD, uvc.NC, uvc.MA)
+	return di.unpack(enc, uvc.AD, uvc.NC, uvc.MA, uvc.CT)
 }
 
 type DocIdBSONUnpacker struct {

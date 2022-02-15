@@ -31,11 +31,9 @@ import (
 var maxLimit int64 = 50
 
 var (
-	defaultColNameAccount = "digest_ac"
-	// defaultColNameBSDocument  = "digest_bs_dm"
-	defaultColNameDocument = "digest_bc_dm"
-	// defaultColNameBSDocuments = "digst_bs_dv"
-	defaultColNameDocuments = "digest_bc_dv"
+	defaultColNameAccount   = "digest_ac"
+	defaultColNameDocument  = "digest_dm"
+	defaultColNameDocuments = "digest_dv"
 	defaultColNameBalance   = "digest_bl"
 	defaultColNameOperation = "digest_op"
 )
@@ -44,9 +42,7 @@ var AllCollections = []string{
 	defaultColNameAccount,
 	defaultColNameBalance,
 	defaultColNameOperation,
-	// defaultColNameBSDocument,
 	defaultColNameDocument,
-	// defaultColNameBSDocuments,
 	defaultColNameDocuments,
 }
 
@@ -1166,24 +1162,22 @@ func buildOperationsFilterByAddress(address base.Address, offset string, reverse
 func buildDocumentsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
 	filter := bson.M{"addresses": bson.M{"$in": []string{address.String()}}}
 	if len(offset) > 0 {
-		height, documentid, err := parseOffset(offset)
+		height, documentid, err := parseOffsetByString(offset)
 		if err != nil {
 			return nil, err
 		}
 
 		if reverse {
 			filter["$or"] = []bson.M{
-				{"height": bson.M{"$lt": height}},
+				{"height": bson.M{"$gt": height}},
 				{"$and": []bson.M{
-					{"height": height},
-					{"documentid": bson.M{"$lt": documentid}},
+					{"documentid": bson.M{"$gt": documentid}},
 				}},
 			}
 		} else {
 			filter["$or"] = []bson.M{
 				{"height": bson.M{"$gt": height}},
 				{"$and": []bson.M{
-					{"height": height},
 					{"documentid": bson.M{"$gt": documentid}},
 				}},
 			}

@@ -356,6 +356,7 @@ type VotingCandidatesJSONPacker struct {
 	AD base.Address `json:"address"`
 	NC string       `json:"nickname"`
 	MA string       `json:"manifest"`
+	CT uint         `json:"count"`
 }
 
 func (vc VotingCandidate) MarshalJSON() ([]byte, error) {
@@ -364,6 +365,7 @@ func (vc VotingCandidate) MarshalJSON() ([]byte, error) {
 		AD:         vc.address,
 		NC:         vc.nickname,
 		MA:         vc.manifest,
+		CT:         vc.count,
 	})
 }
 
@@ -371,6 +373,7 @@ type VotingCandidatesJSONUnpacker struct {
 	AD base.AddressDecoder `json:"address"`
 	NC string              `json:"nickname"`
 	MA string              `json:"manifest"`
+	CT uint                `json:"count"`
 }
 
 func (vc *VotingCandidate) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -379,7 +382,7 @@ func (vc *VotingCandidate) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return vc.unpack(enc, uvc.AD, uvc.NC, uvc.MA)
+	return vc.unpack(enc, uvc.AD, uvc.NC, uvc.MA, uvc.CT)
 }
 
 type DocIdJSONPacker struct {

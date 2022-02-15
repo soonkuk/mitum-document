@@ -341,6 +341,7 @@ func (vc *VotingCandidate) unpack(
 	ad base.AddressDecoder,
 	snc string,
 	sma string,
+	ct uint,
 ) error {
 
 	// decode address
@@ -351,6 +352,7 @@ func (vc *VotingCandidate) unpack(
 	vc.address = va
 	vc.nickname = snc
 	vc.manifest = sma
+	vc.count = ct
 
 	return nil
 }

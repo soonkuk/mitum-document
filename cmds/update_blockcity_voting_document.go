@@ -20,6 +20,7 @@ type UpdateBlockcityVotingDocumentCommand struct {
 	EndVoteTime string                      `arg:"" name:"endvotetime" help:"end vote time" required:""`
 	Candidates  []currencycmds.AddressFlag  `name:"candidates" help:"candidates address" required:""`
 	Nicknames   []string                    `name:"nicknames" help:"candidates nicknames" required:""`
+	Count       []uint                      `name:"count" help:"candidates count" required:""`
 	BossName    string                      `arg:"" name:"bossname" help:"boss name" required:""`
 	Account     currencycmds.AddressFlag    `arg:"" name:"bossaccount" help:"boss account address" required:""`
 	Term        string                      `arg:"" name:"termofoffice" help:"term of office" required:""`
@@ -92,7 +93,7 @@ func (cmd *UpdateBlockcityVotingDocumentCommand) parseFlags() error {
 			if err != nil {
 				return errors.Wrapf(err, "invalid address format, %q", cmd.Candidates[i].String())
 			}
-			candidates[i] = document.MustNewVotingCandidate(ca, cmd.Nicknames[i], "")
+			candidates[i] = document.MustNewVotingCandidate(ca, cmd.Nicknames[i], "", cmd.Count[i])
 		}
 		cmd.candidates = candidates
 	}

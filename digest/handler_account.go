@@ -516,23 +516,6 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 
 	var vas []Hal
 
-	/*
-		if err := hd.database.BSDocumentsByAddress(
-			address, reverse, offset, limit,
-			func(_ currency.Big, va BSDocumentValue) (bool, error) {
-				hal, err := hd.buildBSDocumentHal(va)
-				if err != nil {
-					return false, err
-				}
-				vas = append(vas, hal)
-
-				return true, nil
-			},
-		); err != nil {
-			return nil, false, err
-		}
-	*/
-
 	if err := hd.database.DocumentsByAddress(
 		address, reverse, offset, limit,
 		func(_ string, va DocumentValue) (bool, error) {

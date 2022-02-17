@@ -61,7 +61,7 @@ var documentIndexModels = []mongo.IndexModel{
 			bson.E{Key: "height", Value: -1},
 		},
 		Options: options.Index().
-			SetName("mitum_digest_document"),
+			SetName("mitum_digest_document_documentid"),
 	},
 	{
 		Keys: bson.D{bson.E{Key: "height", Value: -1}},
@@ -83,7 +83,7 @@ var documentsIndexModels = []mongo.IndexModel{
 			bson.E{Key: "height", Value: -1},
 		},
 		Options: options.Index().
-			SetName("mitum_digest_documents"),
+			SetName("mitum_digest_documents_documentid"),
 	},
 	{
 		Keys: bson.D{bson.E{Key: "height", Value: -1}},

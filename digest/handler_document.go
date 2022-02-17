@@ -1,9 +1,7 @@
 package digest
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -13,69 +11,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-/*
-func (hd *Handlers) handleBSDocument(w http.ResponseWriter, r *http.Request) {
-
-	cachekey := CacheKeyPath(r)
-
-	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
-		return
-	}
-
-	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
-	if err != nil {
-		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %q", err), http.StatusBadRequest)
-
-		return
-	}
-
-	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		return hd.handleBSDocumentInGroup(h)
-	}); err != nil {
-		HTTP2HandleError(w, err)
-	} else {
-		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
-
-		if !shared {
-			HTTP2WriteCache(w, cachekey, time.Second*2)
-		}
-	}
-}
-*/
-
-/*
-func (hd *Handlers) handleBSDocumentInGroup(i string) ([]byte, error) {
-	switch va, found, err := hd.database.BSDocument(i); {
-	case err != nil:
-		return nil, err
-	case !found:
-		return nil, util.NotFoundError.Errorf("document value not found")
-	default:
-		hal, err := hd.buildBSDocumentHal(va)
-		if err != nil {
-			return nil, err
-		}
-		hal = hal.AddLink("bsdocument:{documentid}", NewHalLink(HandlerPathBSDocument, nil).SetTemplated())
-		hal = hal.AddLink("block:{height}", NewHalLink(HandlerPathBlockByHeight, nil).SetTemplated())
-
-		return hd.enc.Marshal(hal)
-	}
-}
-*/
-
 func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
+	documentid := parseStringQuery(r.URL.Query().Get("docOffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
+	doctype := parseStringQuery(r.URL.Query().Get("docType"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleDocumentsInGroup(offset, reverse, limit)
+		i, filled, err := hd.handleDocumentsInGroup(documentid, reverse, limit, doctype)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -93,8 +42,8 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 
 		if !shared {
 			expire := hd.expireNotFilled
-			if len(offset) > 0 && filled {
-				expire = time.Hour * 30
+			if len(documentid) > 0 && filled {
+				expire = time.Minute
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -103,9 +52,10 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hd *Handlers) handleDocumentsInGroup(
-	offset string,
+	documentid string,
 	reverse bool,
 	l int64,
+	doctype string,
 ) ([]byte, bool, error) {
 	var limit int64
 	if l < 0 {
@@ -113,7 +63,7 @@ func (hd *Handlers) handleDocumentsInGroup(
 	} else {
 		limit = l
 	}
-	filter, err := buildDocumentsFilterByOffset(offset, reverse)
+	filter, err := buildDocumentsFilterByOffset(documentid, doctype)
 	if err != nil {
 		return nil, false, err
 	}
@@ -132,8 +82,8 @@ func (hd *Handlers) handleDocumentsInGroup(
 	if err != nil {
 		return nil, false, err
 	}
-	hal := hd.buildDocumentsHal(h, vas, offset, reverse)
-	if next := nextOffsetOfDocuments(h, vas, reverse); len(next) > 0 {
+	hal := hd.buildDocumentsHal(h, vas, documentid, reverse)
+	if next := nextOffsetOfDocuments(h, vas, doctype, reverse); len(next) > 0 {
 		hal = hal.AddLink("next", NewHalLink(next, nil))
 	}
 
@@ -189,10 +139,11 @@ func (hd *Handlers) handleDocumentInGroup(i string) ([]byte, error) {
 
 func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Request) {
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
+	documentid := parseOffsetQuery(r.URL.Query().Get("docOffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
+	doctype := parseStringQuery(r.URL.Query().Get("docType"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
@@ -212,7 +163,7 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleDocumentsByHeightInGroup(height, offset, reverse, limit)
+		i, filled, err := hd.handleDocumentsByHeightInGroup(height, documentid, reverse, limit, doctype)
 		return []interface{}{i, filled}, err
 	}); err != nil {
 		HTTP2HandleError(w, err)
@@ -229,8 +180,8 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 
 		if !shared {
 			expire := hd.expireNotFilled
-			if len(offset) > 0 && filled {
-				expire = time.Hour * 30
+			if len(documentid) > 0 && filled {
+				expire = time.Minute
 			}
 
 			HTTP2WriteCache(w, cachekey, expire)
@@ -240,9 +191,10 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 
 func (hd *Handlers) handleDocumentsByHeightInGroup(
 	height base.Height,
-	offset string,
+	documentid string,
 	reverse bool,
 	l int64,
+	doctype string,
 ) ([]byte, bool, error) {
 	var limit int64
 	if l < 0 {
@@ -250,7 +202,7 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	} else {
 		limit = l
 	}
-	filter, err := buildDocumentsByHeightFilterByOffset(height, offset, reverse)
+	filter, err := buildDocumentsByHeightFilterByOffset(height, documentid, reverse, doctype)
 	if err != nil {
 		return nil, false, err
 	}
@@ -269,8 +221,8 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	if err != nil {
 		return nil, false, err
 	}
-	hal := hd.buildDocumentsHal(h, vas, offset, reverse)
-	if next := nextOffsetOfDocumentsByHeight(h, vas, reverse); len(next) > 0 {
+	hal := hd.buildDocumentsHal(h, vas, documentid, reverse)
+	if next := nextOffsetOfDocumentsByHeight(h, vas, doctype, reverse); len(next) > 0 {
 		hal = hal.AddLink("next", NewHalLink(next, nil))
 	}
 
@@ -278,31 +230,6 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 	return b, int64(len(vas)) == limit, err
 }
 
-/*
-func (hd *Handlers) buildBSDocumentHal(va BSDocumentValue) (Hal, error) {
-	var hal Hal
-
-	h, err := hd.combineURL(HandlerPathBSDocument, "documentid", va.Document().Info().Index().String())
-	if err != nil {
-		return nil, err
-	}
-	hal = NewBaseHal(va, NewHalLink(h, nil))
-
-	h, err = hd.combineURL(HandlerPathBlockByHeight, "height", va.Height().String())
-	if err != nil {
-		return nil, err
-	}
-	hal = hal.AddLink("block", NewHalLink(h, nil))
-
-	h, err = hd.combineURL(HandlerPathManifestByHeight, "height", va.Height().String())
-	if err != nil {
-		return nil, err
-	}
-	hal = hal.AddLink("manifest", NewHalLink(h, nil))
-
-	return hal, nil
-}
-*/
 func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
 	var hal Hal
 
@@ -327,12 +254,12 @@ func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
 	return hal, nil
 }
 
-func (*Handlers) buildDocumentsHal(baseSelf string, vas []Hal, offset string, reverse bool) Hal {
+func (*Handlers) buildDocumentsHal(baseSelf string, vas []Hal, documentid string, reverse bool) Hal {
 	var hal Hal
 
 	self := baseSelf
-	if len(offset) > 0 {
-		self = addQueryValue(baseSelf, stringOffsetQuery(offset))
+	if len(documentid) > 0 {
+		self = addQueryValue(baseSelf, stringDocumentidQuery(documentid))
 	}
 	if reverse {
 		self = addQueryValue(self, stringBoolQuery("reverse", reverse))
@@ -344,67 +271,11 @@ func (*Handlers) buildDocumentsHal(baseSelf string, vas []Hal, offset string, re
 	return hal
 }
 
-func buildDocumentsFilterByOffset(offset string, reverse bool) (bson.M, error) {
-	filter := bson.M{}
-	if len(offset) > 0 {
-		height, documentid, err := parseOffset(offset)
-		if err != nil {
-			return nil, err
-		}
-
-		if reverse {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$lt": height}},
-				{"$and": []bson.M{
-					{"height": height},
-					{"documentid": bson.M{"$lt": documentid}},
-				}},
-			}
-		} else {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$gt": height}},
-				{"$and": []bson.M{
-					{"height": height},
-					{"documentid": bson.M{"$gt": documentid}},
-				}},
-			}
-		}
-	}
-
-	return filter, nil
-}
-
-func buildDocumentsByHeightFilterByOffset(height base.Height, offset string, reverse bool) (bson.M, error) {
-	var filter bson.M
-	if len(offset) < 1 {
-		return bson.M{"height": height}, nil
-	}
-
-	documentid, err := strconv.ParseUint(offset, 10, 64)
-	if err != nil {
-		return nil, errors.Errorf("invalid index of offset: %q", err)
-	}
-
-	if reverse {
-		filter = bson.M{
-			"height":     height,
-			"documentid": bson.M{"$lt": documentid},
-		}
-	} else {
-		filter = bson.M{
-			"height":     height,
-			"documentid": bson.M{"$gt": documentid},
-		}
-	}
-
-	return filter, nil
-}
-
-func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
+func nextOffsetOfDocuments(baseSelf string, vas []Hal, doctype string, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
 		va := vas[len(vas)-1].Interface().(DocumentValue)
-		nextoffset = buildOffsetByString(va.Height(), va.Document().DocumentId())
+		nextoffset = va.Document().DocumentId()
 	}
 
 	if len(nextoffset) < 1 {
@@ -412,8 +283,13 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 	}
 
 	next := baseSelf
+
+	if len(doctype) > 0 {
+		next = addQueryValue(next, stringDoctypeQuery(doctype))
+	}
+
 	if len(nextoffset) > 0 {
-		next = addQueryValue(next, stringOffsetQuery(nextoffset))
+		next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 	}
 
 	if reverse {
@@ -423,11 +299,11 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, reverse bool) string {
 	return next
 }
 
-func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) string {
+func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, doctype string, reverse bool) string {
 	var nextoffset string
 	if len(vas) > 0 {
 		va := vas[len(vas)-1].Interface().(DocumentValue)
-		nextoffset = fmt.Sprintf("%s", va.Document().DocumentId())
+		nextoffset = va.Document().DocumentId()
 	}
 
 	if len(nextoffset) < 1 {
@@ -435,8 +311,12 @@ func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) str
 	}
 
 	next := baseSelf
+	if len(doctype) > 0 {
+		next = addQueryValue(next, stringDoctypeQuery(doctype))
+	}
+
 	if len(nextoffset) > 0 {
-		next = addQueryValue(next, stringOffsetQuery(nextoffset))
+		next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 	}
 
 	if reverse {
@@ -446,27 +326,8 @@ func nextOffsetOfDocumentsByHeight(baseSelf string, vas []Hal, reverse bool) str
 	return next
 }
 
-func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.M, reverse bool, limit int64) ([]Hal, error) {
+func (hd *Handlers) loadDocumentsHALFromDatabase(filter bson.D, reverse bool, limit int64) ([]Hal, error) {
 	var vas []Hal
-
-	/*
-		if err := hd.database.BSDocuments(
-			filter, reverse, limit,
-			func(_ currency.Big, va BSDocumentValue) (bool, error) {
-				hal, err := hd.buildBSDocumentHal(va)
-				if err != nil {
-					return false, err
-				}
-				vas = append(vas, hal)
-
-				return true, nil
-			},
-		); err != nil {
-			return nil, err
-		} else if len(vas) < 1 {
-			return nil, nil
-		}
-	*/
 
 	if err := hd.database.Documents(
 		filter, reverse, limit,

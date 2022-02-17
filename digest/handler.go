@@ -28,11 +28,10 @@ var (
 )
 
 var (
-	HandlerPathNodeInfo   = `/`
-	HandlerPathCurrencies = `/currency`
-	HandlerPathCurrency   = `/currency/{currencyid:.*}`
-	HandlerPathDocuments  = `/block/documents`
-	// HandlerPathBSDocument                 = `/block/bsdocument/{documentid:[0-9a-z]+}`
+	HandlerPathNodeInfo                   = `/`
+	HandlerPathCurrencies                 = `/currency`
+	HandlerPathCurrency                   = `/currency/{currencyid:.*}`
+	HandlerPathDocuments                  = `/block/documents`
 	HandlerPathDocument                   = `/block/document/{documentid:[0-9a-z]+}`
 	HandlerPathManifests                  = `/block/manifests`
 	HandlerPathOperations                 = `/block/operations`
@@ -55,11 +54,10 @@ var (
 )
 
 var RateLimitHandlerMap = map[string]string{
-	"node-info":  HandlerPathNodeInfo,
-	"currencies": HandlerPathCurrencies,
-	"currency":   HandlerPathCurrency,
-	"documents":  HandlerPathDocuments,
-	// "bsdocument":                      HandlerPathBSDocument,
+	"node-info":                       HandlerPathNodeInfo,
+	"currencies":                      HandlerPathCurrencies,
+	"currency":                        HandlerPathCurrency,
+	"documents":                       HandlerPathDocuments,
 	"document":                        HandlerPathDocument,
 	"block-manifests":                 HandlerPathManifests,
 	"block-operations":                HandlerPathOperations,
@@ -181,13 +179,8 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathDocuments, hd.handleDocuments, true).
 		Methods(http.MethodOptions, "GET")
-		/*
-			hd.setHandler(HandlerPathBSDocument, hd.handleBSDocument, true).
-				Methods(http.MethodOptions, "GET")
-		*/
 	hd.setHandler(HandlerPathDocument, hd.handleDocument, true).
 		Methods(http.MethodOptions, "GET")
-
 	hd.setHandler(HandlerPathManifests, hd.handleManifests, true).
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathOperations, hd.handleOperations, true).

@@ -263,7 +263,7 @@ func (hd *Handlers) handleAccounts(w http.ResponseWriter, r *http.Request) {
 	var offsetAddress string
 	switch i, h, a, err := hd.parseAccountsQueries(r.URL.Query().Get("publickey"), offset); {
 	case err != nil:
-		HTTP2ProblemWithError(w, fmt.Errorf("invalue accounts query: %w", err), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, fmt.Errorf("invalid accounts query: %w", err), http.StatusBadRequest)
 
 		return
 	default:
@@ -458,24 +458,24 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	}
 
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
+	doctype := parseStringQuery(r.URL.Query().Get("docType"))
+	documentid := parseStringQuery(r.URL.Query().Get("docOffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse))
+	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
 	}
 
 	v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, limit, reverse)
+		i, filled, err := hd.handleAccountDocumentsInGroup(address, documentid, reverse, limit, doctype)
 
 		return []interface{}{i, filled}, err
 	})
 
 	if err != nil {
 		hd.Log().Error().Err(err).Stringer("address", address).Msg("failed to get documents")
-
 		HTTP2HandleError(w, err)
 
 		return
@@ -493,8 +493,8 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 
 	if !shared {
 		expire := hd.expireNotFilled
-		if len(offset) > 0 && filled {
-			expire = time.Hour * 30
+		if len(documentid) > 0 && filled {
+			expire = time.Minute
 		}
 
 		HTTP2WriteCache(w, cachekey, expire)
@@ -503,9 +503,10 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 
 func (hd *Handlers) handleAccountDocumentsInGroup(
 	address base.Address,
-	offset string,
-	l int64,
+	documentid string,
 	reverse bool,
+	l int64,
+	doctype string,
 ) ([]byte, bool, error) {
 	var limit int64
 	if l < 0 {
@@ -517,7 +518,7 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 	var vas []Hal
 
 	if err := hd.database.DocumentsByAddress(
-		address, reverse, offset, limit,
+		address, reverse, documentid, limit, doctype,
 		func(_ string, va DocumentValue) (bool, error) {
 			hal, err := hd.buildDocumentHal(va)
 			if err != nil {
@@ -533,7 +534,7 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 		return nil, false, util.NotFoundError.Errorf("documents not found")
 	}
 
-	i, err := hd.buildAccountDocumentsHal(address, vas, offset, reverse)
+	i, err := hd.buildAccountDocumentsHal(address, vas, documentid, reverse, doctype)
 	if err != nil {
 		return nil, false, err
 	}
@@ -545,8 +546,9 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 func (hd *Handlers) buildAccountDocumentsHal(
 	address base.Address,
 	vas []Hal,
-	offset string,
+	documentid string,
 	reverse bool,
+	doctype string,
 ) (Hal, error) {
 	baseSelf, err := hd.combineURL(HandlerPathAccountDocuments, "address", address.String())
 	if err != nil {
@@ -554,8 +556,8 @@ func (hd *Handlers) buildAccountDocumentsHal(
 	}
 
 	self := baseSelf
-	if len(offset) > 0 {
-		self = addQueryValue(baseSelf, stringOffsetQuery(offset))
+	if len(documentid) > 0 {
+		self = addQueryValue(baseSelf, stringDocumentidQuery(documentid))
 	}
 	if reverse {
 		self = addQueryValue(baseSelf, stringBoolQuery("reverse", reverse))
@@ -573,13 +575,17 @@ func (hd *Handlers) buildAccountDocumentsHal(
 	var nextoffset string
 	if len(vas) > 0 {
 		va := vas[len(vas)-1].Interface().(DocumentValue)
-		nextoffset = buildOffsetByString(va.Height(), va.Document().DocumentId())
+		nextoffset = va.Document().DocumentId()
 	}
 
 	if len(nextoffset) > 0 {
 		next := baseSelf
+
+		if len(doctype) > 0 {
+			next = addQueryValue(next, stringDoctypeQuery(doctype))
+		}
 		if len(nextoffset) > 0 {
-			next = addQueryValue(next, stringOffsetQuery(nextoffset))
+			next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 		}
 
 		if reverse {

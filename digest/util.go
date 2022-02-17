@@ -104,12 +104,24 @@ func parseLimitQuery(s string) int64 {
 	return n
 }
 
+func parseStringQuery(s string) string {
+	return strings.TrimSpace(s)
+}
+
 func parseOffsetQuery(s string) string {
 	return strings.TrimSpace(s)
 }
 
 func stringOffsetQuery(offset string) string {
 	return fmt.Sprintf("offset=%s", offset)
+}
+
+func stringDocumentidQuery(documentid string) string {
+	return fmt.Sprintf("documentid=%s", documentid)
+}
+
+func stringDoctypeQuery(doctype string) string {
+	return fmt.Sprintf("doctype=%s", doctype)
 }
 
 func parseBoolQuery(s string) bool {

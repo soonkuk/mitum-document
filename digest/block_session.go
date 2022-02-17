@@ -30,14 +30,11 @@ type BlockSession struct {
 	opsTreeNodes    map[string]operation.FixedTreeNode
 	operationModels []mongo.WriteModel
 	accountModels   []mongo.WriteModel
-	//bsDocumentModels  []mongo.WriteModel
-	documentModels []mongo.WriteModel
-	//bsDocumentsModels []mongo.WriteModel
+	documentModels  []mongo.WriteModel
 	documentsModels []mongo.WriteModel
 	balanceModels   []mongo.WriteModel
 	statesValue     *sync.Map
-	// bsDocumentList    []currency.Big
-	documentList []string
+	documentList    []string
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -98,27 +95,6 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 	if err := bs.writeModels(ctx, defaultColNameBalance, bs.balanceModels); err != nil {
 		return err
 	}
-
-	/*
-		if len(bs.bsDocumentModels) > 0 {
-
-			for i := range bs.bsDocumentList {
-				if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameBSDocument, bs.bsDocumentList[i].String()); err != nil {
-					return err
-				}
-			}
-
-			if err := bs.writeModels(ctx, defaultColNameBSDocument, bs.bsDocumentModels); err != nil {
-				return err
-			}
-		}
-
-		if len(bs.bsDocumentsModels) > 0 {
-			if err := bs.writeModels(ctx, defaultColNameBSDocuments, bs.bsDocumentsModels); err != nil {
-				return err
-			}
-		}
-	*/
 
 	if len(bs.documentModels) > 0 {
 
@@ -215,8 +191,6 @@ func (bs *BlockSession) prepareAccounts() error {
 
 	var accountModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
-	// var bsDocumentModels []mongo.WriteModel
-	// var bsDocumentsModels []mongo.WriteModel
 	var documentModels []mongo.WriteModel
 	var documentsModels []mongo.WriteModel
 
@@ -255,15 +229,6 @@ func (bs *BlockSession) prepareAccounts() error {
 	bs.accountModels = accountModels
 	bs.balanceModels = balanceModels
 
-	/*
-		if len(bsDocumentModels) > 0 {
-			bs.bsDocumentModels = bsDocumentModels
-		}
-
-		if len(bsDocumentsModels) > 0 {
-			bs.bsDocumentsModels = bsDocumentsModels
-		}
-	*/
 	if len(documentModels) > 0 {
 		bs.documentModels = documentModels
 	}
@@ -365,8 +330,6 @@ func (bs *BlockSession) close() error {
 	bs.balanceModels = nil
 	bs.documentModels = nil
 	bs.documentsModels = nil
-	// bs.bsDocumentModels = nil
-	// bs.bsDocumentsModels = nil
 
 	return bs.st.Close()
 }

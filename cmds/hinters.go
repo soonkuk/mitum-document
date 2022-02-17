@@ -74,7 +74,6 @@ var types = []hint.Type{
 	digest.NodeInfoType,
 	digest.BaseHalType,
 	digest.AccountValueType,
-	// digest.BSDocumentValueType,
 	digest.DocumentValueType,
 	digest.OperationValueType,
 }

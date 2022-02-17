@@ -78,22 +78,6 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		docType:    id.Hint().Type(),
 	}
 
-	/*
-		// TODO: check existence of land id (?)
-		signers := opp.item.Signers()
-		for i := range signers {
-			switch _, found, err := getState(currency.StateKeyAccount(signers[i])); {
-			case err != nil:
-				return err
-			case !found:
-				return errors.Errorf("signer account not found, %q", signers[i])
-			}
-			if signers[i].Equal(opp.sender) {
-				return errors.Errorf("signer account is same with document creator, %q", signers[i])
-			}
-		}
-	*/
-
 	return nil
 }
 

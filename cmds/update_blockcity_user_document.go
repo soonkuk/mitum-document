@@ -92,7 +92,6 @@ func (cmd *UpdateBlockcityUserDocumentCommand) createOperation() (operation.Oper
 	info := document.NewDocInfo(cmd.DocumentId, document.BCUserDataType)
 	statistics := document.NewUserStatistics(cmd.Hp, cmd.Strength, cmd.Agility, cmd.Dexterity, cmd.Charisma, cmd.Intelligence, cmd.Vital)
 	userDoc := document.NewBCUserData(info, cmd.sender, cmd.Gold, cmd.Bankgold, statistics)
-	// doc := document.NewDocument(userDoc)
 
 	item := document.NewUpdateDocumentsItemImpl(
 		userDoc,

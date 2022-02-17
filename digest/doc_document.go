@@ -49,6 +49,8 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 
 	m["owner"] = doc.va.Document().Owner()
 	m["documentid"] = doc.va.Document().DocumentId()
+	m["docid"] = doc.va.Document().DocumentId()[:len(doc.va.Document().DocumentId())-3]
+	m["doctype"] = doc.va.Document().DocumentId()[len(doc.va.Document().DocumentId())-3:]
 	m["addresses"] = doc.addresses
 	m["height"] = doc.height
 

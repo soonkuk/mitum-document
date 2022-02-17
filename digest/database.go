@@ -192,8 +192,8 @@ func (st *Database) clean() error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		// defaultColNameBSDocument,
-		// defaultColNameBSDocuments,
+		defaultColNameDocument,
+		defaultColNameDocuments,
 	} {
 		if err := st.database.Client().Collection(col).Drop(context.Background()); err != nil {
 			return storage.MergeStorageError(err)
@@ -234,8 +234,8 @@ func (st *Database) cleanByHeight(height base.Height) error {
 		defaultColNameAccount,
 		defaultColNameBalance,
 		defaultColNameOperation,
-		// defaultColNameBSDocument,
-		// defaultColNameBSDocuments,
+		defaultColNameDocument,
+		defaultColNameDocuments,
 	} {
 		res, err := st.database.Client().Collection(col).BulkWrite(
 			context.Background(),
@@ -463,65 +463,15 @@ func (st *Database) Operations(
 	)
 }
 
-/*
-func (st *Database) BSDocumentsByAddress(
-	address base.Address,
-	reverse bool,
-	offset string,
-	limit int64,
-	callback func(currency.Big, BSDocumentValue) (bool, error),
-) error {
-	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
-	if err != nil {
-		return err
-	}
-
-	sr := 1
-	if reverse {
-		sr = -1
-	}
-
-		opt := options.Find().SetSort(
-			util.NewBSONFilter("height", sr).Add("index", sr).D(),
-		)
-
-	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).D(),
-	)
-
-	switch {
-	case limit <= 0: // no limit
-	case limit > maxLimit:
-		opt = opt.SetLimit(maxLimit)
-	default:
-		opt = opt.SetLimit(limit)
-	}
-
-	return st.database.Client().Find(
-		context.Background(),
-		defaultColNameBSDocument,
-		filter,
-		func(cursor *mongo.Cursor) (bool, error) {
-
-			va, err := LoadBSDocument(cursor.Decode, st.database.Encoders())
-			if err != nil {
-				return false, err
-			}
-			return callback(va.Document().Info().Index(), va)
-		},
-		opt,
-	)
-}
-*/
-
 func (st *Database) DocumentsByAddress(
 	address base.Address,
 	reverse bool,
-	offset string,
+	documentid string,
 	limit int64,
+	doctype string,
 	callback func(string /* document id */, DocumentValue) (bool, error),
 ) error {
-	filter, err := buildDocumentsFilterByAddress(address, offset, reverse)
+	filter, err := buildDocumentsFilterByAddress(address, documentid, doctype)
 	if err != nil {
 		return err
 	}
@@ -531,14 +481,8 @@ func (st *Database) DocumentsByAddress(
 		sr = -1
 	}
 
-	/*
-		opt := options.Find().SetSort(
-			util.NewBSONFilter("height", sr).Add("index", sr).D(),
-		)
-	*/
-
 	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).D(),
+		util.NewBSONFilter("documentid", sr).D(),
 	)
 
 	switch {
@@ -563,39 +507,6 @@ func (st *Database) DocumentsByAddress(
 		opt,
 	)
 }
-
-/*
-func (st *Database) BSDocument(
-	i string,
-) (BSDocumentValue, bool , error) {
-
-	var va BSDocumentValue
-	if err := st.database.Client().GetByFilter(
-		defaultColNameBSDocument,
-		util.NewBSONFilter("documentid", i).D(),
-		func(res *mongo.SingleResult) error {
-
-			i, err := LoadBSDocument(res.Decode, st.database.Encoders())
-			if err != nil {
-				return err
-			}
-
-			va = i
-
-			return nil
-		},
-		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
-	); err != nil {
-		if errors.Is(err, util.NotFoundError) {
-			return BSDocumentValue{}, false, nil
-		}
-
-		return BSDocumentValue{}, false, err
-	}
-
-	return va, true, nil
-}
-*/
 
 func (st *Database) Document(
 	i string, /* document id */
@@ -628,49 +539,8 @@ func (st *Database) Document(
 	return va, true, nil
 }
 
-/*
-func (st *Database) BSDocuments(
-	filter bson.M,
-	reverse bool,
-	limit int64,
-	callback func(currency.Big , BSDocumentValue) (bool, error),
-) error {
-	sr := 1
-	if reverse {
-		sr = -1
-	}
-
-	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).Add("documentid", sr).D(),
-	)
-
-	switch {
-	case limit <= 0: // no limit
-	case limit > maxLimit:
-		opt = opt.SetLimit(maxLimit)
-	default:
-		opt = opt.SetLimit(limit)
-	}
-
-	return st.database.Client().Find(
-		context.Background(),
-		defaultColNameBSDocument,
-		filter,
-		func(cursor *mongo.Cursor) (bool, error) {
-
-			va, err := LoadBSDocument(cursor.Decode, st.database.Encoders())
-			if err != nil {
-				return false, err
-			}
-			return callback(va.doc.Info().Index(), va)
-		},
-		opt,
-	)
-}
-*/
-
 func (st *Database) Documents(
-	filter bson.M,
+	filter bson.D,
 	reverse bool,
 	limit int64,
 	callback func(string /* documentid */, DocumentValue) (bool, error),
@@ -681,7 +551,7 @@ func (st *Database) Documents(
 	}
 
 	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).Add("documentid", sr).D(),
+		util.NewBSONFilter("documentid", sr).D(),
 	)
 
 	switch {
@@ -742,7 +612,7 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 			SetPreviousHeight(previousHeight)
 	}
 
-	// NOTE load blockcity documents
+	// NOTE load documents
 	switch doc, lastHeight, previousHeight, err := st.DocumentList(a); {
 	case err != nil:
 		return rs, false, err
@@ -1025,7 +895,7 @@ func (st *Database) filterAccountByPublickey(
 				}
 			}
 
-			// NOTE load blockcity documents
+			// NOTE load documents
 			switch doc, lastHeight, previousHeight, err := st.DocumentList(va.Account().Address()); {
 			case err != nil:
 				return false, err
@@ -1055,7 +925,7 @@ func (st *Database) filterAccountByPublickey(
 	return stopped || called == limit, nil
 }
 
-// Blockcity documentList return blockcity document invetory by address
+// DocumentList return document invetory by address
 func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
 	doc := document.DocumentInventory{}
@@ -1159,31 +1029,131 @@ func buildOperationsFilterByAddress(address base.Address, offset string, reverse
 	return filter, nil
 }
 
-func buildDocumentsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
-	filter := bson.M{"addresses": bson.M{"$in": []string{address.String()}}}
-	if len(offset) > 0 {
-		height, documentid, err := parseOffsetByString(offset)
-		if err != nil {
-			return nil, err
-		}
+func buildDocumentsFilterByAddress(address base.Address, documentid string, doctype string) (bson.D, error) {
+	filterA := bson.A{}
 
-		if reverse {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$gt": height}},
-				{"$and": []bson.M{
-					{"documentid": bson.M{"$gt": documentid}},
-				}},
+	// filter fot matching address
+	filterAddress := bson.D{{"addresses", bson.D{{"$in", []string{address.String()}}}}}
+	filterA = append(filterA, filterAddress)
+
+	// if doctype query exist, find by doctype first
+	if len(doctype) > 0 {
+		filterDoctype := bson.D{
+			{"doctype", bson.D{{"$eq", doctype}}},
+		}
+		filterA = append(filterA, filterDoctype)
+
+		// if document offset exist, apply offset
+		if len(documentid) > 0 {
+			_, idtype, err := document.ParseDocId(documentid)
+			if err != nil {
+				return nil, err
 			}
-		} else {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$gt": height}},
-				{"$and": []bson.M{
-					{"documentid": bson.M{"$gt": documentid}},
-				}},
+			// if type of document offset is not matched with doctype query, ignore it.
+			if document.DocIdShortTypeMap[doctype] == idtype {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$gt", documentid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
 			}
+		}
+		// if document offset query only exist, find all type.
+	} else {
+		if len(documentid) > 0 {
+			filterDocumentid := bson.D{
+				{"documentid", bson.D{{"$gt", documentid}}},
+			}
+			filterA = append(filterA, filterDocumentid)
 		}
 	}
 
+	filter := bson.D{}
+	if len(filterA) > 0 {
+		filter = bson.D{
+			{"$and", filterA},
+		}
+	}
+
+	return filter, nil
+}
+
+func buildDocumentsFilterByOffset(documentid string, doctype string) (bson.D, error) {
+	filterA := bson.A{}
+
+	if len(doctype) > 0 {
+		filterDoctype := bson.D{
+			{"doctype", bson.D{{"$eq", doctype}}},
+		}
+		filterA = append(filterA, filterDoctype)
+		if len(documentid) > 0 {
+			docid, idtype, err := document.ParseDocId(documentid)
+			if err != nil {
+				return nil, err
+			}
+			if document.DocIdShortTypeMap[doctype] == idtype {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$gt", docid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
+			}
+		}
+	} else {
+		if len(documentid) > 0 {
+			filterDocumentid := bson.D{
+				{"documentid", bson.D{{"$gt", documentid}}},
+			}
+			filterA = append(filterA, filterDocumentid)
+		}
+	}
+
+	filter := bson.D{}
+	if len(filterA) > 0 {
+		filter = bson.D{
+			{"$and", filterA},
+		}
+	}
+
+	return filter, nil
+}
+
+func buildDocumentsByHeightFilterByOffset(height base.Height, documentid string, reverse bool, doctype string) (bson.D, error) {
+	var filterA bson.A
+
+	filterHeight := bson.D{{"height", height}}
+	filterA = append(filterA, filterHeight)
+
+	if len(doctype) > 0 {
+		filterDoctype := bson.D{
+			{"doctype", bson.D{{"$eq", doctype}}},
+		}
+		filterA = append(filterA, filterDoctype)
+		if len(documentid) > 0 {
+			docid, idtype, err := document.ParseDocId(documentid)
+			if err != nil {
+				return nil, err
+			}
+			if document.DocIdShortTypeMap[doctype] == idtype {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$gt", docid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
+			}
+		}
+	} else {
+		if len(documentid) > 0 {
+			filterDocumentid := bson.D{
+				{"documentid", bson.D{{"$gt", documentid}}},
+			}
+			filterA = append(filterA, filterDocumentid)
+		}
+	}
+
+	filter := bson.D{}
+	if len(filterA) > 0 {
+		filter = bson.D{
+			{"$and", filterA},
+		}
+	}
 	return filter, nil
 }
 

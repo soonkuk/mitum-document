@@ -65,23 +65,6 @@ func LoadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 	}
 }
 
-/*
-func LoadBSDocument(decoder func(interface{}) error, encs *encoder.Encoders) (BSDocumentValue, error) {
-	var b bson.Raw
-	if err := decoder(&b); err != nil {
-		return BSDocumentValue{}, err
-	}
-
-	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
-		return BSDocumentValue{}, err
-	} else if va, ok := hinter.(BSDocumentValue); !ok {
-		return BSDocumentValue{}, errors.Errorf("not DocumentValue : %T", hinter)
-	} else {
-		return va, nil
-	}
-}
-*/
-
 func LoadDocument(decoder func(interface{}) error, encs *encoder.Encoders) (DocumentValue, error) {
 	var b bson.Raw
 	if err := decoder(&b); err != nil {

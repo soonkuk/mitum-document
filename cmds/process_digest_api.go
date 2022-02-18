@@ -12,7 +12,7 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/soonkuk/mitum-blocksign/digest"
+	"github.com/protoconNet/mitum-document/digest"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/document"
+	"github.com/protoconNet/mitum-document/document"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spikeekips/mitum/base"
@@ -28,7 +28,7 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/soonkuk/mitum-blocksign/digest"
+	"github.com/protoconNet/mitum-document/digest"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum-currency/currency"
 )

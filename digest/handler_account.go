@@ -458,9 +458,11 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	}
 
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	doctype := parseStringQuery(r.URL.Query().Get("docType"))
-	documentid := parseStringQuery(r.URL.Query().Get("docOffset"))
+	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
+	documentid := parseStringQuery(r.URL.Query().Get("docoffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
+
+	fmt.Println(doctype)
 
 	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 

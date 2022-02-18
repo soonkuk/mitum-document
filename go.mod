@@ -1,4 +1,4 @@
-module github.com/soonkuk/mitum-blocksign
+module github.com/protoconNet/mitum-document
 
 go 1.16
 

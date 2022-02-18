@@ -2,7 +2,7 @@ package cmds
 
 import (
 	"github.com/pkg/errors"
-	"github.com/soonkuk/mitum-blocksign/document"
+	"github.com/protoconNet/mitum-document/document"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"

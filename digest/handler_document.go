@@ -13,9 +13,9 @@ import (
 
 func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	documentid := parseStringQuery(r.URL.Query().Get("docOffset"))
+	documentid := parseStringQuery(r.URL.Query().Get("docoffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
-	doctype := parseStringQuery(r.URL.Query().Get("docType"))
+	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
 	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
@@ -139,9 +139,9 @@ func (hd *Handlers) handleDocumentInGroup(i string) ([]byte, error) {
 
 func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Request) {
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	documentid := parseOffsetQuery(r.URL.Query().Get("docOffset"))
+	documentid := parseOffsetQuery(r.URL.Query().Get("docoffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
-	doctype := parseStringQuery(r.URL.Query().Get("docType"))
+	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
 	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 

@@ -16,7 +16,7 @@
 > NOTE: at this time, *mitum* and *mitum-blocksign* is actively developed, so
 before building mitum-blocksign, you will be better with building the latest
 mitum source.
-> `$ git clone https://github.com/soonkuk/mitum-blocksign`
+> `$ git clone https://github.com/protoconNet/mitum-document`
 >
 > and then, add `replace github.com/spikeekips/mitum => <your mitum source directory>` to `go.mod` of *mitum-blocksign*.
 

@@ -6,7 +6,7 @@ import (
 	"github.com/spikeekips/mitum/base/state"
 	"github.com/spikeekips/mitum/util/hint"
 
-	"github.com/soonkuk/mitum-blocksign/document"
+	"github.com/protoconNet/mitum-document/document"
 	"github.com/spikeekips/mitum-currency/currency"
 )
 

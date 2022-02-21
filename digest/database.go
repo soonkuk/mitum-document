@@ -471,7 +471,7 @@ func (st *Database) DocumentsByAddress(
 	doctype string,
 	callback func(string /* document id */, DocumentValue) (bool, error),
 ) error {
-	filter, err := buildDocumentsFilterByAddress(address, documentid, doctype)
+	filter, err := buildDocumentsFilterByAddress(address, documentid, reverse, doctype)
 	if err != nil {
 		return err
 	}
@@ -1029,7 +1029,7 @@ func buildOperationsFilterByAddress(address base.Address, offset string, reverse
 	return filter, nil
 }
 
-func buildDocumentsFilterByAddress(address base.Address, documentid string, doctype string) (bson.D, error) {
+func buildDocumentsFilterByAddress(address base.Address, documentid string, reverse bool, doctype string) (bson.D, error) {
 	filterA := bson.A{}
 
 	// filter fot matching address
@@ -1051,19 +1051,36 @@ func buildDocumentsFilterByAddress(address base.Address, documentid string, doct
 			}
 			// if type of document offset is not matched with doctype query, ignore it.
 			if document.DocIdShortTypeMap[doctype] == idtype {
+				// if reverse false, greater then documentid
+				if !reverse {
+					filterDocumentid := bson.D{
+						{"documentid", bson.D{{"$gt", documentid}}},
+					}
+					filterA = append(filterA, filterDocumentid)
+					// if reverse true, lesser then documentid
+				} else {
+					filterDocumentid := bson.D{
+						{"documentid", bson.D{{"$lt", documentid}}},
+					}
+					filterA = append(filterA, filterDocumentid)
+				}
+			}
+		}
+	} else {
+		if len(documentid) > 0 {
+			// if reverse false, greater then documentid
+			if !reverse {
 				filterDocumentid := bson.D{
 					{"documentid", bson.D{{"$gt", documentid}}},
 				}
 				filterA = append(filterA, filterDocumentid)
+				// if reverse true, lesser then documentid
+			} else {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$lt", documentid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
 			}
-		}
-		// if document offset query only exist, find all type.
-	} else {
-		if len(documentid) > 0 {
-			filterDocumentid := bson.D{
-				{"documentid", bson.D{{"$gt", documentid}}},
-			}
-			filterA = append(filterA, filterDocumentid)
 		}
 	}
 
@@ -1077,32 +1094,54 @@ func buildDocumentsFilterByAddress(address base.Address, documentid string, doct
 	return filter, nil
 }
 
-func buildDocumentsFilterByOffset(documentid string, doctype string) (bson.D, error) {
+func buildDocumentsFilterByOffset(documentid string, reverse bool, doctype string) (bson.D, error) {
 	filterA := bson.A{}
 
+	// if doctype query exist, find by doctype first
 	if len(doctype) > 0 {
 		filterDoctype := bson.D{
 			{"doctype", bson.D{{"$eq", doctype}}},
 		}
 		filterA = append(filterA, filterDoctype)
+
+		// if document offset exist, apply offset
 		if len(documentid) > 0 {
-			docid, idtype, err := document.ParseDocId(documentid)
+			_, idtype, err := document.ParseDocId(documentid)
 			if err != nil {
 				return nil, err
 			}
+			// if type of document offset is not matched with doctype query, ignore it.
 			if document.DocIdShortTypeMap[doctype] == idtype {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$gt", docid}}},
+				// if reverse false, greater then documentid
+				if !reverse {
+					filterDocumentid := bson.D{
+						{"documentid", bson.D{{"$gt", documentid}}},
+					}
+					filterA = append(filterA, filterDocumentid)
+					// if reverse true, lesser then documentid
+				} else {
+					filterDocumentid := bson.D{
+						{"documentid", bson.D{{"$lt", documentid}}},
+					}
+					filterA = append(filterA, filterDocumentid)
 				}
-				filterA = append(filterA, filterDocumentid)
 			}
 		}
 	} else {
 		if len(documentid) > 0 {
-			filterDocumentid := bson.D{
-				{"documentid", bson.D{{"$gt", documentid}}},
+			// if reverse false, greater then documentid
+			if !reverse {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$gt", documentid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
+				// if reverse true, lesser then documentid
+			} else {
+				filterDocumentid := bson.D{
+					{"documentid", bson.D{{"$lt", documentid}}},
+				}
+				filterA = append(filterA, filterDocumentid)
 			}
-			filterA = append(filterA, filterDocumentid)
 		}
 	}
 

@@ -164,6 +164,11 @@ func (doc BSDocData) Bytes() []byte {
 	bs[3] = doc.creator.Bytes()
 	bs[4] = []byte(doc.title)
 	bs[5] = doc.size.Bytes()
+
+	sort.Slice(doc.signers, func(i, j int) bool {
+		return bytes.Compare(doc.signers[i].Address().Bytes(), doc.signers[j].Address().Bytes()) < 0
+	})
+
 	for i := range doc.signers {
 		bs[i+6] = doc.signers[i].Bytes()
 	}

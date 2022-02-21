@@ -63,7 +63,7 @@ func (hd *Handlers) handleDocumentsInGroup(
 	} else {
 		limit = l
 	}
-	filter, err := buildDocumentsFilterByOffset(documentid, doctype)
+	filter, err := buildDocumentsFilterByOffset(documentid, reverse, doctype)
 	if err != nil {
 		return nil, false, err
 	}

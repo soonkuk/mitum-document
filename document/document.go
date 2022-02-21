@@ -285,13 +285,14 @@ func (doc DocSign) Address() base.Address {
 }
 
 func (ds DocSign) Bytes() []byte {
-	bs := make([][]byte, 2)
+	bs := make([][]byte, 3)
 	bs[0] = ds.address.Bytes()
 	var v int8
 	if ds.signed {
 		v = 1
 	}
-	bs[1] = []byte{byte(v)}
+	bs[1] = []byte(ds.signcode)
+	bs[2] = []byte{byte(v)}
 	return util.ConcatBytesSlice(bs...)
 }
 

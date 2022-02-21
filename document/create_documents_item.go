@@ -15,9 +15,9 @@ var (
 
 type CreateDocumentsItemImpl struct {
 	hint.BaseHinter
-	doctype hint.Type
-	doc     DocumentData
-	cid     currency.CurrencyID
+	// doctype hint.Type
+	doc DocumentData
+	cid currency.CurrencyID
 }
 
 func NewCreateDocumentsItemImpl(
@@ -30,17 +30,17 @@ func NewCreateDocumentsItemImpl(
 
 	return CreateDocumentsItemImpl{
 		BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint),
-		doctype:    doc.Info().docType,
-		doc:        doc,
-		cid:        cid,
+		// doctype:    doc.Info().docType,
+		doc: doc,
+		cid: cid,
 	}
 }
 
 func (it CreateDocumentsItemImpl) Bytes() []byte {
-	bs := make([][]byte, 3)
-	bs[0] = it.doctype.Bytes()
-	bs[1] = it.doc.Bytes()
-	bs[2] = it.cid.Bytes()
+	bs := make([][]byte, 2)
+	// bs[0] = it.doctype.Bytes()
+	bs[0] = it.doc.Bytes()
+	bs[1] = it.cid.Bytes()
 
 	return util.ConcatBytesSlice(bs...)
 }
@@ -50,7 +50,7 @@ func (it CreateDocumentsItemImpl) IsValid([]byte) error {
 	if err := isvalid.Check(
 		nil, false,
 		it.BaseHinter,
-		it.doctype,
+		// it.doctype,
 		it.doc,
 		it.cid,
 	); err != nil {
@@ -63,9 +63,11 @@ func (it CreateDocumentsItemImpl) DocumentId() string {
 	return it.doc.DocumentId()
 }
 
+/*
 func (it CreateDocumentsItemImpl) DocType() hint.Type {
 	return it.doctype
 }
+*/
 
 func (it CreateDocumentsItemImpl) Doc() DocumentData {
 	return it.doc

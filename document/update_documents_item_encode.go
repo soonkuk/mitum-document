@@ -4,17 +4,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/util/encoder"
-	"github.com/spikeekips/mitum/util/hint"
 )
 
 func (it *UpdateDocumentsItemImpl) unpack(
 	enc encoder.Encoder,
-	sdt string,
+	// sdt string,
 	bdd []byte,
 	scid string,
 ) error {
 
-	it.doctype = hint.Type(sdt)
+	// it.doctype = hint.Type(sdt)
 
 	// unpack documentdata
 	if hinter, err := enc.Decode(bdd); err != nil {

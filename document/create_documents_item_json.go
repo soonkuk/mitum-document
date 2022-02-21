@@ -5,12 +5,11 @@ import (
 
 	"github.com/spikeekips/mitum-currency/currency"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
-	"github.com/spikeekips/mitum/util/hint"
 )
 
 type CreateDocumentsItemImplJSONPacker struct {
 	jsonenc.HintedHead
-	DT hint.Type           `json:"doctype"`
+	// DT hint.Type           `json:"doctype"`
 	DD DocumentData        `json:"doc"`
 	CI currency.CurrencyID `json:"currency"`
 }
@@ -18,9 +17,9 @@ type CreateDocumentsItemImplJSONPacker struct {
 func (it CreateDocumentsItemImpl) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(CreateDocumentsItemImplJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(it.Hint()),
-		DT:         it.doctype,
-		DD:         it.doc,
-		CI:         it.cid,
+		// DT:         it.doctype,
+		DD: it.doc,
+		CI: it.cid,
 	})
 }
 
@@ -38,7 +37,7 @@ func (it *CreateDocumentsItemImpl) UnpackJSON(b []byte, enc *jsonenc.Encoder) er
 
 	return it.unpack(
 		enc,
-		ucd.DT,
+		// ucd.DT,
 		ucd.DD,
 		ucd.CI,
 	)

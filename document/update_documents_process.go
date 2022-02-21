@@ -93,9 +93,11 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 		return operation.NewBaseReasonError("item's Owner not matched with Owner in document, %v", opp.item.Doc().Owner())
 	}
 
-	if dd.DocumentType() != opp.item.DocType() {
-		return operation.NewBaseReasonError("item's Document type not matched with document type in document, %v", opp.item.DocType())
-	}
+	/*
+		if dd.DocumentType() != opp.item.DocType() {
+			return operation.NewBaseReasonError("item's Document type not matched with document type in document, %v", opp.item.DocType())
+		}
+	*/
 
 	// update document data state
 	st, err := SetStateDocumentDataValue(opp.nds, opp.item.Doc())

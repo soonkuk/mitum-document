@@ -9,7 +9,7 @@ func (it CreateDocumentsItemImpl) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(it.Hint()),
 			bson.M{
-				"doctype":  it.doctype,
+				// "doctype":  it.doctype,
 				"doc":      it.doc,
 				"currency": it.cid,
 			}),
@@ -17,7 +17,7 @@ func (it CreateDocumentsItemImpl) MarshalBSON() ([]byte, error) {
 }
 
 type CreateDocumentsItemImplBSONUnpacker struct {
-	DT string   `bson:"doctype"`
+	// DT string   `bson:"doctype"`
 	DD bson.Raw `bson:"doc"`
 	CI string   `bson:"currency"`
 }
@@ -30,7 +30,7 @@ func (it *CreateDocumentsItemImpl) UnpackBSON(b []byte, enc *bsonenc.Encoder) er
 
 	return it.unpack(
 		enc,
-		ucd.DT,
+		// ucd.DT,
 		ucd.DD,
 		ucd.CI,
 	)

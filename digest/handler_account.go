@@ -462,8 +462,6 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	documentid := parseStringQuery(r.URL.Query().Get("docoffset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	fmt.Println(doctype)
-
 	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
@@ -518,7 +516,6 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 	}
 
 	var vas []Hal
-
 	if err := hd.database.DocumentsByAddress(
 		address, reverse, documentid, limit, doctype,
 		func(_ string, va DocumentValue) (bool, error) {

@@ -2,7 +2,6 @@ package cmds
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -142,7 +141,6 @@ func (cmd *CreateBlockSignDocumentCommand) createOperation() (operation.Operatio
 	if err != nil {
 		return nil, errors.Errorf("failed to create create-blocksign-document operation: %q", err)
 	}
-	fmt.Println(op.Fact())
 	return op, nil
 }
 

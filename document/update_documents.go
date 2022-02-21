@@ -27,7 +27,7 @@ type UpdateDocumentsItem interface {
 	isvalid.IsValider
 	Bytes() []byte
 	DocumentId() string
-	DocType() hint.Type
+	// DocType() hint.Type
 	Doc() DocumentData
 	Currency() currency.CurrencyID
 	Rebuild() UpdateDocumentsItem

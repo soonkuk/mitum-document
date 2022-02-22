@@ -459,17 +459,17 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
-	documentid := parseStringQuery(r.URL.Query().Get("docoffset"))
+	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
-	cachekey := CacheKey(r.URL.Path, stringDocumentidQuery(documentid), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
+	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
 	}
 
 	v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleAccountDocumentsInGroup(address, documentid, reverse, limit, doctype)
+		i, filled, err := hd.handleAccountDocumentsInGroup(address, offset, reverse, limit, doctype)
 
 		return []interface{}{i, filled}, err
 	})
@@ -493,7 +493,7 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 
 	if !shared {
 		expire := hd.expireNotFilled
-		if len(documentid) > 0 && filled {
+		if len(offset) > 0 && filled {
 			expire = time.Minute
 		}
 
@@ -503,7 +503,7 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 
 func (hd *Handlers) handleAccountDocumentsInGroup(
 	address base.Address,
-	documentid string,
+	offset string,
 	reverse bool,
 	l int64,
 	doctype string,
@@ -517,7 +517,7 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 
 	var vas []Hal
 	if err := hd.database.DocumentsByAddress(
-		address, reverse, documentid, limit, doctype,
+		address, reverse, offset, limit, doctype,
 		func(_ string, va DocumentValue) (bool, error) {
 			hal, err := hd.buildDocumentHal(va)
 			if err != nil {
@@ -533,7 +533,7 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 		return nil, false, util.NotFoundError.Errorf("documents not found")
 	}
 
-	i, err := hd.buildAccountDocumentsHal(address, vas, documentid, reverse, doctype)
+	i, err := hd.buildAccountDocumentsHal(address, vas, offset, reverse, doctype)
 	if err != nil {
 		return nil, false, err
 	}
@@ -545,7 +545,7 @@ func (hd *Handlers) handleAccountDocumentsInGroup(
 func (hd *Handlers) buildAccountDocumentsHal(
 	address base.Address,
 	vas []Hal,
-	documentid string,
+	offset string,
 	reverse bool,
 	doctype string,
 ) (Hal, error) {
@@ -555,8 +555,8 @@ func (hd *Handlers) buildAccountDocumentsHal(
 	}
 
 	self := baseSelf
-	if len(documentid) > 0 {
-		self = addQueryValue(baseSelf, stringDocumentidQuery(documentid))
+	if len(offset) > 0 {
+		self = addQueryValue(baseSelf, stringOffsetQuery(offset))
 	}
 	if reverse {
 		self = addQueryValue(baseSelf, stringBoolQuery("reverse", reverse))
@@ -574,17 +574,15 @@ func (hd *Handlers) buildAccountDocumentsHal(
 	var nextoffset string
 	if len(vas) > 0 {
 		va := vas[len(vas)-1].Interface().(DocumentValue)
-		nextoffset = va.Document().DocumentId()
+		nextoffset = buildOffsetHeight(va.Height())
 	}
 
 	if len(nextoffset) > 0 {
 		next := baseSelf
 
+		next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 		if len(doctype) > 0 {
 			next = addQueryValue(next, stringDoctypeQuery(doctype))
-		}
-		if len(nextoffset) > 0 {
-			next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 		}
 
 		if reverse {

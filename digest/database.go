@@ -466,12 +466,12 @@ func (st *Database) Operations(
 func (st *Database) DocumentsByAddress(
 	address base.Address,
 	reverse bool,
-	documentid string,
+	offset string,
 	limit int64,
 	doctype string,
 	callback func(string /* document id */, DocumentValue) (bool, error),
 ) error {
-	filter, err := buildDocumentsFilterByAddress(address, documentid, reverse, doctype)
+	filter, err := buildDocumentsFilterByAddress(address, offset, reverse, doctype)
 	if err != nil {
 		return err
 	}
@@ -482,7 +482,7 @@ func (st *Database) DocumentsByAddress(
 	}
 
 	opt := options.Find().SetSort(
-		util.NewBSONFilter("documentid", sr).D(),
+		util.NewBSONFilter("height", sr).D(),
 	)
 
 	switch {
@@ -551,7 +551,7 @@ func (st *Database) Documents(
 	}
 
 	opt := options.Find().SetSort(
-		util.NewBSONFilter("documentid", sr).D(),
+		util.NewBSONFilter("height", sr).D(),
 	)
 
 	switch {
@@ -995,8 +995,22 @@ func parseOffset(s string) (base.Height, uint64, error) {
 	}
 }
 
+func parseOffsetHeight(s string) (base.Height, error) {
+	if len(s) < 0 {
+		return base.NilHeight, errors.Errorf("invalid offset, %q", s)
+	} else if h, err := base.NewHeightFromString(s); err != nil {
+		return base.NilHeight, errors.Wrap(err, "invalid height of offset")
+	} else {
+		return h, nil
+	}
+}
+
 func buildOffset(height base.Height, index uint64) string {
 	return fmt.Sprintf("%d,%d", height, index)
+}
+
+func buildOffsetHeight(height base.Height) string {
+	return fmt.Sprintf("%d", height)
 }
 
 func buildOperationsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
@@ -1029,7 +1043,7 @@ func buildOperationsFilterByAddress(address base.Address, offset string, reverse
 	return filter, nil
 }
 
-func buildDocumentsFilterByAddress(address base.Address, documentid string, reverse bool, doctype string) (bson.D, error) {
+func buildDocumentsFilterByAddress(address base.Address, offset string, reverse bool, doctype string) (bson.D, error) {
 	filterA := bson.A{}
 
 	// filter fot matching address
@@ -1042,45 +1056,25 @@ func buildDocumentsFilterByAddress(address base.Address, documentid string, reve
 			{"doctype", bson.D{{"$eq", doctype}}},
 		}
 		filterA = append(filterA, filterDoctype)
+	}
 
-		// if document offset exist, apply offset
-		if len(documentid) > 0 {
-			_, idtype, err := document.ParseDocId(documentid)
-			if err != nil {
-				return nil, err
-			}
-			// if type of document offset is not matched with doctype query, ignore it.
-			if document.DocIdShortTypeMap[doctype] == idtype {
-				// if reverse false, greater then documentid
-				if !reverse {
-					filterDocumentid := bson.D{
-						{"documentid", bson.D{{"$gt", documentid}}},
-					}
-					filterA = append(filterA, filterDocumentid)
-					// if reverse true, lesser then documentid
-				} else {
-					filterDocumentid := bson.D{
-						{"documentid", bson.D{{"$lt", documentid}}},
-					}
-					filterA = append(filterA, filterDocumentid)
-				}
-			}
+	// if offset exist, apply offset
+	if len(offset) > 0 {
+		height, err := parseOffsetHeight(offset)
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		if len(documentid) > 0 {
-			// if reverse false, greater then documentid
-			if !reverse {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$gt", documentid}}},
-				}
-				filterA = append(filterA, filterDocumentid)
-				// if reverse true, lesser then documentid
-			} else {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$lt", documentid}}},
-				}
-				filterA = append(filterA, filterDocumentid)
+		if !reverse {
+			filterOffset := bson.D{
+				{"height", bson.D{{"$gt", height}}},
 			}
+			filterA = append(filterA, filterOffset)
+			// if reverse true, lesser then offset height
+		} else {
+			filterHeight := bson.D{
+				{"height", bson.D{{"$lt", height}}},
+			}
+			filterA = append(filterA, filterHeight)
 		}
 	}
 
@@ -1094,7 +1088,7 @@ func buildDocumentsFilterByAddress(address base.Address, documentid string, reve
 	return filter, nil
 }
 
-func buildDocumentsFilterByOffset(documentid string, reverse bool, doctype string) (bson.D, error) {
+func buildDocumentsFilterByOffset(offset string, reverse bool, doctype string) (bson.D, error) {
 	filterA := bson.A{}
 
 	// if doctype query exist, find by doctype first
@@ -1103,45 +1097,25 @@ func buildDocumentsFilterByOffset(documentid string, reverse bool, doctype strin
 			{"doctype", bson.D{{"$eq", doctype}}},
 		}
 		filterA = append(filterA, filterDoctype)
+	}
 
-		// if document offset exist, apply offset
-		if len(documentid) > 0 {
-			_, idtype, err := document.ParseDocId(documentid)
-			if err != nil {
-				return nil, err
-			}
-			// if type of document offset is not matched with doctype query, ignore it.
-			if document.DocIdShortTypeMap[doctype] == idtype {
-				// if reverse false, greater then documentid
-				if !reverse {
-					filterDocumentid := bson.D{
-						{"documentid", bson.D{{"$gt", documentid}}},
-					}
-					filterA = append(filterA, filterDocumentid)
-					// if reverse true, lesser then documentid
-				} else {
-					filterDocumentid := bson.D{
-						{"documentid", bson.D{{"$lt", documentid}}},
-					}
-					filterA = append(filterA, filterDocumentid)
-				}
-			}
+	// if offset exist, apply offset
+	if len(offset) > 0 {
+		height, err := parseOffsetHeight(offset)
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		if len(documentid) > 0 {
-			// if reverse false, greater then documentid
-			if !reverse {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$gt", documentid}}},
-				}
-				filterA = append(filterA, filterDocumentid)
-				// if reverse true, lesser then documentid
-			} else {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$lt", documentid}}},
-				}
-				filterA = append(filterA, filterDocumentid)
+		if !reverse {
+			filterOffset := bson.D{
+				{"height", bson.D{{"$gt", height}}},
 			}
+			filterA = append(filterA, filterOffset)
+			// if reverse true, lesser then offset height
+		} else {
+			filterHeight := bson.D{
+				{"height", bson.D{{"$lt", height}}},
+			}
+			filterA = append(filterA, filterHeight)
 		}
 	}
 
@@ -1155,7 +1129,7 @@ func buildDocumentsFilterByOffset(documentid string, reverse bool, doctype strin
 	return filter, nil
 }
 
-func buildDocumentsByHeightFilterByOffset(height base.Height, documentid string, reverse bool, doctype string) (bson.D, error) {
+func buildDocumentsByHeightFilter(height base.Height, reverse bool, doctype string) (bson.D, error) {
 	var filterA bson.A
 
 	filterHeight := bson.D{{"height", height}}
@@ -1166,25 +1140,6 @@ func buildDocumentsByHeightFilterByOffset(height base.Height, documentid string,
 			{"doctype", bson.D{{"$eq", doctype}}},
 		}
 		filterA = append(filterA, filterDoctype)
-		if len(documentid) > 0 {
-			docid, idtype, err := document.ParseDocId(documentid)
-			if err != nil {
-				return nil, err
-			}
-			if document.DocIdShortTypeMap[doctype] == idtype {
-				filterDocumentid := bson.D{
-					{"documentid", bson.D{{"$gt", docid}}},
-				}
-				filterA = append(filterA, filterDocumentid)
-			}
-		}
-	} else {
-		if len(documentid) > 0 {
-			filterDocumentid := bson.D{
-				{"documentid", bson.D{{"$gt", documentid}}},
-			}
-			filterA = append(filterA, filterDocumentid)
-		}
 	}
 
 	filter := bson.D{}

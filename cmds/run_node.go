@@ -25,6 +25,7 @@ import (
 
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 var RunCommandProcesses []pm.Process
@@ -37,14 +38,14 @@ var RunCommandHooks = func(cmd *RunCommand) []pm.Hook {
 			"set_currency_network_handlers", cmd.hookSetNetworkHandlers).SetOverride(true),
 		pm.NewHook(pm.HookPrefixPre, process.ProcessNameProposalProcessor,
 			"initialize_proposal_processor", HookInitializeProposalProcessor).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigestAPI,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigestAPI,
 			"set_digest_api_handlers", cmd.hookDigestAPIHandlers).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigester,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigester,
 			"set_state_handler", cmd.hookSetStateHandler).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigester,
-			HookNameDigesterFollowUp, HookDigesterFollowUp).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPre, ProcessNameDigestAPI,
-			HookNameSetLocalChannel, currencycmds.HookSetLocalChannel).SetOverride(true),
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigester,
+			currencycmds.HookNameDigesterFollowUp, HookDigesterFollowUp).SetOverride(true),
+		pm.NewHook(pm.HookPrefixPre, currencycmds.ProcessNameDigestAPI,
+			currencycmds.HookNameSetLocalChannel, currencycmds.HookSetLocalChannel).SetOverride(true),
 	}
 }
 
@@ -104,12 +105,12 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 	}
 
 	var st *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &st); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &st); err != nil {
 		return ctx, err
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
 
@@ -179,7 +180,7 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 	}
 
 	var design currencycmds.DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -202,8 +203,8 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 		return ctx, err
 	}
 
-	var dnt *digest.HTTP2Server
-	if err := LoadDigestNetworkContextValue(ctx, &dnt); err != nil {
+	var dnt *currencydigest.HTTP2Server
+	if err := currencycmds.LoadDigestNetworkContextValue(ctx, &dnt); err != nil {
 		return ctx, err
 	}
 
@@ -239,7 +240,7 @@ func (cmd *RunCommand) setDigestHandlers(
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return nil, err
 	}
 

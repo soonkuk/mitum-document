@@ -80,7 +80,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 	log.Log().Debug().Msg("loading currencies from mitum database")
 
 	var st *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &st); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &st); err != nil {
 		return ctx, err
 	}
 
@@ -97,7 +97,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 		return ctx, err
 	}
 
-	return context.WithValue(ctx, ContextValueCurrencyPool, cp), nil
+	return context.WithValue(ctx, currencycmds.ContextValueCurrencyPool, cp), nil
 }
 
 func HookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
@@ -128,7 +128,7 @@ func HookInitializeProposalProcessor(ctx context.Context) (context.Context, erro
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
 
@@ -259,7 +259,7 @@ func (*BaseNodeCommand) hookLoadDigestConfig(ctx context.Context) (context.Conte
 		ctx = i
 	}
 
-	return context.WithValue(ctx, ContextValueDigestDesign, *m.Digest), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigestDesign, *m.Digest), nil
 }
 
 func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (context.Context, error) {
@@ -269,7 +269,7 @@ func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (conte
 	}
 
 	var design currencycmds.DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -399,7 +399,7 @@ func hookVerboseConfig(ctx context.Context) (context.Context, error) {
 	}
 
 	var dd currencycmds.DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &dd); err != nil {
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &dd); err != nil {
 		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}

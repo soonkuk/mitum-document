@@ -15,13 +15,8 @@ import (
 	"github.com/spikeekips/mitum/util/logging"
 
 	"github.com/protoconNet/mitum-document/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum-currency/currency"
-)
-
-const (
-	ProcessNameDigester      = "digester"
-	ProcessNameStartDigester = "start_digester"
-	HookNameDigesterFollowUp = "followup_digester"
 )
 
 var (
@@ -31,8 +26,8 @@ var (
 
 func init() {
 	if i, err := pm.NewProcess(
-		ProcessNameDigester,
-		[]string{ProcessNameDigestDatabase},
+		currencycmds.ProcessNameDigester,
+		[]string{currencycmds.ProcessNameDigestDatabase},
 		ProcessDigester,
 	); err != nil {
 		panic(err)
@@ -41,8 +36,8 @@ func init() {
 	}
 
 	if i, err := pm.NewProcess(
-		ProcessNameStartDigester,
-		[]string{ProcessNameDigester},
+		currencycmds.ProcessNameStartDigester,
+		[]string{currencycmds.ProcessNameDigester},
 		ProcessStartDigester,
 	); err != nil {
 		panic(err)
@@ -69,7 +64,7 @@ func ProcessDigester(ctx context.Context) (context.Context, error) {
 	di := digest.NewDigester(st, nil)
 	_ = di.SetLogging(log)
 
-	return context.WithValue(ctx, ContextValueDigester, di), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigester, di), nil
 }
 
 func ProcessStartDigester(ctx context.Context) (context.Context, error) {
@@ -143,7 +138,7 @@ func digestFollowup(ctx context.Context, height base.Height) error {
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return err
 	}
 

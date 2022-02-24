@@ -16,13 +16,11 @@ import (
 	"github.com/protoconNet/mitum-document/digest"
 )
 
-const ProcessNameDigestDatabase = "digest_database"
-
 var ProcessorDigestDatabase pm.Process
 
 func init() {
 	if i, err := pm.NewProcess(
-		ProcessNameDigestDatabase,
+		currencycmds.ProcessNameDigestDatabase,
 		[]string{process.ProcessNameNetwork},
 		ProcessDigestDatabase,
 	); err != nil {
@@ -34,7 +32,7 @@ func init() {
 
 func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 	var design currencycmds.DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -43,7 +41,7 @@ func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 	}
 
 	var mst *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &mst); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &mst); err != nil {
 		return ctx, err
 	}
 
@@ -58,7 +56,7 @@ func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 
 	_ = st.SetLogging(log)
 
-	return context.WithValue(ctx, ContextValueDigestDatabase, st), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigestDatabase, st), nil
 }
 
 func loadDigestDatabase(st *mongodbstorage.Database, readonly bool) (*digest.Database, error) {

@@ -6,14 +6,14 @@ import (
 )
 
 type NodeCommand struct {
-	Init          InitCommand                    `cmd:"" help:"initialize node"`
+	Init          currencycmds.InitCommand       `cmd:"" help:"initialize node"`
 	Run           RunCommand                     `cmd:"" help:"run node"`
 	Info          currencycmds.NodeInfoCommand   `cmd:"" help:"node information"`
 	StartHandover mitumcmds.StartHandoverCommand `cmd:"" name:"start-handover" help:"start handover"`
 }
 
 func NewNodeCommand() (NodeCommand, error) {
-	initCommand, err := NewInitCommand(false)
+	initCommand, err := currencycmds.NewInitCommand(false)
 	if err != nil {
 		return NodeCommand{}, err
 	}

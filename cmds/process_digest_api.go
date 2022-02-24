@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 	"github.com/spikeekips/mitum/launch/config"
 	"github.com/spikeekips/mitum/launch/pm"
 	"github.com/spikeekips/mitum/util"
@@ -15,27 +16,21 @@ import (
 	"github.com/protoconNet/mitum-document/digest"
 )
 
-const (
-	ProcessNameDigestAPI      = "digest_api"
-	ProcessNameStartDigestAPI = "start_digest_api"
-	HookNameSetLocalChannel   = "set_local_channel"
-)
-
 var (
 	ProcessorDigestAPI      pm.Process
 	ProcessorStartDigestAPI pm.Process
 )
 
 func init() {
-	if i, err := pm.NewProcess(ProcessNameDigestAPI, []string{ProcessNameDigestDatabase}, ProcessDigestAPI); err != nil {
+	if i, err := pm.NewProcess(currencycmds.ProcessNameDigestAPI, []string{currencycmds.ProcessNameDigestDatabase}, ProcessDigestAPI); err != nil {
 		panic(err)
 	} else {
 		ProcessorDigestAPI = i
 	}
 
 	if i, err := pm.NewProcess(
-		ProcessNameStartDigestAPI,
-		[]string{ProcessNameDigestDatabase, ProcessNameDigestAPI},
+		currencycmds.ProcessNameStartDigestAPI,
+		[]string{currencycmds.ProcessNameDigestDatabase, currencycmds.ProcessNameDigestAPI},
 		ProcessStartDigestAPI,
 	); err != nil {
 		panic(err)
@@ -45,8 +40,8 @@ func init() {
 }
 
 func ProcessStartDigestAPI(ctx context.Context) (context.Context, error) {
-	var nt *digest.HTTP2Server
-	if err := LoadDigestNetworkContextValue(ctx, &nt); err != nil {
+	var nt *currencydigest.HTTP2Server
+	if err := currencycmds.LoadDigestNetworkContextValue(ctx, &nt); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -59,7 +54,7 @@ func ProcessStartDigestAPI(ctx context.Context) (context.Context, error) {
 
 func ProcessDigestAPI(ctx context.Context) (context.Context, error) {
 	var design currencycmds.DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -99,13 +94,13 @@ func ProcessDigestAPI(ctx context.Context) (context.Context, error) {
 		Str("publish", design.Network().ConnInfo().String()).
 		Msg("trying to start http2 server for digest API")
 
-	var nt *digest.HTTP2Server
+	var nt *currencydigest.HTTP2Server
 	var certs []tls.Certificate
 	if design.Network().Bind().Scheme == "https" {
 		certs = design.Network().Certs()
 	}
 
-	if sv, err := digest.NewHTTP2Server(
+	if sv, err := currencydigest.NewHTTP2Server(
 		design.Network().Bind().Host,
 		design.Network().ConnInfo().URL().Host,
 		certs,
@@ -119,5 +114,5 @@ func ProcessDigestAPI(ctx context.Context) (context.Context, error) {
 		nt = sv
 	}
 
-	return context.WithValue(ctx, ContextValueDigestNetwork, nt), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigestNetwork, nt), nil
 }

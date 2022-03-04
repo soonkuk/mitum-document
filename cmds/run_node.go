@@ -145,7 +145,7 @@ func (cmd *RunCommand) whenBlockSaved(
 			}()
 		}
 
-		if err := digest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
+		if err := currencydigest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
 			if err := cp.Set(sta); err != nil {
 				return false, err
 			}
@@ -212,7 +212,7 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 	return ctx, nil
 }
 
-func (cmd *RunCommand) loadCache(_ context.Context, design currencycmds.DigestDesign) (digest.Cache, error) {
+func (cmd *RunCommand) loadCache(_ context.Context, design currencycmds.DigestDesign) (currencydigest.Cache, error) {
 	c, err := digest.NewCacheFromURI(design.Cache().String())
 	if err != nil {
 		cmd.Log().Error().Err(err).Str("cache", design.Cache().String()).Msg("failed to connect cache server")
@@ -227,7 +227,7 @@ func (cmd *RunCommand) setDigestHandlers(
 	ctx context.Context,
 	conf config.LocalNode,
 	design currencycmds.DigestDesign,
-	cache digest.Cache,
+	cache currencydigest.Cache,
 ) (*digest.Handlers, error) {
 	var nt network.Server
 	if err := process.LoadNetworkContextValue(ctx, &nt); err != nil {

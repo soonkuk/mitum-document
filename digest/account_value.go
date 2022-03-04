@@ -8,6 +8,7 @@ import (
 
 	"github.com/protoconNet/mitum-document/document"
 	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 var (
@@ -25,7 +26,7 @@ type AccountValue struct {
 
 func NewAccountValue(st state.State) (AccountValue, error) {
 	var ac currency.Account
-	switch a, ok, err := IsAccountState(st); {
+	switch a, ok, err := currencydigest.IsAccountState(st); {
 	case err != nil:
 		return AccountValue{}, err
 	case !ok:

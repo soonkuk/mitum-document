@@ -27,7 +27,7 @@ type mainflags struct {
 	Node       cmds.NodeCommand            `cmd:"" help:"node"`
 	Key        currencycmds.KeyCommand     `cmd:"" help:"key"`
 	Seal       cmds.SealCommand            `cmd:"" help:"seal"`
-	Storage    currencycmds.StorageCommand `cmd:"" help:"storage"`
+	Storage    cmds.StorageCommand         `cmd:"" help:"storage"`
 	Deploy     currencycmds.DeployCommand  `cmd:"" help:"deploy"`
 	QuicClient mitumcmds.QuicClientCommand `cmd:"" help:"quic-client"`
 }
@@ -40,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	storagecommand, err := currencycmds.NewStorageCommand()
+	storagecommand, err := cmds.NewStorageCommand()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %+v\n", err) // revive:disable-line:unhandled-error
 

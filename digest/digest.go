@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -67,6 +68,14 @@ func NewDigester(st *Database, errChan chan error) *Digester {
 }
 
 func (di *Digester) start(ctx context.Context) error {
+	errch := func(err DigestError) {
+		if di.errChan == nil {
+			return
+		}
+
+		di.errChan <- err
+	}
+
 end:
 	for {
 		select {
@@ -77,10 +86,10 @@ end:
 		case blk := <-di.blockChan:
 			err := util.Retry(0, time.Second*1, func(int) error {
 				if err := di.digest(ctx, blk); err != nil {
-					if di.errChan != nil {
-						go func() {
-							di.errChan <- NewDigestError(err, blk.Height())
-						}()
+					go errch(NewDigestError(err, blk.Height()))
+
+					if errors.Is(err, context.Canceled) {
+						return util.StopRetryingError.Wrap(err)
 					}
 
 					return err
@@ -94,11 +103,7 @@ end:
 				di.Log().Info().Int64("block", blk.Height().Int64()).Msg("block digested")
 			}
 
-			if di.errChan != nil {
-				go func() {
-					di.errChan <- NewDigestError(err, blk.Height())
-				}()
-			}
+			go errch(NewDigestError(err, blk.Height()))
 		}
 	}
 

@@ -80,10 +80,6 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 		_ = bs.close()
 	}()
 
-	if err := bs.st.CleanByHeight(bs.block.Height()); err != nil {
-		return err
-	}
-
 	if err := bs.writeModels(ctx, defaultColNameOperation, bs.operationModels); err != nil {
 		return err
 	}
@@ -99,7 +95,7 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 	if len(bs.documentModels) > 0 {
 
 		for i := range bs.documentList {
-			if err := bs.st.cleanByHeightColNameDocumentId(bs.block.Height(), defaultColNameDocument, bs.documentList[i]); err != nil {
+			if err := bs.st.cleanByHeightColNameDocumentId(ctx, bs.block.Height(), defaultColNameDocument, bs.documentList[i]); err != nil {
 				return err
 			}
 		}
@@ -193,7 +189,6 @@ func (bs *BlockSession) prepareAccounts() error {
 	var balanceModels []mongo.WriteModel
 	var documentModels []mongo.WriteModel
 	var documentsModels []mongo.WriteModel
-
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {

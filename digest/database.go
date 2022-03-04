@@ -119,7 +119,7 @@ func (st *Database) Initialize() error {
 				return err
 			}
 
-			if err := st.cleanByHeight(h + 1); err != nil {
+			if err := st.cleanByHeight(context.Background(), h+1); err != nil {
 				return err
 			}
 		}
@@ -184,18 +184,12 @@ func (st *Database) Clean() error {
 	st.Lock()
 	defer st.Unlock()
 
-	return st.clean()
+	return st.clean(context.Background())
 }
 
-func (st *Database) clean() error {
-	for _, col := range []string{
-		defaultColNameAccount,
-		defaultColNameBalance,
-		defaultColNameOperation,
-		defaultColNameDocument,
-		defaultColNameDocuments,
-	} {
-		if err := st.database.Client().Collection(col).Drop(context.Background()); err != nil {
+func (st *Database) clean(ctx context.Context) error {
+	for _, col := range AllCollections {
+		if err := st.database.Client().Collection(col).Drop(ctx); err != nil {
 			return storage.MergeStorageError(err)
 		}
 
@@ -211,7 +205,7 @@ func (st *Database) clean() error {
 	return nil
 }
 
-func (st *Database) CleanByHeight(height base.Height) error {
+func (st *Database) CleanByHeight(ctx context.Context, height base.Height) error {
 	if st.readonly {
 		return errors.Errorf("readonly mode")
 	}
@@ -219,26 +213,20 @@ func (st *Database) CleanByHeight(height base.Height) error {
 	st.Lock()
 	defer st.Unlock()
 
-	return st.cleanByHeight(height)
+	return st.cleanByHeight(ctx, height)
 }
 
-func (st *Database) cleanByHeight(height base.Height) error {
+func (st *Database) cleanByHeight(ctx context.Context, height base.Height) error {
 	if height <= base.PreGenesisHeight+1 {
-		return st.clean()
+		return st.clean(ctx)
 	}
 
 	opts := options.BulkWrite().SetOrdered(true)
 	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"height": bson.M{"$gte": height}})
 
-	for _, col := range []string{
-		defaultColNameAccount,
-		defaultColNameBalance,
-		defaultColNameOperation,
-		defaultColNameDocument,
-		defaultColNameDocuments,
-	} {
+	for _, col := range AllCollections {
 		res, err := st.database.Client().Collection(col).BulkWrite(
-			context.Background(),
+			ctx,
 			[]mongo.WriteModel{removeByHeight},
 			opts,
 		)
@@ -258,29 +246,6 @@ func (st *Database) ManifestByHeight(height base.Height) (block.Manifest, bool, 
 
 func (st *Database) Manifest(h valuehash.Hash) (block.Manifest, bool, error) {
 	return st.mitum.Manifest(h)
-}
-
-func (st *Database) cleanByHeightColNameDocumentId(height base.Height, colName string, documentid string) error {
-
-	if height <= base.PreGenesisHeight+1 {
-		return st.clean()
-	}
-
-	opts := options.BulkWrite().SetOrdered(true)
-	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"documentid": documentid, "height": bson.M{"$lte": height}})
-
-	res, err := st.database.Client().Collection(colName).BulkWrite(
-		context.Background(),
-		[]mongo.WriteModel{removeByHeight},
-		opts,
-	)
-	if err != nil {
-		return storage.MergeStorageError(err)
-	}
-
-	st.Log().Debug().Str("collection", colName).Interface("result", res).Msg("clean collection by height")
-
-	return st.setLastBlock(height - 1)
 }
 
 // Manifests returns block.Manifests by it's order, height.
@@ -458,121 +423,6 @@ func (st *Database) Operations(
 				return false, err
 			}
 			return callback(va.Operation().Fact().Hash(), va)
-		},
-		opt,
-	)
-}
-
-func (st *Database) DocumentsByAddress(
-	address base.Address,
-	reverse bool,
-	offset string,
-	limit int64,
-	doctype string,
-	callback func(string /* document id */, DocumentValue) (bool, error),
-) error {
-	filter, err := buildDocumentsFilterByAddress(address, offset, reverse, doctype)
-	if err != nil {
-		return err
-	}
-
-	sr := 1
-	if reverse {
-		sr = -1
-	}
-
-	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).D(),
-	)
-
-	switch {
-	case limit <= 0: // no limit
-	case limit > maxLimit:
-		opt = opt.SetLimit(maxLimit)
-	default:
-		opt = opt.SetLimit(limit)
-	}
-
-	return st.database.Client().Find(
-		context.Background(),
-		defaultColNameDocument,
-		filter,
-		func(cursor *mongo.Cursor) (bool, error) {
-			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
-			if err != nil {
-				return false, err
-			}
-			return callback(va.Document().DocumentId(), va)
-		},
-		opt,
-	)
-}
-
-func (st *Database) Document(
-	i string, /* document id */
-) (DocumentValue, bool /* exists */, error) {
-
-	var va DocumentValue
-	if err := st.database.Client().GetByFilter(
-		defaultColNameDocument,
-		util.NewBSONFilter("documentid", i).D(),
-		func(res *mongo.SingleResult) error {
-
-			i, err := LoadDocument(res.Decode, st.database.Encoders())
-			if err != nil {
-				return err
-			}
-
-			va = i
-
-			return nil
-		},
-		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
-	); err != nil {
-		if errors.Is(err, util.NotFoundError) {
-			return DocumentValue{}, false, nil
-		}
-
-		return DocumentValue{}, false, err
-	}
-
-	return va, true, nil
-}
-
-func (st *Database) Documents(
-	filter bson.D,
-	reverse bool,
-	limit int64,
-	callback func(string /* documentid */, DocumentValue) (bool, error),
-) error {
-	sr := 1
-	if reverse {
-		sr = -1
-	}
-
-	opt := options.Find().SetSort(
-		util.NewBSONFilter("height", sr).D(),
-	)
-
-	switch {
-	case limit <= 0: // no limit
-	case limit > maxLimit:
-		opt = opt.SetLimit(maxLimit)
-	default:
-		opt = opt.SetLimit(limit)
-	}
-
-	return st.database.Client().Find(
-		context.Background(),
-		defaultColNameDocument,
-		filter,
-		func(cursor *mongo.Cursor) (bool, error) {
-
-			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
-			if err != nil {
-				return false, err
-			}
-			return callback(va.doc.DocumentId(), va)
 		},
 		opt,
 	)
@@ -895,16 +745,6 @@ func (st *Database) filterAccountByPublickey(
 				}
 			}
 
-			// NOTE load documents
-			switch doc, lastHeight, previousHeight, err := st.DocumentList(va.Account().Address()); {
-			case err != nil:
-				return false, err
-			default:
-				va = va.SetDocument(doc).
-					SetHeight(lastHeight).
-					SetPreviousHeight(previousHeight)
-			}
-
 			called++
 			switch keep, err := callback(va); {
 			case err != nil:
@@ -923,6 +763,259 @@ func (st *Database) filterAccountByPublickey(
 	}
 
 	return stopped || called == limit, nil
+}
+
+func loadLastBlock(st *Database) (base.Height, bool, error) {
+	switch b, found, err := st.database.Info(DigestStorageLastBlockKey); {
+	case err != nil:
+		return base.NilHeight, false, errors.Wrap(err, "failed to get last block for digest")
+	case !found:
+		return base.NilHeight, false, nil
+	default:
+		h, err := base.NewHeightFromBytes(b)
+		if err != nil {
+			return base.NilHeight, false, err
+		}
+		return h, true, nil
+	}
+}
+
+func parseOffset(s string) (base.Height, uint64, error) {
+	if n := strings.SplitN(s, ",", 2); n == nil {
+		return base.NilHeight, 0, errors.Errorf("invalid offset string: %q", s)
+	} else if len(n) < 2 {
+		return base.NilHeight, 0, errors.Errorf("invalid offset, %q", s)
+	} else if h, err := base.NewHeightFromString(n[0]); err != nil {
+		return base.NilHeight, 0, errors.Wrap(err, "invalid height of offset")
+	} else if u, err := strconv.ParseUint(n[1], 10, 64); err != nil {
+		return base.NilHeight, 0, errors.Wrap(err, "invalid index of offset")
+	} else {
+		return h, u, nil
+	}
+}
+
+func buildOffset(height base.Height, index uint64) string {
+	return fmt.Sprintf("%d,%d", height, index)
+}
+
+func buildOperationsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
+	filter := bson.M{"addresses": bson.M{"$in": []string{address.String()}}}
+	if len(offset) > 0 {
+		height, index, err := parseOffset(offset)
+		if err != nil {
+			return nil, err
+		}
+
+		if reverse {
+			filter["$or"] = []bson.M{
+				{"height": bson.M{"$lt": height}},
+				{"$and": []bson.M{
+					{"height": height},
+					{"index": bson.M{"$lt": index}},
+				}},
+			}
+		} else {
+			filter["$or"] = []bson.M{
+				{"height": bson.M{"$gt": height}},
+				{"$and": []bson.M{
+					{"height": height},
+					{"index": bson.M{"$gt": index}},
+				}},
+			}
+		}
+	}
+
+	return filter, nil
+}
+
+func parseOffsetByString(s string) (base.Height, string, error) {
+	var a, b string
+	switch n := strings.SplitN(s, ",", 2); {
+	case n == nil:
+		return base.NilHeight, "", errors.Errorf("invalid offset string: %q", s)
+	case len(n) < 2:
+		return base.NilHeight, "", errors.Errorf("invalid offset, %q", s)
+	default:
+		a = n[0]
+		b = n[1]
+	}
+
+	h, err := base.NewHeightFromString(a)
+	if err != nil {
+		return base.NilHeight, "", errors.Wrap(err, "invalid height of offset")
+	}
+
+	return h, b, nil
+}
+
+func buildOffsetHeight(height base.Height) string {
+	return fmt.Sprintf("%d", height)
+}
+
+func buildOffsetByString(height base.Height, s string) string {
+	return fmt.Sprintf("%d,%s", height, s)
+}
+
+func buildAccountsFilterByPublickey(pub key.Publickey) bson.M {
+	return bson.M{"pubs": bson.M{"$in": []string{pub.String()}}}
+}
+
+type heightDoc struct {
+	H base.Height `bson:"height"`
+}
+
+func loadHeightDoc(decoder func(interface{}) error) (base.Height, error) {
+	var h heightDoc
+	if err := decoder(&h); err != nil {
+		return base.NilHeight, err
+	}
+
+	return h.H, nil
+}
+
+type briefAccountDoc struct {
+	ID      primitive.ObjectID `bson:"_id"`
+	Address string             `bson:"address"`
+	Pubs    []string           `bson:"pubs"`
+	Height  base.Height        `bson:"height"`
+}
+
+func (doc briefAccountDoc) pubExists(k key.Key) bool {
+	if len(doc.Pubs) < 1 {
+		return false
+	}
+
+	for i := range doc.Pubs {
+		if k.String() == doc.Pubs[i] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func loadBriefAccountDoc(decoder func(interface{}) error) (briefAccountDoc, error) {
+	var a briefAccountDoc
+	if err := decoder(&a); err != nil {
+		return a, err
+	}
+
+	return a, nil
+}
+
+func (st *Database) DocumentsByAddress(
+	address base.Address,
+	reverse bool,
+	offset string,
+	limit int64,
+	doctype string,
+	callback func(string /* document id */, DocumentValue) (bool, error),
+) error {
+	filter, err := buildDocumentsFilterByAddress(address, offset, reverse, doctype)
+	if err != nil {
+		return err
+	}
+
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.Document().DocumentId(), va)
+		},
+		opt,
+	)
+}
+
+func (st *Database) Document(
+	i string, /* document id */
+) (DocumentValue, bool /* exists */, error) {
+
+	var va DocumentValue
+	if err := st.database.Client().GetByFilter(
+		defaultColNameDocument,
+		util.NewBSONFilter("documentid", i).D(),
+		func(res *mongo.SingleResult) error {
+
+			i, err := LoadDocument(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+
+			va = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+			return DocumentValue{}, false, nil
+		}
+
+		return DocumentValue{}, false, err
+	}
+
+	return va, true, nil
+}
+
+func (st *Database) Documents(
+	filter bson.D,
+	reverse bool,
+	limit int64,
+	callback func(string /* documentid */, DocumentValue) (bool, error),
+) error {
+	sr := 1
+	if reverse {
+		sr = -1
+	}
+
+	opt := options.Find().SetSort(
+		util.NewBSONFilter("height", sr).D(),
+	)
+
+	switch {
+	case limit <= 0: // no limit
+	case limit > maxLimit:
+		opt = opt.SetLimit(maxLimit)
+	default:
+		opt = opt.SetLimit(limit)
+	}
+
+	return st.database.Client().Find(
+		context.Background(),
+		defaultColNameDocument,
+		filter,
+		func(cursor *mongo.Cursor) (bool, error) {
+
+			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
+			if err != nil {
+				return false, err
+			}
+			return callback(va.doc.DocumentId(), va)
+		},
+		opt,
+	)
 }
 
 // DocumentList return document invetory by address
@@ -966,81 +1059,27 @@ func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, ba
 	return doc, lastHeight, previousHeight, nil
 }
 
-func loadLastBlock(st *Database) (base.Height, bool, error) {
-	switch b, found, err := st.database.Info(DigestStorageLastBlockKey); {
-	case err != nil:
-		return base.NilHeight, false, errors.Wrap(err, "failed to get last block for digest")
-	case !found:
-		return base.NilHeight, false, nil
-	default:
-		h, err := base.NewHeightFromBytes(b)
-		if err != nil {
-			return base.NilHeight, false, err
-		}
-		return h, true, nil
-	}
-}
+func (st *Database) cleanByHeightColNameDocumentId(ctx context.Context, height base.Height, colName string, documentid string) error {
 
-func parseOffset(s string) (base.Height, uint64, error) {
-	if n := strings.SplitN(s, ",", 2); n == nil {
-		return base.NilHeight, 0, errors.Errorf("invalid offset string: %q", s)
-	} else if len(n) < 2 {
-		return base.NilHeight, 0, errors.Errorf("invalid offset, %q", s)
-	} else if h, err := base.NewHeightFromString(n[0]); err != nil {
-		return base.NilHeight, 0, errors.Wrap(err, "invalid height of offset")
-	} else if u, err := strconv.ParseUint(n[1], 10, 64); err != nil {
-		return base.NilHeight, 0, errors.Wrap(err, "invalid index of offset")
-	} else {
-		return h, u, nil
-	}
-}
-
-func parseOffsetHeight(s string) (base.Height, error) {
-	if len(s) < 0 {
-		return base.NilHeight, errors.Errorf("invalid offset, %q", s)
-	} else if h, err := base.NewHeightFromString(s); err != nil {
-		return base.NilHeight, errors.Wrap(err, "invalid height of offset")
-	} else {
-		return h, nil
-	}
-}
-
-func buildOffset(height base.Height, index uint64) string {
-	return fmt.Sprintf("%d,%d", height, index)
-}
-
-func buildOffsetHeight(height base.Height) string {
-	return fmt.Sprintf("%d", height)
-}
-
-func buildOperationsFilterByAddress(address base.Address, offset string, reverse bool) (bson.M, error) {
-	filter := bson.M{"addresses": bson.M{"$in": []string{address.String()}}}
-	if len(offset) > 0 {
-		height, index, err := parseOffset(offset)
-		if err != nil {
-			return nil, err
-		}
-
-		if reverse {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$lt": height}},
-				{"$and": []bson.M{
-					{"height": height},
-					{"index": bson.M{"$lt": index}},
-				}},
-			}
-		} else {
-			filter["$or"] = []bson.M{
-				{"height": bson.M{"$gt": height}},
-				{"$and": []bson.M{
-					{"height": height},
-					{"index": bson.M{"$gt": index}},
-				}},
-			}
-		}
+	if height <= base.PreGenesisHeight+1 {
+		return st.clean(ctx)
 	}
 
-	return filter, nil
+	opts := options.BulkWrite().SetOrdered(true)
+	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"documentid": documentid, "height": bson.M{"$lte": height}})
+
+	res, err := st.database.Client().Collection(colName).BulkWrite(
+		context.Background(),
+		[]mongo.WriteModel{removeByHeight},
+		opts,
+	)
+	if err != nil {
+		return storage.MergeStorageError(err)
+	}
+
+	st.Log().Debug().Str("collection", colName).Interface("result", res).Msg("clean collection by height")
+
+	return st.setLastBlock(height - 1)
 }
 
 func buildDocumentsFilterByAddress(address base.Address, offset string, reverse bool, doctype string) (bson.D, error) {
@@ -1151,73 +1190,12 @@ func buildDocumentsByHeightFilter(height base.Height, reverse bool, doctype stri
 	return filter, nil
 }
 
-func parseOffsetByString(s string) (base.Height, string, error) {
-	var a, b string
-	switch n := strings.SplitN(s, ",", 2); {
-	case n == nil:
-		return base.NilHeight, "", errors.Errorf("invalid offset string: %q", s)
-	case len(n) < 2:
-		return base.NilHeight, "", errors.Errorf("invalid offset, %q", s)
-	default:
-		a = n[0]
-		b = n[1]
+func parseOffsetHeight(s string) (base.Height, error) {
+	if len(s) < 0 {
+		return base.NilHeight, errors.Errorf("invalid offset, %q", s)
+	} else if h, err := base.NewHeightFromString(s); err != nil {
+		return base.NilHeight, errors.Wrap(err, "invalid height of offset")
+	} else {
+		return h, nil
 	}
-
-	h, err := base.NewHeightFromString(a)
-	if err != nil {
-		return base.NilHeight, "", errors.Wrap(err, "invalid height of offset")
-	}
-
-	return h, b, nil
-}
-
-func buildOffsetByString(height base.Height, s string) string {
-	return fmt.Sprintf("%d,%s", height, s)
-}
-
-func buildAccountsFilterByPublickey(pub key.Publickey) bson.M {
-	return bson.M{"pubs": bson.M{"$in": []string{pub.String()}}}
-}
-
-type heightDoc struct {
-	H base.Height `bson:"height"`
-}
-
-func loadHeightDoc(decoder func(interface{}) error) (base.Height, error) {
-	var h heightDoc
-	if err := decoder(&h); err != nil {
-		return base.NilHeight, err
-	}
-
-	return h.H, nil
-}
-
-type briefAccountDoc struct {
-	ID      primitive.ObjectID `bson:"_id"`
-	Address string             `bson:"address"`
-	Pubs    []string           `bson:"pubs"`
-	Height  base.Height        `bson:"height"`
-}
-
-func (doc briefAccountDoc) pubExists(k key.Key) bool {
-	if len(doc.Pubs) < 1 {
-		return false
-	}
-
-	for i := range doc.Pubs {
-		if k.String() == doc.Pubs[i] {
-			return true
-		}
-	}
-
-	return false
-}
-
-func loadBriefAccountDoc(decoder func(interface{}) error) (briefAccountDoc, error) {
-	var a briefAccountDoc
-	if err := decoder(&a); err != nil {
-		return a, err
-	}
-
-	return a, nil
 }

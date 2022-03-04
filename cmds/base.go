@@ -28,9 +28,9 @@ import (
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
 
-	"github.com/protoconNet/mitum-document/digest"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 var BaseNodeCommandHooks = func(cmd *BaseNodeCommand) []pm.Hook {
@@ -86,7 +86,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 
 	cp := currency.NewCurrencyPool()
 
-	if err := digest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
+	if err := currencydigest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
 		if err := cp.Set(sta); err != nil {
 			return false, err
 		}

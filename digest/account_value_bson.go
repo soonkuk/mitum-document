@@ -33,5 +33,5 @@ func (va *AccountValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return va.unpack(enc, uva.AC, uva.BL /*uva.SD, */, uva.CD, uva.HT, uva.PT)
+	return va.unpack(enc, uva.AC, uva.BL, uva.CD, uva.HT, uva.PT)
 }

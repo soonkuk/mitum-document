@@ -43,7 +43,7 @@ func (va *AccountValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	}
 
 	ac := new(currency.Account)
-	if err := va.unpack(enc, nil, uva.BL /*uva.SD, */, uva.CD, uva.HT, uva.PT); err != nil {
+	if err := va.unpack(enc, nil, uva.BL, uva.CD, uva.HT, uva.PT); err != nil {
 		return err
 	} else if err := ac.UnpackJSON(b, enc); err != nil {
 		return err

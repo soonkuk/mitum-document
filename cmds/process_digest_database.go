@@ -21,7 +21,7 @@ var ProcessorDigestDatabase pm.Process
 func init() {
 	if i, err := pm.NewProcess(
 		currencycmds.ProcessNameDigestDatabase,
-		[]string{process.ProcessNameNetwork},
+		[]string{process.ProcessNameBlockdata},
 		ProcessDigestDatabase,
 	); err != nil {
 		panic(err)

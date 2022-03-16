@@ -134,13 +134,13 @@ func NewDocInfo(id string, docType hint.Type) DocInfo {
 	case BSDocDataType:
 		i = NewBSDocId(id)
 	case BCUserDataType:
-		i = NewUserDocId(id)
+		i = NewBCUserDocId(id)
 	case BCLandDataType:
-		i = NewLandDocId(id)
+		i = NewBCLandDocId(id)
 	case BCVotingDataType:
-		i = NewVotingDocId(id)
+		i = NewBCVotingDocId(id)
 	case BCHistoryDataType:
-		i = NewHistoryDocId(id)
+		i = NewBCHistoryDocId(id)
 	default:
 		return DocInfo{}
 	}

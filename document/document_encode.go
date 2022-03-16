@@ -368,7 +368,7 @@ func (di *BSDocId) unpack(
 	return nil
 }
 
-func (di *UserDocId) unpack(
+func (di *BCUserDocId) unpack(
 	enc encoder.Encoder,
 	si string,
 ) error {
@@ -379,7 +379,7 @@ func (di *UserDocId) unpack(
 	return nil
 }
 
-func (di *LandDocId) unpack(
+func (di *BCLandDocId) unpack(
 	enc encoder.Encoder,
 	si string,
 ) error {
@@ -390,7 +390,7 @@ func (di *LandDocId) unpack(
 	return nil
 }
 
-func (di *VotingDocId) unpack(
+func (di *BCVotingDocId) unpack(
 	enc encoder.Encoder,
 	si string,
 ) error {
@@ -400,7 +400,7 @@ func (di *VotingDocId) unpack(
 	return nil
 }
 
-func (di *HistoryDocId) unpack(
+func (di *BCHistoryDocId) unpack(
 	enc encoder.Encoder,
 	si string,
 ) error {

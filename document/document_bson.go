@@ -333,7 +333,7 @@ func (di *BSDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, udi.BI)
 }
 
-func (di UserDocId) MarshalBSON() ([]byte, error) {
+func (di BCUserDocId) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -342,7 +342,7 @@ func (di UserDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *UserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (di *BCUserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
@@ -351,7 +351,7 @@ func (di *UserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, udi.BI)
 }
 
-func (di LandDocId) MarshalBSON() ([]byte, error) {
+func (di BCLandDocId) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -360,7 +360,7 @@ func (di LandDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *LandDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (di *BCLandDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
@@ -369,7 +369,7 @@ func (di *LandDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, udi.BI)
 }
 
-func (di VotingDocId) MarshalBSON() ([]byte, error) {
+func (di BCVotingDocId) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -378,7 +378,7 @@ func (di VotingDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *VotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (di *BCVotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
@@ -387,7 +387,7 @@ func (di *VotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, udi.BI)
 }
 
-func (di HistoryDocId) MarshalBSON() ([]byte, error) {
+func (di BCHistoryDocId) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -396,7 +396,7 @@ func (di HistoryDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *HistoryDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (di *BCHistoryDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var udi DocIdBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err

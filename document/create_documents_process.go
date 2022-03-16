@@ -67,7 +67,7 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		case err != nil:
 			return err
 		case !found:
-			return operation.NewBaseReasonError("DocumentData related accounts not found, document type : %q, address : %q", opp.item.Doc().Accounts()[i])
+			return operation.NewBaseReasonError("DocumentData related accounts not found, document type : %q, address : %q", opp.item.Doc().Info().docType, opp.item.Doc().Accounts()[i])
 		}
 	}
 

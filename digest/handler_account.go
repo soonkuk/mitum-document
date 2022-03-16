@@ -458,9 +458,9 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	}
 
 	limit := parseLimitQuery(r.URL.Query().Get("limit"))
-	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
+	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
 	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
 
@@ -572,6 +572,7 @@ func (hd *Handlers) buildAccountDocumentsHal(
 	hal = hal.AddLink("account", NewHalLink(h, nil))
 
 	var nextoffset string
+
 	if len(vas) > 0 {
 		va := vas[len(vas)-1].Interface().(DocumentValue)
 		nextoffset = buildOffsetHeight(va.Height())
@@ -579,8 +580,8 @@ func (hd *Handlers) buildAccountDocumentsHal(
 
 	if len(nextoffset) > 0 {
 		next := baseSelf
+		next = addQueryValue(next, stringOffsetQuery(nextoffset))
 
-		next = addQueryValue(next, stringDocumentidQuery(nextoffset))
 		if len(doctype) > 0 {
 			next = addQueryValue(next, stringDoctypeQuery(doctype))
 		}

@@ -23,32 +23,37 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
+	v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		i, filled, err := hd.handleDocumentsInGroup(offset, reverse, limit, doctype)
 
 		return []interface{}{i, filled}, err
-	}); err != nil {
+	})
+	if err != nil {
+		hd.Log().Error().Err(err).Msg("failed to get documents")
 		HTTP2HandleError(w, err)
-	} else {
-		var b []byte
-		var filled bool
-		{
-			l := v.([]interface{})
-			b = l[0].([]byte)
-			filled = l[1].(bool)
-		}
 
-		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
-
-		if !shared {
-			expire := hd.expireNotFilled
-			if len(offset) > 0 && filled {
-				expire = time.Minute
-			}
-
-			HTTP2WriteCache(w, cachekey, expire)
-		}
+		return
 	}
+
+	var b []byte
+	var filled bool
+	{
+		l := v.([]interface{})
+		b = l[0].([]byte)
+		filled = l[1].(bool)
+	}
+
+	HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
+
+	if !shared {
+		expire := hd.expireNotFilled
+		if len(offset) > 0 && filled {
+			expire = time.Minute
+		}
+
+		HTTP2WriteCache(w, cachekey, expire)
+	}
+
 }
 
 func (hd *Handlers) handleDocumentsInGroup(
@@ -284,7 +289,6 @@ func nextOffsetOfDocuments(baseSelf string, vas []Hal, doctype string, reverse b
 	}
 
 	if len(nextoffset) > 0 {
-
 		next = baseSelf
 		next = addQueryValue(next, stringOffsetQuery(nextoffset))
 

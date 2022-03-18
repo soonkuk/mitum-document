@@ -28,5 +28,4 @@ tests/*/*/coverage/
 /env
 /openapi
 /sh
-.*.yml
-blockcitycfg.yml
+mitumtestcfg.yml

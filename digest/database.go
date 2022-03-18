@@ -1047,7 +1047,7 @@ func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, ba
 
 	i, err := document.StateDocumentsValue(sta)
 	if err != nil {
-		return document.DocumentInventory{}, lastHeight, previousHeight, err
+		return doc, lastHeight, previousHeight, err
 	}
 	doc = i
 
@@ -1191,7 +1191,7 @@ func buildDocumentsByHeightFilter(height base.Height, reverse bool, doctype stri
 }
 
 func parseOffsetHeight(s string) (base.Height, error) {
-	if len(s) < 0 {
+	if len(s) < 1 {
 		return base.NilHeight, errors.Errorf("invalid offset, %q", s)
 	} else if h, err := base.NewHeightFromString(s); err != nil {
 		return base.NilHeight, errors.Wrap(err, "invalid height of offset")

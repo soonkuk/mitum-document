@@ -116,10 +116,6 @@ func stringOffsetQuery(offset string) string {
 	return fmt.Sprintf("offset=%s", offset)
 }
 
-func stringDocumentidQuery(documentid string) string {
-	return fmt.Sprintf("documentid=%s", documentid)
-}
-
 func stringDoctypeQuery(doctype string) string {
 	return fmt.Sprintf("doctype=%s", doctype)
 }

@@ -1,4 +1,4 @@
-package document
+package document // nolint:dupl
 
 import (
 	"encoding/json"
@@ -11,10 +11,10 @@ import (
 
 type SignDocumentsFactJSONPacker struct {
 	jsonenc.HintedHead
-	H  valuehash.Hash     `json:"hash"`
-	TK []byte             `json:"token"`
-	SD base.Address       `json:"sender"`
-	IT []SignDocumentItem `json:"items"`
+	H  valuehash.Hash      `json:"hash"`
+	TK []byte              `json:"token"`
+	SD base.Address        `json:"sender"`
+	IT []SignDocumentsItem `json:"items"`
 }
 
 func (fact SignDocumentsFact) MarshalJSON() ([]byte, error) {

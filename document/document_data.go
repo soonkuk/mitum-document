@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"bytes"
@@ -54,8 +54,8 @@ func (doc Document) DocumentData() DocumentData {
 	return doc.data
 }
 
-func (doc Document) DocumentId() string {
-	return doc.data.DocumentId()
+func (doc Document) DocumentID() string {
+	return doc.data.DocumentID()
 }
 
 func (doc Document) DocumentType() hint.Type {
@@ -75,7 +75,6 @@ func (doc Document) GenerateHash() valuehash.Hash {
 }
 
 func (doc Document) IsValid([]byte) error {
-
 	if err := isvalid.Check(
 		nil, false,
 		doc.BaseHinter,
@@ -87,7 +86,7 @@ func (doc Document) IsValid([]byte) error {
 }
 
 type DocumentData interface {
-	DocumentId() string
+	DocumentID() string
 	DocumentType() hint.Type
 	Hint() hint.Hint
 	Bytes() []byte
@@ -117,12 +116,8 @@ type BSDocData struct {
 }
 
 func NewBSDocData(info DocInfo,
-	owner base.Address,
-	fileHash FileHash,
-	creator DocSign,
-	title string,
-	size currency.Big,
-	signers []DocSign,
+	owner base.Address, fileHash FileHash, creator DocSign,
+	title string, size currency.Big, signers []DocSign,
 ) BSDocData {
 	doc := BSDocData{
 		BaseHinter: hint.NewBaseHinter(BSDocDataHint),
@@ -138,7 +133,10 @@ func NewBSDocData(info DocInfo,
 	return doc
 }
 
-func MustNewBSDocData(info DocInfo, owner base.Address, fileHash FileHash, creator DocSign, title string, size currency.Big, signers []DocSign) BSDocData {
+func MustNewBSDocData(
+	info DocInfo, owner base.Address, fileHash FileHash,
+	creator DocSign, title string, size currency.Big, signers []DocSign,
+) BSDocData {
 	doc := NewBSDocData(info, owner, fileHash, creator, title, size, signers)
 	if err := doc.IsValid(nil); err != nil {
 		panic(err)
@@ -147,8 +145,8 @@ func MustNewBSDocData(info DocInfo, owner base.Address, fileHash FileHash, creat
 	return doc
 }
 
-func (doc BSDocData) DocumentId() string {
-	return doc.info.DocumentId()
+func (doc BSDocData) DocumentID() string {
+	return doc.info.DocumentID()
 }
 
 func (doc BSDocData) DocumentType() hint.Type {
@@ -190,7 +188,10 @@ func (doc BSDocData) IsEmpty() bool {
 
 func (doc BSDocData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
-		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+		return errors.Errorf(
+			"docInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v",
+			doc.info.docType, doc.Hint().Type(),
+		)
 	}
 
 	if err := isvalid.Check(
@@ -199,6 +200,7 @@ func (doc BSDocData) IsValid([]byte) error {
 		doc.info,
 		doc.owner,
 		doc.creator,
+		doc.fileHash,
 	); err != nil {
 		return isvalid.InvalidError.Errorf("invalid User Document Data: %w", err)
 	}
@@ -226,9 +228,9 @@ func (doc BSDocData) Signers() []DocSign {
 }
 
 func (doc BSDocData) Accounts() []base.Address {
-	var as []base.Address
+	as := make([]base.Address, len(doc.signers))
 	for i := range doc.signers {
-		as = append(as, doc.signers[i].Address())
+		as[i] = doc.signers[i].Address()
 	}
 	return as
 }
@@ -238,7 +240,6 @@ func (doc BSDocData) Info() DocInfo {
 }
 
 func (doc BSDocData) Equal(b BSDocData) bool {
-
 	if doc.info.DocType() != b.info.DocType() {
 		return false
 	}
@@ -321,8 +322,8 @@ func MustNewBCUserData(info DocInfo, owner base.Address, gold, bankgold uint, st
 	return doc
 }
 
-func (doc BCUserData) DocumentId() string {
-	return doc.info.DocumentId()
+func (doc BCUserData) DocumentID() string {
+	return doc.info.DocumentID()
 }
 
 func (doc BCUserData) DocumentType() hint.Type {
@@ -355,7 +356,10 @@ func (doc BCUserData) IsEmpty() bool {
 
 func (doc BCUserData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
-		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+		return errors.Errorf(
+			"docInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v",
+			doc.info.docType, doc.Hint().Type(),
+		)
 	}
 
 	if err := isvalid.Check(
@@ -376,7 +380,7 @@ func (doc BCUserData) Owner() base.Address {
 }
 
 func (doc BCUserData) Accounts() []base.Address {
-	return nil
+	return []base.Address{doc.owner}
 }
 
 func (doc BCUserData) Info() DocInfo {
@@ -384,23 +388,18 @@ func (doc BCUserData) Info() DocInfo {
 }
 
 func (doc BCUserData) Equal(b BCUserData) bool {
-
 	if doc.info.DocType() != b.info.DocType() {
 		return false
 	}
-
 	if !doc.owner.Equal(b.owner) {
 		return false
 	}
-
 	if doc.gold != b.gold {
 		return false
 	}
-
 	if doc.bankgold != b.bankgold {
 		return false
 	}
-
 	if !doc.statistics.Equal(b.statistics) {
 		return false
 	}
@@ -461,8 +460,8 @@ func MustNewBCLandData(info DocInfo,
 	return doc
 }
 
-func (doc BCLandData) DocumentId() string {
-	return doc.info.DocumentId()
+func (doc BCLandData) DocumentID() string {
+	return doc.info.DocumentID()
 }
 
 func (doc BCLandData) DocumentType() hint.Type {
@@ -493,7 +492,10 @@ func (doc BCLandData) GenerateHash() valuehash.Hash {
 
 func (doc BCLandData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
-		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+		return errors.Errorf(
+			"docInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v",
+			doc.info.docType, doc.Hint().Type(),
+		)
 	}
 
 	if err := isvalid.Check(
@@ -502,7 +504,7 @@ func (doc BCLandData) IsValid([]byte) error {
 		doc.info,
 		doc.owner,
 	); err != nil {
-		return errors.Wrap(err, "Invalid Land document data")
+		return errors.Wrap(err, "invalid Land document data")
 	}
 	return nil
 }
@@ -512,7 +514,7 @@ func (doc BCLandData) Info() DocInfo {
 }
 
 func (doc BCLandData) Accounts() []base.Address {
-	return []base.Address{}
+	return []base.Address{doc.owner}
 }
 
 func (doc BCLandData) Owner() base.Address {
@@ -520,31 +522,24 @@ func (doc BCLandData) Owner() base.Address {
 }
 
 func (doc BCLandData) Equal(b BCLandData) bool {
-
 	if !doc.info.Equal(b.info) {
 		return false
 	}
-
 	if doc.address != b.address {
 		return false
 	}
-
 	if doc.area != b.area {
 		return false
 	}
-
 	if doc.renter != b.renter {
 		return false
 	}
-
 	if !doc.account.Equal(b.account) {
 		return false
 	}
-
 	if doc.rentdate != b.rentdate {
 		return false
 	}
-
 	if doc.periodday != b.periodday {
 		return false
 	}
@@ -610,8 +605,8 @@ func MustNewBCVotingData(
 	return doc
 }
 
-func (doc BCVotingData) DocumentId() string {
-	return doc.info.DocumentId()
+func (doc BCVotingData) DocumentID() string {
+	return doc.info.DocumentID()
 }
 
 func (doc BCVotingData) DocumentType() hint.Type {
@@ -648,7 +643,10 @@ func (doc BCVotingData) GenerateHash() valuehash.Hash {
 
 func (doc BCVotingData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
-		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+		return errors.Errorf(
+			"docInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v",
+			doc.info.docType, doc.Hint().Type(),
+		)
 	}
 
 	if err := isvalid.Check(
@@ -657,7 +655,7 @@ func (doc BCVotingData) IsValid([]byte) error {
 		doc.info,
 		doc.owner,
 	); err != nil {
-		return errors.Wrap(err, "Invalid Voting document data")
+		return errors.Wrap(err, "invalid Voting document data")
 	}
 
 	for i := range doc.candidates {
@@ -674,12 +672,7 @@ func (doc BCVotingData) Info() DocInfo {
 }
 
 func (doc BCVotingData) Accounts() []base.Address {
-	var accounts []base.Address
-	accounts = append(accounts, doc.account)
-	for i := range doc.candidates {
-		accounts = append(accounts, doc.candidates[i].address)
-	}
-	return accounts
+	return []base.Address{doc.owner}
 }
 
 func (doc BCVotingData) Owner() base.Address {
@@ -694,7 +687,6 @@ func (doc BCVotingData) Candidates() []VotingCandidate {
 }
 
 func (doc BCVotingData) Equal(b BCVotingData) bool {
-
 	if !doc.info.Equal(b.info) {
 		return false
 	}
@@ -768,8 +760,8 @@ func MustNewBCHistoryData(info DocInfo,
 	return doc
 }
 
-func (doc BCHistoryData) DocumentId() string {
-	return doc.info.DocumentId()
+func (doc BCHistoryData) DocumentID() string {
+	return doc.info.DocumentID()
 }
 
 func (doc BCHistoryData) DocumentType() hint.Type {
@@ -800,7 +792,10 @@ func (doc BCHistoryData) GenerateHash() valuehash.Hash {
 
 func (doc BCHistoryData) IsValid([]byte) error {
 	if doc.info.docType != doc.Hint().Type() {
-		return errors.Errorf("DocInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v", doc.info.docType, doc.Hint().Type())
+		return errors.Errorf(
+			"docInfo not matched with DocumentData Type : DocInfo type %v, DocumentData type %v",
+			doc.info.docType, doc.Hint().Type(),
+		)
 	}
 
 	if err := isvalid.Check(
@@ -810,7 +805,7 @@ func (doc BCHistoryData) IsValid([]byte) error {
 		doc.owner,
 		doc.account,
 	); err != nil {
-		return errors.Wrap(err, "Invalid history document data")
+		return errors.Wrap(err, "invalid history document data")
 	}
 	return nil
 }
@@ -828,27 +823,21 @@ func (doc BCHistoryData) Owner() base.Address {
 }
 
 func (doc BCHistoryData) Equal(b BCHistoryData) bool {
-
 	if !doc.info.Equal(b.info) {
 		return false
 	}
-
 	if doc.name != b.name {
 		return false
 	}
-
 	if !doc.account.Equal(b.account) {
 		return false
 	}
-
 	if doc.date != b.date {
 		return false
 	}
-
 	if doc.usage != b.usage {
 		return false
 	}
-
 	if doc.application != b.application {
 		return false
 	}

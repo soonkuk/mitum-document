@@ -1,10 +1,11 @@
-package document
+package document // nolint: dupl
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/hint"
+	"github.com/spikeekips/mitum/util/isvalid"
 )
 
 type BaseSignDocumentsItem struct {
@@ -14,7 +15,9 @@ type BaseSignDocumentsItem struct {
 	cid   currency.CurrencyID
 }
 
-func NewBaseSignDocumentsItem(ht hint.Hint, id string, owner base.Address, cid currency.CurrencyID) BaseSignDocumentsItem {
+func NewBaseSignDocumentsItem(
+	ht hint.Hint, id string, owner base.Address, cid currency.CurrencyID,
+) BaseSignDocumentsItem {
 	return BaseSignDocumentsItem{
 		BaseHinter: hint.NewBaseHinter(ht),
 		id:         id,
@@ -33,20 +36,23 @@ func (it BaseSignDocumentsItem) Bytes() []byte {
 }
 
 func (it BaseSignDocumentsItem) IsValid([]byte) error {
+	_, docidtype, err := ParseDocID(it.id)
+	if err != nil {
+		return err
+	}
+	if docidtype != BSDocIDType {
+		return isvalid.InvalidError.Errorf("invalid docID type: %v", docidtype)
+	}
 
-	if err := it.owner.IsValid(nil); err != nil {
+	err = it.owner.IsValid(nil)
+	if err != nil {
 		return err
 	}
 
-	if err := it.cid.IsValid(nil); err != nil {
-		return err
-	}
-
-	return nil
+	return it.cid.IsValid(nil)
 }
 
-// FileHash return BaseCreateDocumetsItem's owner address.
-func (it BaseSignDocumentsItem) DocumentId() string {
+func (it BaseSignDocumentsItem) DocumentID() string {
 	return it.id
 }
 
@@ -54,11 +60,10 @@ func (it BaseSignDocumentsItem) Owner() base.Address {
 	return it.owner
 }
 
-// FileData return BaseCreateDocumentsItem's fileData.
 func (it BaseSignDocumentsItem) Currency() currency.CurrencyID {
 	return it.cid
 }
 
-func (it BaseSignDocumentsItem) Rebuild() SignDocumentItem {
+func (it BaseSignDocumentsItem) Rebuild() SignDocumentsItem {
 	return it
 }

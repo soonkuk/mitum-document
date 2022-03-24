@@ -1,11 +1,11 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func DecodeDocument(b []byte, enc encoder.Encoder) (DocumentData, error) {
+func DecodeDocumentData(b []byte, enc encoder.Encoder) (DocumentData, error) {
 	if i, err := enc.Decode(b); err != nil {
 		return nil, err
 	} else if i == nil {

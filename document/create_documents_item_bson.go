@@ -1,4 +1,4 @@
-package document // nolint:dupl
+package document
 
 import (
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"

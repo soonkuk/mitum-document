@@ -50,6 +50,135 @@ func generateAccount() *account { // nolint: unused
 	return &account{Address: address, Priv: priv, Key: key}
 }
 
+func newBSDocData(filehash, docid string, ac account) (*BSDocData, *account, *account) {
+	oAccount, sAccount := generateAccount(), generateAccount()
+	if ac != (account{}) {
+		oAccount = &ac
+	}
+	creatorDocSign := MustNewDocSign(oAccount.Address, "signcode0", true)
+	sDocSigns := []DocSign{MustNewDocSign(sAccount.Address, "signcode1", false)}
+	info := MustNewDocInfo(docid, BSDocDataType)
+	fh := FileHash(filehash)
+	doc := MustNewBSDocData(
+		info, oAccount.Address, fh, creatorDocSign,
+		"title", currency.NewBig(100), sDocSigns,
+	)
+
+	return &doc, oAccount, sAccount
+}
+
+func newBCUserData(docid string, ac account) (*BCUserData, *account, UserStatistics) {
+	oAccount := generateAccount()
+	if ac != (account{}) {
+		oAccount = &ac
+	}
+	var gold, bankgold uint = 10, 10
+	info := MustNewDocInfo(docid, BCUserDataType)
+	var hp, strength, agility, dexterity, charisma, intelligence, vital uint = 1, 1, 1, 1, 1, 1, 1
+	stat := MustNewUserStatistics(hp, strength, agility, dexterity, charisma, intelligence, vital)
+	doc := MustNewBCUserData(info, oAccount.Address, gold, bankgold, stat)
+
+	return &doc, oAccount, stat
+}
+
+func newBCLandData(docid string, ac account) (*BCLandData, *account, *account) {
+	oAccount, rAccount := generateAccount(), generateAccount()
+	if ac != (account{}) {
+		oAccount = &ac
+	}
+	info := MustNewDocInfo(docid, BCLandDataType)
+	address, area, renter, rentdate := "address", "area", "renter", "rentdate"
+	var periodday uint = 10
+	doc := MustNewBCLandData(
+		info, oAccount.Address, address, area, renter,
+		rAccount.Address, rentdate, periodday,
+	)
+
+	return &doc, oAccount, rAccount
+}
+
+func newBCVotingData(docid string, ac account) (*BCVotingData, *account, *account) {
+	oAccount, bAccount := generateAccount(), generateAccount()
+	if ac != (account{}) {
+		oAccount = &ac
+	}
+	info := MustNewDocInfo(docid, BCVotingDataType)
+	endVoteTime, bossname, termofoffice := "endVoteTime", "bossname", "termofoffice"
+	votingCandidates := []VotingCandidate{
+		MustNewVotingCandidate(bAccount.Address, "nickname", "manifest", 10),
+	}
+	var round uint = 10
+	doc := MustNewBCVotingData(
+		info, oAccount.Address, round, endVoteTime,
+		votingCandidates, bossname, bAccount.Address, termofoffice,
+	)
+
+	return &doc, oAccount, bAccount
+}
+
+func newBCHistoryData(docid string, ac account) (*BCHistoryData, *account, *account) {
+	oAccount, bAccount := generateAccount(), generateAccount()
+	if ac != (account{}) {
+		oAccount = &ac
+	}
+	info := MustNewDocInfo(docid, BCHistoryDataType)
+	name, date, usage, application := "name", "date", "usage", "application"
+	doc := MustNewBCHistoryData(
+		info, oAccount.Address, name,
+		bAccount.Address, date, usage, application,
+	)
+
+	return &doc, oAccount, bAccount
+}
+
+func generateDocument(id string, owner base.Address) DocumentData {
+	var doc DocumentData
+	docID := NewDocID(id)
+	info := MustNewDocInfo(id, docID.Hint().Type())
+	account := generateAccount()
+
+	switch docID.Hint().Type() {
+	case BSDocIDType:
+		doc = MustNewBSDocData(
+			info, owner,
+			FileHash("FileHash"),
+			MustNewDocSign(owner, "signcode0", true),
+			"title",
+			currency.NewBig(100),
+			[]DocSign{MustNewDocSign(account.Address, "signcode1", true)},
+		)
+	case BCUserDocIDType:
+		doc = MustNewBCUserData(
+			info, owner, 10, 10,
+			MustNewUserStatistics(10, 10, 10, 10, 10, 10, 10),
+		)
+	case BCLandDocIDType:
+		doc = MustNewBCLandData(info, owner,
+			"address", "area", "renter",
+			account.Address,
+			"rentdate",
+			10,
+		)
+	case BCVotingDocIDType:
+		doc = MustNewBCVotingData(info, owner,
+			10,
+			"endVoteTime",
+			[]VotingCandidate{MustNewVotingCandidate(account.Address, "nickname", "manifest", 10)},
+			"bossname",
+			account.Address,
+			"termofoffice",
+		)
+	case BCHistoryDocIDType:
+		doc = MustNewBCHistoryData(info, owner,
+			"name",
+			account.Address,
+			"date", "usage", "application",
+		)
+	}
+
+	return doc
+}
+
 type baseTest struct { // nolint: unused
 	suite.Suite
 	isaac.StorageSupportTest
@@ -87,11 +216,11 @@ func (t *baseTest) SetupSuite() {
 	_ = t.Encs.TestAddHinter(currency.CurrencyPolicyHinter)
 	_ = t.Encs.TestAddHinter(DocSignHinter)
 	_ = t.Encs.TestAddHinter(DocInfoHinter)
-	_ = t.Encs.TestAddHinter(BSDocIdHinter)
-	_ = t.Encs.TestAddHinter(BCUserDocIdHinter)
-	_ = t.Encs.TestAddHinter(BCLandDocIdHinter)
-	_ = t.Encs.TestAddHinter(BCVotingDocIdHinter)
-	_ = t.Encs.TestAddHinter(BCHistoryDocIdHinter)
+	_ = t.Encs.TestAddHinter(BSDocIDHinter)
+	_ = t.Encs.TestAddHinter(BCUserDocIDHinter)
+	_ = t.Encs.TestAddHinter(BCLandDocIDHinter)
+	_ = t.Encs.TestAddHinter(BCVotingDocIDHinter)
+	_ = t.Encs.TestAddHinter(BCHistoryDocIDHinter)
 	_ = t.Encs.TestAddHinter(BSDocDataHinter)
 	_ = t.Encs.TestAddHinter(BCUserDataHinter)
 	_ = t.Encs.TestAddHinter(BCLandDataHinter)
@@ -219,7 +348,7 @@ func (t *baseTestOperationProcessor) newStateDocument(a base.Address, docData Do
 }
 
 func (t *baseTestOperationProcessor) newStateDocumentData(docData DocumentData) state.State {
-	key := StateKeyDocumentData(docData.DocumentId())
+	key := StateKeyDocumentData(docData.DocumentID())
 	value, _ := state.NewHintedValue(docData)
 	su, err := state.NewStateV0(key, value, base.NilHeight)
 	t.NoError(err)

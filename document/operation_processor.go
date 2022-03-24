@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"fmt"
@@ -154,7 +154,15 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*CreateDocumentsProcessor,
 		*UpdateDocumentsProcessor:
 		return opr.process(op)
-	case currency.Transfers, currency.CreateAccounts, currency.KeyUpdater, currency.CurrencyRegister, currency.CurrencyPolicyUpdater, currency.SuffrageInflation, SignDocuments, CreateDocuments, UpdateDocuments:
+	case currency.Transfers,
+		currency.CreateAccounts,
+		currency.KeyUpdater,
+		currency.CurrencyRegister,
+		currency.CurrencyPolicyUpdater,
+		currency.SuffrageInflation,
+		SignDocuments,
+		CreateDocuments,
+		UpdateDocuments:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -188,7 +196,7 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	return sp.Process(opr.pool.Get, opr.setState)
 }
 
-func (opr *OperationProcessor) checkDuplication(op state.Processor) error {
+func (opr *OperationProcessor) checkDuplication(op state.Processor) error { // nolint:revive
 	opr.Lock()
 	defer opr.Unlock()
 

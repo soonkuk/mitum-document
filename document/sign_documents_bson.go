@@ -1,4 +1,4 @@
-package document // nolint: dupl
+package document // nolint: dupl, revive
 
 import (
 	"go.mongodb.org/mongo-driver/bson"

@@ -200,7 +200,7 @@ func (Builder) templateSignDocumentsFact() Hal {
 	fact := document.NewSignDocumentsFact(
 		templateToken,
 		templateSender,
-		[]document.SignDocumentItem{document.NewSignDocumentsItemSingleFile(
+		[]document.SignDocumentsItem{document.NewSignDocumentsItemSingleFile(
 			templateId,
 			templateOwner,
 			templateCurrencyID,
@@ -343,15 +343,15 @@ func (bl Builder) buildFactSignDocuments(fact document.SignDocumentsFact) (Hal, 
 		return nil, err
 	}
 
-	items := make([]document.SignDocumentItem, len(fact.Items()))
+	items := make([]document.SignDocumentsItem, len(fact.Items()))
 	for i := range fact.Items() {
 		item := fact.Items()[i]
-		if item.DocumentId() == "" {
+		if item.DocumentID() == "" {
 			return nil, errors.Errorf("empty documentid")
 		}
 
 		items[i] = document.NewSignDocumentsItemSingleFile(
-			item.DocumentId(),
+			item.DocumentID(),
 			item.Owner(),
 			item.Currency(),
 		)

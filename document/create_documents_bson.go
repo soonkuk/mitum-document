@@ -1,4 +1,4 @@
-package document // nolint: dupl
+package document // nolint:dupl
 
 import (
 	"go.mongodb.org/mongo-driver/bson"

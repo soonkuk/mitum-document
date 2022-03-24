@@ -1,19 +1,19 @@
+//go:build test
+// +build test
+
 package document
 
 import (
+	// "encoding/json"
 	"encoding/json"
 	"testing"
 
-	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/xerrors"
-
-	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/util/encoder"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
-	"github.com/spikeekips/mitum/util/hint"
+	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/xerrors"
 )
 
 type testDocumentData struct {
@@ -21,183 +21,76 @@ type testDocumentData struct {
 }
 
 func (t *testDocumentData) TestNewBSDocData() {
-	fh := FileHash("ABCD")
-	oPkey := key.NewBasePrivatekey()
-	oKey, _ := currency.NewBaseAccountKey(oPkey.Publickey(), 100)
-	oKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{oKey}, 100)
-	ownerAddress, _ := currency.NewAddressFromKeys(oKeys)
-	ownerDocSign := MustNewDocSign(ownerAddress, "signcode0", true)
-
-	sPkey := key.NewBasePrivatekey()
-	sKey, _ := currency.NewBaseAccountKey(sPkey.Publickey(), 100)
-	sKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{sKey}, 100)
-	aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-	sDocSigns := []DocSign{MustNewDocSign(aSigner, "signcode1", true)}
-
-	info := DocInfo{
-		BaseHinter: hint.NewBaseHinter(DocInfoHint),
-		id:         MustNewBSDocId("1sdi"),
-		docType:    BSDocDataType,
-	}
-
-	a := MustNewBSDocData(info, ownerAddress, fh, ownerDocSign, "title", currency.NewBig(100), sDocSigns)
-	t.Equal(a.fileHash, FileHash("ABCD"))
-	t.Equal(a.Creator(), ownerAddress)
-	t.Equal(a.Owner(), ownerAddress)
-	t.Equal(a.Signers(), sDocSigns)
+	d, oacc, sacc := newBSDocData("filehash", "1sdi", account{})
+	t.Equal(d.Info(), MustNewDocInfo("1sdi", BSDocDataType))
+	t.Equal(d.DocumentID(), "1sdi")
+	t.Equal(d.DocumentType(), BSDocDataType)
+	t.Equal(d.fileHash, FileHash("filehash"))
+	t.Equal(d.Creator(), MustNewDocSign(oacc.Address, "signcode0", true))
+	t.Equal(d.Owner(), oacc.Address)
+	t.Equal(d.Signers(), []DocSign{MustNewDocSign(sacc.Address, "signcode1", false)})
 }
 
 func (t *testDocumentData) TestNewBCUserData() {
-	cPkey := key.NewBasePrivatekey()
-	cKey, _ := currency.NewBaseAccountKey(cPkey.Publickey(), 100)
-	cKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{cKey}, 100)
-	aCreator, _ := currency.NewAddressFromKeys(cKeys)
-
-	sPkey := key.NewBasePrivatekey()
-	sKey, _ := currency.NewBaseAccountKey(sPkey.Publickey(), 100)
-	sKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{sKey}, 100)
-	aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-	sDocSigns := []DocSign{MustNewDocSign(aSigner, sc, true)}
-
-	info := DocInfo{
-		BaseHinter: hint.NewBaseHinter(DocInfoHint),
-		idx:        currency.NewBig(0),
-		filehash:   fh,
-	}
-
-	a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
-	t.Equal(a.FileHash(), FileHash("ABCD"))
-	t.Equal(a.Creator(), aCreator)
-	t.Equal(a.Owner(), aOwner)
-	t.Equal(a.Signers(), sDocSigns)
+	d, oacc, stat := newBCUserData("1cui", account{})
+	t.Equal(d.Owner(), oacc.Address)
+	t.Equal(d.Info(), MustNewDocInfo("1cui", BCUserDataType))
+	t.Equal(d.DocumentID(), "1cui")
+	t.Equal(d.DocumentType(), BCUserDataType)
+	t.Equal(d.gold, uint(10))
+	t.Equal(d.bankgold, uint(10))
+	t.Equal(d.statistics, stat)
 }
 
 func (t *testDocumentData) TestNewBCLandData() {
-	fh := FileHash("ABCD")
-	sc := "signcode"
-	cPkey := key.NewBasePrivatekey()
-	cKey, _ := currency.NewBaseAccountKey(cPkey.Publickey(), 100)
-	cKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{cKey}, 100)
-	aCreator, _ := currency.NewAddressFromKeys(cKeys)
-
-	sPkey := key.NewBasePrivatekey()
-	sKey, _ := currency.NewBaseAccountKey(sPkey.Publickey(), 100)
-	sKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{sKey}, 100)
-	aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-	sDocSigns := []DocSign{MustNewDocSign(aSigner, sc, true)}
-
-	info := DocInfo{
-		BaseHinter: hint.NewBaseHinter(DocInfoHint),
-		idx:        currency.NewBig(0),
-		filehash:   fh,
-	}
-
-	a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
-	t.Equal(a.FileHash(), FileHash("ABCD"))
-	t.Equal(a.Creator(), aCreator)
-	t.Equal(a.Owner(), aOwner)
-	t.Equal(a.Signers(), sDocSigns)
+	d, oacc, racc := newBCLandData("1cli", account{})
+	t.Equal(d.Owner(), oacc.Address)
+	t.Equal(d.Info(), MustNewDocInfo("1cli", BCLandDataType))
+	t.Equal(d.DocumentID(), "1cli")
+	t.Equal(d.DocumentType(), BCLandDataType)
+	t.Equal(d.address, "address")
+	t.Equal(d.area, "area")
+	t.Equal(d.renter, "renter")
+	t.Equal(d.account, racc.Address)
+	t.Equal(d.rentdate, "rentdate")
+	t.Equal(d.periodday, uint(10))
 }
 
 func (t *testDocumentData) TestNewBCVotingData() {
-	fh := FileHash("ABCD")
-	sc := "signcode"
-	cPkey := key.NewBasePrivatekey()
-	cKey, _ := currency.NewBaseAccountKey(cPkey.Publickey(), 100)
-	cKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{cKey}, 100)
-	aCreator, _ := currency.NewAddressFromKeys(cKeys)
-
-	sPkey := key.NewBasePrivatekey()
-	sKey, _ := currency.NewBaseAccountKey(sPkey.Publickey(), 100)
-	sKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{sKey}, 100)
-	aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-	sDocSigns := []DocSign{MustNewDocSign(aSigner, sc, true)}
-
-	info := DocInfo{
-		BaseHinter: hint.NewBaseHinter(DocInfoHint),
-		idx:        currency.NewBig(0),
-		filehash:   fh,
-	}
-
-	a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
-	t.Equal(a.FileHash(), FileHash("ABCD"))
-	t.Equal(a.Creator(), aCreator)
-	t.Equal(a.Owner(), aOwner)
-	t.Equal(a.Signers(), sDocSigns)
+	d, oacc, bacc := newBCVotingData("1cvi", account{})
+	t.Equal(d.Owner(), oacc.Address)
+	t.Equal(d.Info(), MustNewDocInfo("1cvi", BCVotingDataType))
+	t.Equal(d.DocumentID(), "1cvi")
+	t.Equal(d.DocumentType(), BCVotingDataType)
+	t.Equal(d.round, uint(10))
+	t.Equal(d.endVoteTime, "endVoteTime")
+	t.Equal(d.candidates, []VotingCandidate{
+		MustNewVotingCandidate(bacc.Address, "nickname", "manifest", 10),
+	})
+	t.Equal(d.bossname, "bossname")
+	t.Equal(d.account, bacc.Address)
+	t.Equal(d.termofoffice, "termofoffice")
 }
 
 func (t *testDocumentData) TestNewBCHistoryData() {
-	fh := FileHash("ABCD")
-	sc := "signcode"
-	cPkey := key.NewBasePrivatekey()
-	cKey, _ := currency.NewBaseAccountKey(cPkey.Publickey(), 100)
-	cKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{cKey}, 100)
-	aCreator, _ := currency.NewAddressFromKeys(cKeys)
-
-	sPkey := key.NewBasePrivatekey()
-	sKey, _ := currency.NewBaseAccountKey(sPkey.Publickey(), 100)
-	sKeys, _ := currency.NewBaseAccountKeys([]currency.AccountKey{sKey}, 100)
-	aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-	sDocSigns := []DocSign{MustNewDocSign(aSigner, sc, true)}
-
-	info := DocInfo{
-		BaseHinter: hint.NewBaseHinter(DocInfoHint),
-		idx:        currency.NewBig(0),
-		filehash:   fh,
-	}
-
-	a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
-	t.Equal(a.FileHash(), FileHash("ABCD"))
-	t.Equal(a.Creator(), aCreator)
-	t.Equal(a.Owner(), aOwner)
-	t.Equal(a.Signers(), sDocSigns)
+	d, oacc, bacc := newBCHistoryData("1chi", account{})
+	t.Equal(d.Owner(), oacc.Address)
+	t.Equal(d.Info(), MustNewDocInfo("1chi", BCHistoryDataType))
+	t.Equal(d.DocumentID(), "1chi")
+	t.Equal(d.DocumentType(), BCHistoryDataType)
+	t.Equal(d.name, "name")
+	t.Equal(d.account, bacc.Address)
+	t.Equal(d.date, "date")
+	t.Equal(d.usage, "usage")
+	t.Equal(d.application, "application")
 }
 
 func TestDocumentData(t *testing.T) {
 	suite.Run(t, new(testDocumentData))
 }
 
-func testDocumentDataEncode(enc encoder.Encoder) suite.TestingSuite {
-	t := new(baseTestEncode)
-
-	t.enc = enc
-	t.newObject = func() interface{} {
-		fh := FileHash("ABCD")
-		cPkey := key.MustNewBTCPrivatekey()
-		cKey, _ := currency.NewKey(cPkey.Publickey(), 100)
-		cKeys, _ := currency.NewKeys([]currency.Key{cKey}, 100)
-		aCreator, _ := currency.NewAddressFromKeys(cKeys)
-
-		oPkey := key.MustNewBTCPrivatekey()
-		oKey, _ := currency.NewKey(oPkey.Publickey(), 100)
-		oKeys, _ := currency.NewKeys([]currency.Key{oKey}, 100)
-		aOwner, _ := currency.NewAddressFromKeys(oKeys)
-
-		sPkey := key.MustNewBTCPrivatekey()
-		sKey, _ := currency.NewKey(sPkey.Publickey(), 100)
-		sKeys, _ := currency.NewKeys([]currency.Key{sKey}, 100)
-		aSigner, _ := currency.NewAddressFromKeys(sKeys)
-
-		sDocSigns := []DocSign{MustNewDocSign(aSigner, true)}
-
-		info := DocInfo{
-			idx:      currency.NewBig(0),
-			filehash: fh,
-		}
-
-		a := MustNewDocumentData(info, aCreator, aOwner, sDocSigns)
-
-		t.NoError(a.IsValid(nil))
-
-		return a
-	}
-
-	t.encode = func(enc encoder.Encoder, v interface{}) ([]byte, error) {
+func testEncodeFunc() func(encoder.Encoder, interface{}) ([]byte, error) {
+	return func(enc encoder.Encoder, v interface{}) ([]byte, error) {
 		b, err := enc.Marshal(struct {
 			F DocumentData
 		}{F: v.(DocumentData)})
@@ -228,31 +121,170 @@ func testDocumentDataEncode(enc encoder.Encoder) suite.TestingSuite {
 			return nil, xerrors.Errorf("unknown encoder, %v", enc)
 		}
 	}
+}
 
-	t.decode = func(enc encoder.Encoder, b []byte) (interface{}, error) {
+func testDecodeFunc() func(encoder.Encoder, []byte) (interface{}, error) {
+	return func(enc encoder.Encoder, b []byte) (interface{}, error) {
 		return DecodeDocumentData(b, enc)
 	}
+}
 
+func testBSDocDataEncode(enc encoder.Encoder) suite.TestingSuite {
+	t := new(baseTestEncode)
+	t.enc = enc
+	t.newObject = func() interface{} {
+		a, _, _ := newBSDocData("filehash", "1sdi", account{})
+		t.NoError(a.IsValid(nil))
+
+		return *a
+	}
+
+	t.encode = testEncodeFunc()
+	t.decode = testDecodeFunc()
 	t.compare = func(a, b interface{}) {
-		ca := a.(DocumentData)
-		cb := b.(DocumentData)
+		ca := a.(BSDocData)
+		cb := b.(BSDocData)
 
-		t.True(ca.FileHash().Equal(cb.FileHash()))
-		t.True(ca.Creator().Equal(cb.Creator()))
+		t.True(ca.Info().Equal(cb.Info()))
 		t.True(ca.Owner().Equal(cb.Owner()))
-		signers := ca.Signers()
+		t.Equal(ca.creator, cb.creator)
+		t.Equal(ca.fileHash, cb.fileHash)
+		signers := ca.signers
 		for i := range signers {
-			t.True(signers[i].Equal(cb.Signers()[i]))
+			t.True(signers[i].Equal(cb.signers[i]))
 		}
 	}
 
 	return t
 }
 
+func testBCUserDataEncode(enc encoder.Encoder) suite.TestingSuite {
+	t := new(baseTestEncode)
+	t.enc = enc
+	t.newObject = func() interface{} {
+		a, _, _ := newBCUserData("1cui", account{})
+		t.NoError(a.IsValid(nil))
+
+		return *a
+	}
+
+	t.encode = testEncodeFunc()
+	t.decode = testDecodeFunc()
+	t.compare = func(a, b interface{}) {
+		ca := a.(BCUserData)
+		cb := b.(BCUserData)
+
+		t.True(ca.Info().Equal(cb.Info()))
+		t.True(ca.Owner().Equal(cb.Owner()))
+		t.Equal(ca.gold, cb.gold)
+		t.Equal(ca.bankgold, cb.bankgold)
+		t.Equal(ca.statistics, cb.statistics)
+	}
+
+	return t
+}
+
+func testBCLandDataEncode(enc encoder.Encoder) suite.TestingSuite {
+	t := new(baseTestEncode)
+
+	t.enc = enc
+	t.newObject = func() interface{} {
+		a, _, _ := newBCLandData("1cli", account{})
+		t.NoError(a.IsValid(nil))
+
+		return *a
+	}
+
+	t.encode = testEncodeFunc()
+	t.decode = testDecodeFunc()
+	t.compare = func(a, b interface{}) {
+		ca := a.(BCLandData)
+		cb := b.(BCLandData)
+
+		t.True(ca.Info().Equal(cb.Info()))
+		t.True(ca.Owner().Equal(cb.Owner()))
+		t.Equal(ca.account, cb.account)
+		t.Equal(ca.address, cb.address)
+		t.Equal(ca.area, cb.area)
+		t.Equal(ca.periodday, cb.periodday)
+		t.Equal(ca.rentdate, cb.rentdate)
+		t.Equal(ca.renter, cb.renter)
+	}
+
+	return t
+}
+
+func testBCVotingDataEncode(enc encoder.Encoder) suite.TestingSuite {
+	t := new(baseTestEncode)
+
+	t.enc = enc
+	t.newObject = func() interface{} {
+		a, _, _ := newBCVotingData("1cvi", account{})
+		t.NoError(a.IsValid(nil))
+
+		return *a
+	}
+
+	t.encode = testEncodeFunc()
+	t.decode = testDecodeFunc()
+	t.compare = func(a, b interface{}) {
+		ca := a.(BCVotingData)
+		cb := b.(BCVotingData)
+
+		t.True(ca.Info().Equal(cb.Info()))
+		t.True(ca.Owner().Equal(cb.Owner()))
+		t.Equal(ca.account, cb.account)
+		t.Equal(ca.bossname, cb.bossname)
+		t.Equal(ca.candidates, cb.candidates)
+		t.Equal(ca.endVoteTime, cb.endVoteTime)
+		t.Equal(ca.round, cb.round)
+		t.Equal(ca.termofoffice, cb.termofoffice)
+	}
+
+	return t
+}
+
+func testBCHistoryDataEncode(enc encoder.Encoder) suite.TestingSuite {
+	t := new(baseTestEncode)
+
+	t.enc = enc
+	t.newObject = func() interface{} {
+		a, _, _ := newBCHistoryData("1chi", account{})
+		t.NoError(a.IsValid(nil))
+
+		return *a
+	}
+
+	t.encode = testEncodeFunc()
+	t.decode = testDecodeFunc()
+	t.compare = func(a, b interface{}) {
+		ca := a.(BCHistoryData)
+		cb := b.(BCHistoryData)
+
+		t.True(ca.Info().Equal(cb.Info()))
+		t.True(ca.Owner().Equal(cb.Owner()))
+		t.Equal(ca.account, cb.account)
+		t.Equal(ca.application, cb.application)
+		t.Equal(ca.date, cb.date)
+		t.Equal(ca.name, cb.name)
+		t.Equal(ca.usage, cb.usage)
+	}
+
+	return t
+}
+
 func TestDocumentDataEncodeJSON(t *testing.T) {
-	suite.Run(t, testDocumentDataEncode(jsonenc.NewEncoder()))
+	suite.Run(t, testBSDocDataEncode(jsonenc.NewEncoder()))
+	suite.Run(t, testBCUserDataEncode(jsonenc.NewEncoder()))
+	suite.Run(t, testBCLandDataEncode(jsonenc.NewEncoder()))
+	suite.Run(t, testBCVotingDataEncode(jsonenc.NewEncoder()))
+	suite.Run(t, testBCHistoryDataEncode(jsonenc.NewEncoder()))
 }
 
 func TestDocumentDataEncodeBSON(t *testing.T) {
-	suite.Run(t, testDocumentDataEncode(bsonenc.NewEncoder()))
+	suite.Run(t, testBSDocDataEncode(bsonenc.NewEncoder()))
+	suite.Run(t, testBCUserDataEncode(bsonenc.NewEncoder()))
+	suite.Run(t, testBCLandDataEncode(bsonenc.NewEncoder()))
+	suite.Run(t, testBCVotingDataEncode(bsonenc.NewEncoder()))
+	suite.Run(t, testBCHistoryDataEncode(bsonenc.NewEncoder()))
 }

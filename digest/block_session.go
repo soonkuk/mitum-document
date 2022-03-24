@@ -261,7 +261,7 @@ func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteMo
 	if ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
 		return nil, err
 	} else {
-		bs.documentList = append(bs.documentList, ndoc.DocumentId())
+		bs.documentList = append(bs.documentList, ndoc.DocumentID())
 		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 	}
 }

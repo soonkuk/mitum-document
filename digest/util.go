@@ -32,13 +32,13 @@ func IsDocumentState(st state.State) (document.DocumentData, bool, error) {
 	return doc, true, nil
 }
 
-func parseDocIdFromPath(s string) (string, error) {
+func parseDocIDFromPath(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	if len(s) < 1 {
 		return "", errors.Errorf("empty id")
 	}
 
-	//	h, err := document.ParseDocId(s)
+	//	h, err := document.ParseDocID(s)
 	//	if err != nil {
 	//		return "", err
 	//	}

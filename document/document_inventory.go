@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"bytes"
@@ -40,10 +40,6 @@ func (div DocumentInventory) Bytes() []byte {
 	}
 
 	return util.ConcatBytesSlice(bs...)
-}
-
-func (div DocumentInventory) Hint() hint.Hint {
-	return DocumentInventoryHint
 }
 
 func (div DocumentInventory) Hash() valuehash.Hash {
@@ -105,7 +101,7 @@ func (div DocumentInventory) Get(id string) (DocInfo, error) {
 			return div.docInfos[i], nil
 		}
 	}
-	return DocInfo{}, errors.Errorf("Document not found in Owner's DocumentInventory, %v", id)
+	return DocInfo{}, errors.Errorf("document not found in Owner's DocumentInventory, %v", id)
 }
 
 func (div *DocumentInventory) Append(d DocInfo) error {
@@ -193,7 +189,6 @@ func (div *DocumentInventory) unpack(
 	enc encoder.Encoder,
 	dis []byte, // DocInfos
 ) error {
-
 	hits, err := enc.DecodeSlice(dis)
 	if err != nil {
 		return err

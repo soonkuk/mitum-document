@@ -942,7 +942,7 @@ func (st *Database) DocumentsByAddress(
 			if err != nil {
 				return false, err
 			}
-			return callback(va.Document().DocumentId(), va)
+			return callback(va.Document().DocumentID(), va)
 		},
 		opt,
 	)
@@ -1012,7 +1012,7 @@ func (st *Database) Documents(
 			if err != nil {
 				return false, err
 			}
-			return callback(va.doc.DocumentId(), va)
+			return callback(va.doc.DocumentID(), va)
 		},
 		opt,
 	)

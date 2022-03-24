@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"sync"
@@ -23,7 +23,7 @@ var CreateDocumentsProcessorPool = sync.Pool{
 	},
 }
 
-func (op CreateDocuments) Process(
+func (CreateDocuments) Process(
 	func(key string) (state.State, bool, error),
 	func(valuehash.Hash, ...state.State) error,
 ) error {
@@ -44,22 +44,21 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
-
 	if err := opp.item.IsValid(nil); err != nil {
 		return operation.NewBaseReasonError(err.Error())
 	}
 
 	// check existence of new document state with documentid and get document state
-	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentId())); {
+	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentID())); {
 	case err != nil:
 		return err
 	case found:
-		return operation.NewBaseReasonError("documentid already registered, %q", opp.item.DocumentId())
+		return operation.NewBaseReasonError("documentid already registered, %q", opp.item.DocumentID())
 	default:
 		opp.nds = st
 	}
 
-	id := NewDocId(opp.item.DocumentId())
+	id := NewDocID(opp.item.DocumentID())
 
 	// check existence of DocumentData related accounts
 	for i := range opp.item.Doc().Accounts() {
@@ -67,7 +66,10 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 		case err != nil:
 			return err
 		case !found:
-			return operation.NewBaseReasonError("DocumentData related accounts not found, document type : %q, address : %q", opp.item.Doc().Info().docType, opp.item.Doc().Accounts()[i])
+			return operation.NewBaseReasonError(
+				"DocumentData related accounts not found, document type : %q, address : %q",
+				opp.item.Doc().Info().docType, opp.item.Doc().Accounts()[i],
+			)
 		}
 	}
 
@@ -85,15 +87,14 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
-
 	sts := make([]state.State, 1)
 
 	// set new document state
-	if dst, err := SetStateDocumentDataValue(opp.nds, opp.item.Doc()); err != nil {
+	dst, err := SetStateDocumentDataValue(opp.nds, opp.item.Doc())
+	if err != nil {
 		return nil, err
-	} else {
-		sts[0] = dst
 	}
+	sts[0] = dst
 
 	return sts, nil
 }
@@ -139,7 +140,6 @@ func NewCreateDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProce
 		opp.required = nil
 
 		return opp, nil
-
 	}
 }
 
@@ -183,7 +183,6 @@ func (opp *CreateDocumentsProcessor) PreProcess(
 	// prepare item processor for each items
 	ns := make([]*CreateDocumentsItemProcessor, len(fact.items))
 	for i := range fact.items {
-
 		c := CreateDocumentsItemProcessorPool.Get().(*CreateDocumentsItemProcessor)
 		c.cp = opp.cp
 		c.h = opp.Hash()
@@ -218,29 +217,29 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 
 	// append document data state and add doc info to owner document inventory
 	for i := range opp.ns {
-		if s, err := opp.ns[i].Process(getState, setState); err != nil {
+		s, err := opp.ns[i].Process(getState, setState)
+		if err != nil {
 			return operation.NewBaseReasonError("failed to process create document item: %w", err)
-		} else {
-			sts = append(sts, s...)
-			doc, err := StateDocumentDataValue(s[0])
-			if err != nil {
-				return err
-			}
+		}
+		sts = append(sts, s...)
+		doc, err := StateDocumentDataValue(s[0])
+		if err != nil {
+			return err
+		}
 
-			if err := opp.dinv.Append(doc.Info()); err != nil {
-				return err
-			}
+		if err := opp.dinv.Append(doc.Info()); err != nil {
+			return err
 		}
 	}
 
 	opp.dinv.Sort(true)
 
 	// prepare document inventory state and append it
-	if dinvs, err := SetStateDocumentsValue(opp.ndinvs, opp.dinv); err != nil {
+	dinvs, err := SetStateDocumentsValue(opp.ndinvs, opp.dinv)
+	if err != nil {
 		return err
-	} else {
-		sts = append(sts, dinvs)
 	}
+	sts = append(sts, dinvs)
 
 	// append sender balance state
 	for k := range opp.required {
@@ -279,7 +278,9 @@ func (opp *CreateDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyI
 	return CalculateDocumentItemsFee(opp.cp, items)
 }
 
-func CalculateDocumentItemsFee(cp *currency.CurrencyPool, items []CreateDocumentsItem) (map[currency.CurrencyID][2]currency.Big, error) {
+func CalculateDocumentItemsFee( // nolint:dupl
+	cp *currency.CurrencyPool, items []CreateDocumentsItem,
+) (map[currency.CurrencyID][2]currency.Big, error) {
 	required := map[currency.CurrencyID][2]currency.Big{}
 
 	for i := range items {
@@ -309,7 +310,6 @@ func CalculateDocumentItemsFee(cp *currency.CurrencyPool, items []CreateDocument
 		default:
 			required[it.Currency()] = [2]currency.Big{rq[0].Add(k), rq[1].Add(k)}
 		}
-
 	}
 
 	return required, nil
@@ -338,9 +338,8 @@ func CheckDocumentOwnerEnoughBalance(
 		if am.Big().Compare(rq[0]) < 0 {
 			return nil, operation.NewBaseReasonError(
 				"insufficient balance of sender, %s; %d !> %d", holder.String(), am.Big(), rq[0])
-		} else {
-			sb[cid] = currency.NewAmountState(st, cid)
 		}
+		sb[cid] = currency.NewAmountState(st, cid)
 	}
 
 	return sb, nil

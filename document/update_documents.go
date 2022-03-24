@@ -26,7 +26,7 @@ type UpdateDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	DocumentId() string
+	DocumentID() string
 	// DocType() hint.Type
 	Doc() DocumentData
 	Currency() currency.CurrencyID
@@ -74,7 +74,7 @@ func (fact UpdateDocumentsFact) Bytes() []byte {
 	)
 }
 
-func (fact UpdateDocumentsFact) IsValid(b []byte) error {
+func (fact UpdateDocumentsFact) IsValid(b []byte) error { // nolint:dupl
 	if err := fact.BaseHinter.IsValid(nil); err != nil {
 		return err
 	}
@@ -82,9 +82,7 @@ func (fact UpdateDocumentsFact) IsValid(b []byte) error {
 	if err := currency.IsValidOperationFact(fact, b); err != nil {
 		return err
 	}
-	if len(fact.token) < 1 {
-		return errors.Errorf("empty token for UpdateDocumentsFact")
-	} else if n := len(fact.items); n < 1 {
+	if n := len(fact.items); n < 1 {
 		return errors.Errorf("empty items")
 	} else if n > int(MaxUpdateDocumentsItems) {
 		return errors.Errorf("items, %d over max, %d", n, MaxUpdateDocumentsItems)
@@ -94,18 +92,18 @@ func (fact UpdateDocumentsFact) IsValid(b []byte) error {
 		return err
 	}
 
-	docIdMap := map[string]bool{}
+	docIDMap := map[string]bool{}
 	for i := range fact.items {
 		if err := isvalid.Check(nil, false, fact.items[i]); err != nil {
 			return err
 		}
 
 		it := fact.items[i]
-		k := it.Doc().DocumentId()
-		if _, found := docIdMap[k]; found {
-			return errors.Errorf("duplicated document user Id, %s", k)
+		k := it.Doc().DocumentID()
+		if _, found := docIDMap[k]; found {
+			return errors.Errorf("duplicated documentID, %s", k)
 		}
-		docIdMap[k] = true
+		docIDMap[k] = true
 	}
 
 	if !fact.h.Equal(fact.GenerateHash()) {
@@ -152,12 +150,14 @@ type UpdateDocuments struct {
 	currency.BaseOperation
 }
 
-func NewUpdateDocuments(fact UpdateDocumentsFact, fs []base.FactSign, memo string) (UpdateDocuments, error) {
+func NewUpdateDocuments(
+	fact UpdateDocumentsFact,
+	fs []base.FactSign,
+	memo string,
+) (UpdateDocuments, error) {
 	bo, err := currency.NewBaseOperationFromFact(UpdateDocumentsHint, fact, fs, memo)
 	if err != nil {
 		return UpdateDocuments{}, err
-	} else {
-
-		return UpdateDocuments{BaseOperation: bo}, nil
 	}
+	return UpdateDocuments{BaseOperation: bo}, nil
 }

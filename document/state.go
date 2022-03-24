@@ -30,19 +30,19 @@ func StateDocumentDataValue(st state.State) (DocumentData, error) {
 		return nil, util.NotFoundError.Errorf("documentData not found in State")
 	}
 
-	if s, ok := v.Interface().(DocumentData); !ok {
+	s, ok := v.Interface().(DocumentData)
+	if !ok {
 		return nil, errors.Errorf("invalid documentData value found, %T", v.Interface())
-	} else {
-		return s, nil
 	}
+	return s, nil
 }
 
 func SetStateDocumentDataValue(st state.State, v DocumentData) (state.State, error) {
-	if uv, err := state.NewHintedValue(v); err != nil {
+	uv, err := state.NewHintedValue(v)
+	if err != nil {
 		return nil, err
-	} else {
-		return st.SetValue(uv)
 	}
+	return st.SetValue(uv)
 }
 
 func StateKeyDocuments(a base.Address) string {
@@ -59,19 +59,19 @@ func StateDocumentsValue(st state.State) (DocumentInventory, error) {
 		return DocumentInventory{}, util.NotFoundError.Errorf("document inventory not found in State")
 	}
 
-	if s, ok := v.Interface().(DocumentInventory); !ok {
+	s, ok := v.Interface().(DocumentInventory)
+	if !ok {
 		return DocumentInventory{}, errors.Errorf("invalid document inventory value found, %T", v.Interface())
-	} else {
-		return s, nil
 	}
+	return s, nil
 }
 
 func SetStateDocumentsValue(st state.State, v DocumentInventory) (state.State, error) {
-	if uv, err := state.NewHintedValue(v); err != nil {
+	uv, err := state.NewHintedValue(v)
+	if err != nil {
 		return nil, err
-	} else {
-		return st.SetValue(uv)
 	}
+	return st.SetValue(uv)
 }
 
 func checkExistsState(

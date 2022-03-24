@@ -1,4 +1,4 @@
-package digest
+package digest // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum/base"

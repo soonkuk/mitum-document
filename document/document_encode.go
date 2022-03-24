@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/pkg/errors"
@@ -12,7 +12,6 @@ func (doc *Document) unpack(
 	enc encoder.Encoder,
 	dc []byte,
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(dc); err != nil {
 		return err
@@ -35,7 +34,6 @@ func (doc *BSDocData) unpack(
 	sz currency.Big,
 	bsg []byte, // signers
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(bdi); err != nil {
 		return err
@@ -54,16 +52,8 @@ func (doc *BSDocData) unpack(
 	doc.fileHash = FileHash(sfh)
 
 	// unpack creator
-	if hinter, err := enc.Decode(bcr); err != nil {
-		return err
-	} else if i, ok := hinter.(DocSign); !ok {
-		return errors.Errorf("not DocSign: %T", hinter)
-	} else {
-		doc.creator = i
-	}
-
-	// unpack creator
-	if hinter, err := enc.Decode(bcr); err != nil {
+	hinter, err := enc.Decode(bcr)
+	if err != nil {
 		return err
 	} else if i, ok := hinter.(DocSign); !ok {
 		return errors.Errorf("not DocSign: %T", hinter)
@@ -102,7 +92,6 @@ func (doc *BCUserData) unpack(
 	bg uint, // bankgold
 	st []byte, // statistics
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(di); err != nil {
 		return err
@@ -140,11 +129,10 @@ func (doc *BCLandData) unpack(
 	ad string, // land address
 	ar string, // land area
 	rt string, // renter nickname
-	ac base.AddressDecoder, //renter account address
+	ac base.AddressDecoder, // renter account address
 	rd string, // rentdate
 	pd uint, // period day
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(di); err != nil {
 		return err
@@ -186,7 +174,6 @@ func (doc *BCVotingData) unpack(
 	ac base.AddressDecoder,
 	tm string,
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(bdi); err != nil {
 		return err
@@ -246,7 +233,6 @@ func (doc *BCHistoryData) unpack(
 	sus string, // usage
 	sap string, // application
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(bdi); err != nil {
 		return err
@@ -276,17 +262,7 @@ func (doc *BCHistoryData) unpack(
 	return nil
 }
 
-func (us *UserStatistics) unpack(
-	enc encoder.Encoder,
-	hp,
-	st,
-	ag,
-	dx,
-	cr,
-	ig,
-	vt uint,
-) error {
-
+func (us *UserStatistics) unpack(hp, st, ag, dx, cr, ig, vt uint) error {
 	us.hp = hp
 	us.strength = st
 	us.agility = ag
@@ -303,12 +279,11 @@ func (di *DocInfo) unpack(
 	bi []byte,
 	st string,
 ) error {
-
 	// unpack document info
 	if hinter, err := enc.Decode(bi); err != nil {
 		return err
-	} else if i, ok := hinter.(DocId); !ok {
-		return errors.Errorf("not DocId: %T", hinter)
+	} else if i, ok := hinter.(DocID); !ok {
+		return errors.Errorf("not DocID: %T", hinter)
 	} else {
 		di.id = i
 	}
@@ -324,7 +299,6 @@ func (ds *DocSign) unpack(
 	sc string,
 	sg bool, // signed
 ) error {
-
 	a, err := ad.Encode(enc)
 	if err != nil {
 		return err
@@ -343,7 +317,6 @@ func (vc *VotingCandidate) unpack(
 	sma string,
 	ct uint,
 ) error {
-
 	// decode address
 	va, err := ad.Encode(enc)
 	if err != nil {
@@ -357,53 +330,35 @@ func (vc *VotingCandidate) unpack(
 	return nil
 }
 
-func (di *BSDocId) unpack(
-	enc encoder.Encoder,
-	si string,
-) error {
-
+func (di *BSDocID) unpack(si string) error {
 	// unpack document id
 	di.s = si
 
 	return nil
 }
 
-func (di *BCUserDocId) unpack(
-	enc encoder.Encoder,
-	si string,
-) error {
-
+func (di *BCUserDocID) unpack(si string) error {
 	// unpack document id
 	di.s = si
 
 	return nil
 }
 
-func (di *BCLandDocId) unpack(
-	enc encoder.Encoder,
-	si string,
-) error {
-
+func (di *BCLandDocID) unpack(si string) error {
 	// unpack document id
 	di.s = si
 
 	return nil
 }
 
-func (di *BCVotingDocId) unpack(
-	enc encoder.Encoder,
-	si string,
-) error {
+func (di *BCVotingDocID) unpack(si string) error {
 	// unpack document id
 	di.s = si
 
 	return nil
 }
 
-func (di *BCHistoryDocId) unpack(
-	enc encoder.Encoder,
-	si string,
-) error {
+func (di *BCHistoryDocID) unpack(si string) error {
 	// unpack document id
 	di.s = si
 

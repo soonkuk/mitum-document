@@ -9,28 +9,30 @@ import (
 var (
 	SignItemSingleDocumentType   = hint.Type("mitum-blocksign-sign-item-single-document")
 	SignItemSingleDocumentHint   = hint.NewHint(SignItemSingleDocumentType, "v0.0.1")
-	SignItemSingleDocumentHinter = BaseSignDocumentsItem{BaseHinter: hint.NewBaseHinter(SignItemSingleDocumentHint)}
+	SignItemSingleDocumentHinter = SignDocumentsItemSingleDocument{
+		BaseSignDocumentsItem{
+			BaseHinter: hint.NewBaseHinter(SignItemSingleDocumentHint),
+		},
+	}
 )
 
-type SignDocumentsItemSingleFile struct {
+type SignDocumentsItemSingleDocument struct {
 	BaseSignDocumentsItem
 }
 
-func NewSignDocumentsItemSingleFile(docId string, owner base.Address, cid currency.CurrencyID) SignDocumentsItemSingleFile {
-	return SignDocumentsItemSingleFile{
-		BaseSignDocumentsItem: NewBaseSignDocumentsItem(SignItemSingleDocumentHint, docId, owner, cid),
+func NewSignDocumentsItemSingleFile(
+	docID string, owner base.Address, cid currency.CurrencyID,
+) SignDocumentsItemSingleDocument {
+	return SignDocumentsItemSingleDocument{
+		BaseSignDocumentsItem: NewBaseSignDocumentsItem(SignItemSingleDocumentHint, docID, owner, cid),
 	}
 }
 
-func (it SignDocumentsItemSingleFile) IsValid([]byte) error {
-	if err := it.BaseSignDocumentsItem.IsValid(nil); err != nil {
-		return err
-	}
-
-	return nil
+func (it SignDocumentsItemSingleDocument) IsValid([]byte) error {
+	return it.BaseSignDocumentsItem.IsValid(nil)
 }
 
-func (it SignDocumentsItemSingleFile) Rebuild() SignDocumentItem {
+func (it SignDocumentsItemSingleDocument) Rebuild() SignDocumentsItem {
 	it.BaseSignDocumentsItem = it.BaseSignDocumentsItem.Rebuild().(BaseSignDocumentsItem)
 
 	return it

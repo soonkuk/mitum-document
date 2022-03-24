@@ -16,7 +16,7 @@ type SignDocumentCommand struct {
 	*BaseCommand
 	currencycmds.OperationFlags
 	Sender   currencycmds.AddressFlag    `arg:"" name:"sender" help:"sender address" required:""`
-	DocId    string                      `arg:"" name:"documentid" help:"document id" required:""`
+	DocID    string                      `arg:"" name:"documentid" help:"document id" required:""`
 	Owner    currencycmds.AddressFlag    `arg:"" name:"owner" help:"owner address" required:""`
 	Currency currencycmds.CurrencyIDFlag `arg:"" name:"currency" help:"currency id" required:""`
 	Seal     mitumcmds.FileLoad          `help:"seal" optional:""`
@@ -80,7 +80,7 @@ func (cmd *SignDocumentCommand) parseFlags() error {
 }
 
 func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) { // nolint:dupl
-	var items []document.SignDocumentItem
+	var items []document.SignDocumentsItem
 	if i, err := loadOperations(cmd.Seal.Bytes(), cmd.NetworkID.NetworkID()); err != nil {
 		return nil, err
 	} else {
@@ -91,7 +91,7 @@ func (cmd *SignDocumentCommand) createOperation() (operation.Operation, error) {
 		}
 	}
 
-	item := document.NewSignDocumentsItemSingleFile(cmd.DocId, cmd.owner, cmd.Currency.CID)
+	item := document.NewSignDocumentsItemSingleFile(cmd.DocID, cmd.owner, cmd.Currency.CID)
 
 	if err := item.IsValid(nil); err != nil {
 		return nil, err

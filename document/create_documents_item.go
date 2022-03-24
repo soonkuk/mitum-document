@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -15,7 +15,6 @@ var (
 
 type CreateDocumentsItemImpl struct {
 	hint.BaseHinter
-	// doctype hint.Type
 	doc DocumentData
 	cid currency.CurrencyID
 }
@@ -23,22 +22,23 @@ type CreateDocumentsItemImpl struct {
 func NewCreateDocumentsItemImpl(
 	doc DocumentData,
 	cid currency.CurrencyID) CreateDocumentsItemImpl {
-
-	if doc.Info().docType != doc.Hint().Type() {
-		panic(util.WrongTypeError.Errorf("Document Info Type not matched with DocumentData Type, not %v", doc.Hint().Type()))
-	}
+	/*
+		if doc.Info().docType != doc.Hint().Type() {
+			panic(util.WrongTypeError.Errorf("document Info Type not matched with DocumentData Type, not %v",
+				doc.Hint().Type()),
+			)
+		}
+	*/
 
 	return CreateDocumentsItemImpl{
 		BaseHinter: hint.NewBaseHinter(CreateDocumentsItemImplHint),
-		// doctype:    doc.Info().docType,
-		doc: doc,
-		cid: cid,
+		doc:        doc,
+		cid:        cid,
 	}
 }
 
 func (it CreateDocumentsItemImpl) Bytes() []byte {
 	bs := make([][]byte, 2)
-	// bs[0] = it.doctype.Bytes()
 	bs[0] = it.doc.Bytes()
 	bs[1] = it.cid.Bytes()
 
@@ -46,11 +46,9 @@ func (it CreateDocumentsItemImpl) Bytes() []byte {
 }
 
 func (it CreateDocumentsItemImpl) IsValid([]byte) error {
-
 	if err := isvalid.Check(
 		nil, false,
 		it.BaseHinter,
-		// it.doctype,
 		it.doc,
 		it.cid,
 	); err != nil {
@@ -59,15 +57,9 @@ func (it CreateDocumentsItemImpl) IsValid([]byte) error {
 	return nil
 }
 
-func (it CreateDocumentsItemImpl) DocumentId() string {
-	return it.doc.DocumentId()
+func (it CreateDocumentsItemImpl) DocumentID() string {
+	return it.doc.DocumentID()
 }
-
-/*
-func (it CreateDocumentsItemImpl) DocType() hint.Type {
-	return it.doctype
-}
-*/
 
 func (it CreateDocumentsItemImpl) Doc() DocumentData {
 	return it.doc

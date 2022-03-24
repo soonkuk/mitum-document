@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/pkg/errors"
@@ -12,7 +12,6 @@ func (it *CreateDocumentsItemImpl) unpack(
 	bdd []byte,
 	scid string,
 ) error {
-
 	// it.doctype = hint.Type(sdt)
 
 	// unpack documentdata

@@ -104,7 +104,7 @@ func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h, err := parseDocIdFromPath(mux.Vars(r)["documentid"])
+	h, err := parseDocIDFromPath(mux.Vars(r)["documentid"])
 	if err != nil {
 		HTTP2ProblemWithError(w, errors.Errorf("invalid document id for document by id: %q", err), http.StatusBadRequest)
 
@@ -238,7 +238,7 @@ func (hd *Handlers) handleDocumentsByHeightInGroup(
 func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
 	var hal Hal
 
-	h, err := hd.combineURL(HandlerPathDocument, "documentid", va.Document().DocumentId())
+	h, err := hd.combineURL(HandlerPathDocument, "documentid", va.Document().DocumentID())
 	if err != nil {
 		return nil, err
 	}

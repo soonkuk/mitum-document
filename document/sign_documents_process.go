@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"sync"
@@ -22,7 +22,7 @@ var SignDocumentsProcessorPool = sync.Pool{
 	},
 }
 
-func (op SignDocuments) Process(
+func (SignDocuments) Process(
 	func(key string) (state.State, bool, error),
 	func(valuehash.Hash, ...state.State) error,
 ) error {
@@ -33,18 +33,17 @@ type SignDocumentsItemProcessor struct {
 	cp     *currency.CurrencyPool
 	h      valuehash.Hash
 	sender base.Address
-	item   SignDocumentItem
+	item   SignDocumentsItem
 	nds    state.State       // new document data state (key = document filehash)
 	dinv   DocumentInventory // document inventory
 	ndinvs state.State       // document inventory state (key = owner address)
 
 }
 
-func (opp *SignDocumentsItemProcessor) PreProcess(
+func (opp *SignDocumentsItemProcessor) PreProcess( // nolint:revive
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
-
 	if err := opp.item.IsValid(nil); err != nil {
 		return err
 	}
@@ -71,17 +70,16 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 		opp.ndinvs = st
 	}
 
-	_, err := opp.dinv.Get(opp.item.DocumentId())
-	if err != nil {
+	if _, err := opp.dinv.Get(opp.item.DocumentID()); err != nil {
 		return err
 	}
 
 	// check existence of new document state with documentid
-	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentId())); {
+	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentID())); {
 	case err != nil:
 		return err
 	case !found:
-		return operation.NewBaseReasonError("document not registered with documentid, %q", opp.item.DocumentId())
+		return operation.NewBaseReasonError("document not registered with documentid, %q", opp.item.DocumentID())
 	default:
 		opp.nds = st
 	}
@@ -93,7 +91,7 @@ func (opp *SignDocumentsItemProcessor) PreProcess(
 
 	v, ok := dd.(BSDocData)
 	if !ok {
-		return operation.NewBaseReasonError("Document is not Blocksign Document, %v", opp.item.DocumentId())
+		return operation.NewBaseReasonError("Document is not Blocksign Document, %v", opp.item.DocumentID())
 	}
 	if !v.Creator().Address().Equal(opp.item.Owner()) {
 		return operation.NewBaseReasonError("Owner not matched with creator in document, %v", opp.item.Owner())
@@ -127,7 +125,6 @@ func (opp *SignDocumentsItemProcessor) Process(
 	_ func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
-
 	sts := make([]state.State, 1)
 	sts[0] = opp.nds
 
@@ -158,14 +155,14 @@ type SignDocumentsProcessor struct {
 
 func NewSignDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
-		if i, ok := op.(SignDocuments); !ok {
+		i, ok := op.(SignDocuments)
+		if !ok {
 			return nil, operation.NewBaseReasonError("not SignDocuments, %T", op)
-		} else {
-			return &SignDocumentsProcessor{
-				cp:            cp,
-				SignDocuments: i,
-			}, nil
 		}
+		return &SignDocumentsProcessor{
+			cp:            cp,
+			SignDocuments: i,
+		}, nil
 	}
 }
 
@@ -191,7 +188,6 @@ func (opp *SignDocumentsProcessor) PreProcess(
 
 	ns := make([]*SignDocumentsItemProcessor, len(fact.items))
 	for i := range fact.items {
-
 		c := &SignDocumentsItemProcessor{cp: opp.cp, sender: fact.sender, h: opp.Hash(), item: fact.items[i]}
 		if err := c.PreProcess(getState, setState); err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
@@ -219,11 +215,11 @@ func (opp *SignDocumentsProcessor) Process( // nolint:dupl
 	var sts []state.State // nolint:prealloc
 
 	for i := range opp.ns {
-		if s, err := opp.ns[i].Process(getState, setState); err != nil {
+		s, err := opp.ns[i].Process(getState, setState)
+		if err != nil {
 			return operation.NewBaseReasonError("failed to process create document item: %w", err)
-		} else {
-			sts = append(sts, s...)
 		}
+		sts = append(sts, s...)
 	}
 
 	for k := range opp.required {
@@ -251,7 +247,7 @@ func (opp *SignDocumentsProcessor) Close() error {
 
 func (opp *SignDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyID][2]currency.Big, error) {
 	fact := opp.Fact().(SignDocumentsFact)
-	items := make([]SignDocumentItem, len(fact.items))
+	items := make([]SignDocumentsItem, len(fact.items))
 	for i := range fact.items {
 		items[i] = fact.items[i]
 	}
@@ -284,7 +280,6 @@ func (opp *SignDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyID]
 		default:
 			required[it.Currency()] = [2]currency.Big{rq[0].Add(k), rq[1].Add(k)}
 		}
-
 	}
 
 	return required, nil

@@ -21,14 +21,14 @@ var (
 
 var MaxSignDocumentsItems uint = 10
 
-type SignDocumentItem interface {
+type SignDocumentsItem interface {
 	hint.Hinter
 	isvalid.IsValider
 	Bytes() []byte
-	DocumentId() string
+	DocumentID() string
 	Owner() base.Address
 	Currency() currency.CurrencyID
-	Rebuild() SignDocumentItem
+	Rebuild() SignDocumentsItem
 }
 
 type SignDocumentsFact struct {
@@ -36,10 +36,10 @@ type SignDocumentsFact struct {
 	h      valuehash.Hash
 	token  []byte
 	sender base.Address
-	items  []SignDocumentItem
+	items  []SignDocumentsItem
 }
 
-func NewSignDocumentsFact(token []byte, sender base.Address, items []SignDocumentItem) SignDocumentsFact {
+func NewSignDocumentsFact(token []byte, sender base.Address, items []SignDocumentsItem) SignDocumentsFact {
 	fact := SignDocumentsFact{
 		BaseHinter: hint.NewBaseHinter(SignDocumentsFactHint),
 		token:      token,
@@ -81,9 +81,7 @@ func (fact SignDocumentsFact) IsValid(b []byte) error {
 		return err
 	}
 
-	if len(fact.token) < 1 {
-		return errors.Errorf("empty token for SignDocumentsFact")
-	} else if n := len(fact.items); n < 1 {
+	if n := len(fact.items); n < 1 {
 		return errors.Errorf("empty items")
 	} else if n > int(MaxCreateDocumentsItems) {
 		return errors.Errorf("items, %d over max, %d", n, MaxSignDocumentsItems)
@@ -96,16 +94,16 @@ func (fact SignDocumentsFact) IsValid(b []byte) error {
 	}
 
 	// check duplicated document
-	foundDocId := map[string]bool{}
+	foundDocID := map[string]bool{}
 	for i := range fact.items {
 		if err := fact.items[i].IsValid(nil); err != nil {
 			return err
 		}
-		k := fact.items[i].DocumentId()
-		if _, found := foundDocId[k]; found {
-			return errors.Errorf("duplicated document found, %s", k)
+		k := fact.items[i].DocumentID()
+		if _, found := foundDocID[k]; found {
+			return errors.Errorf("duplicated documentID, %s", k)
 		}
-		foundDocId[k] = true
+		foundDocID[k] = true
 	}
 
 	if !fact.h.Equal(fact.GenerateHash()) {
@@ -123,7 +121,7 @@ func (fact SignDocumentsFact) Sender() base.Address {
 	return fact.sender
 }
 
-func (fact SignDocumentsFact) Items() []SignDocumentItem {
+func (fact SignDocumentsFact) Items() []SignDocumentsItem {
 	return fact.items
 }
 
@@ -136,7 +134,7 @@ func (fact SignDocumentsFact) Addresses() ([]base.Address, error) {
 }
 
 func (fact SignDocumentsFact) Rebuild() SignDocumentsFact {
-	items := make([]SignDocumentItem, len(fact.items))
+	items := make([]SignDocumentsItem, len(fact.items))
 	for i := range fact.items {
 		it := fact.items[i]
 		items[i] = it.Rebuild()

@@ -1,72 +1,71 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
 )
 
-type DocId interface {
+type DocID interface {
 	String() string
 	Bytes() []byte
 	Hint() hint.Hint
 }
 
-func NewDocId(id string) (did DocId) {
-	_, ty, err := ParseDocId(id)
+func NewDocID(id string) (did DocID) {
+	_, ty, err := ParseDocID(id)
 	if err != nil {
 		did = nil
 		return did
 	}
 
 	switch ty {
-	case BSDocIdType:
-		did = NewBSDocId(id)
-	case BCUserDocIdType:
-		did = NewBCUserDocId(id)
-	case BCLandDocIdType:
-		did = NewBCLandDocId(id)
-	case BCVotingDocIdType:
-		did = NewBCVotingDocId(id)
-	case BCHistoryDocIdType:
-		did = NewBCHistoryDocId(id)
+	case BSDocIDType:
+		did = NewBSDocID(id)
+	case BCUserDocIDType:
+		did = NewBCUserDocID(id)
+	case BCLandDocIDType:
+		did = NewBCLandDocID(id)
+	case BCVotingDocIDType:
+		did = NewBCVotingDocID(id)
+	case BCHistoryDocIDType:
+		did = NewBCHistoryDocID(id)
 	default:
 		did = nil
 	}
 	return did
 }
 
-var DocIdShortTypeSize = 3
+var DocIDShortTypeSize = 3
 
-var DocIdShortTypeMap = map[string]hint.Type{
-	"sdi": BSDocIdType,
-	"cui": BCUserDocIdType,
-	"cli": BCLandDocIdType,
-	"cvi": BCVotingDocIdType,
-	"chi": BCHistoryDocIdType,
+var DocIDShortTypeMap = map[string]hint.Type{
+	"sdi": BSDocIDType,
+	"cui": BCUserDocIDType,
+	"cli": BCLandDocIDType,
+	"cvi": BCVotingDocIDType,
+	"chi": BCHistoryDocIDType,
 }
 
 var (
-	BSDocIdType   = hint.Type("mitum-document-id")
-	BSDocIdHint   = hint.NewHint(BSDocIdType, "v0.0.1")
-	BSDocIdHinter = BSDocId{BaseHinter: hint.NewBaseHinter(BSDocIdHint)}
+	BSDocIDType   = hint.Type("mitum-document-id")
+	BSDocIDHint   = hint.NewHint(BSDocIDType, "v0.0.1")
+	BSDocIDHinter = BSDocID{BaseHinter: hint.NewBaseHinter(BSDocIDHint)}
 )
 
-type BSDocId struct {
+type BSDocID struct {
 	hint.BaseHinter
 	s string
 }
 
-func NewBSDocId(id string) BSDocId {
-	return NewBSDocIdWithHint(BSDocIdHint, id)
+func NewBSDocID(id string) BSDocID {
+	return NewBSDocIDWithHint(BSDocIDHint, id)
 }
 
-func NewBSDocIdWithHint(ht hint.Hint, id string) BSDocId {
-
-	return BSDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
+func NewBSDocIDWithHint(ht hint.Hint, id string) BSDocID {
+	return BSDocID{BaseHinter: hint.NewBaseHinter(ht), s: id}
 }
 
-func MustNewBSDocId(id string) BSDocId {
-	uid := NewBSDocId(id)
+func MustNewBSDocID(id string) BSDocID {
+	uid := NewBSDocID(id)
 	if err := uid.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -74,155 +73,27 @@ func MustNewBSDocId(id string) BSDocId {
 	return uid
 }
 
-func (ui BSDocId) IsValid([]byte) error {
-	if _, _, err := ParseDocId(string(ui.s)); err != nil {
+func (ui BSDocID) IsValid([]byte) error {
+	if _, _, err := ParseDocID(ui.s); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ui BSDocId) String() string {
+func (ui BSDocID) String() string {
 	return ui.s
 }
 
-func (ui BSDocId) Hint() hint.Hint {
+func (ui BSDocID) Hint() hint.Hint {
 	return ui.BaseHinter.Hint()
 }
 
-func (ui BSDocId) Bytes() []byte {
+func (ui BSDocID) Bytes() []byte { // nolint:stylecheck
 	return []byte(ui.s)
 }
 
-func (ui BSDocId) Equal(b BCUserDocId) bool {
-	if (b == BCUserDocId{}) {
-		return false
-	}
-
-	if ui.Hint().Type() != b.Hint().Type() {
-		return false
-	}
-
-	if err := b.IsValid(nil); err != nil {
-		return false
-	}
-
-	return string(ui.s) == b.String()
-}
-
-var (
-	BCUserDocIdType   = hint.Type("mitum-blockcity-user-document-id")
-	BCUserDocIdHint   = hint.NewHint(BCUserDocIdType, "v0.0.1")
-	BCUserDocIdHinter = BCUserDocId{BaseHinter: hint.NewBaseHinter(BCUserDocIdHint)}
-)
-
-type BCUserDocId struct {
-	hint.BaseHinter
-	s string
-}
-
-func NewBCUserDocId(id string) BCUserDocId {
-	return NewBCUserDocIdWithHint(BCUserDocIdHint, id)
-}
-
-func NewBCUserDocIdWithHint(ht hint.Hint, id string) BCUserDocId {
-
-	return BCUserDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
-}
-
-func MustNewBCUserDocId(id string) BCUserDocId {
-	uid := NewBCUserDocId(id)
-	if err := uid.IsValid(nil); err != nil {
-		panic(err)
-	}
-
-	return uid
-}
-
-func (ui BCUserDocId) IsValid([]byte) error {
-	if _, _, err := ParseDocId(string(ui.s)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ui BCUserDocId) String() string {
-	return ui.s
-}
-
-func (ui BCUserDocId) Hint() hint.Hint {
-	return ui.BaseHinter.Hint()
-}
-
-func (ui BCUserDocId) Bytes() []byte {
-	return []byte(ui.s)
-}
-
-func (ui BCUserDocId) Equal(b BCUserDocId) bool {
-	if (b == BCUserDocId{}) {
-		return false
-	}
-
-	if ui.Hint().Type() != b.Hint().Type() {
-		return false
-	}
-
-	if err := b.IsValid(nil); err != nil {
-		return false
-	}
-
-	return string(ui.s) == b.String()
-}
-
-var (
-	BCLandDocIdType   = hint.Type("mitum-blockcity-land-document-id")
-	BCLandDocIdHint   = hint.NewHint(BCLandDocIdType, "v0.0.1")
-	BCLandDocIdHinter = BCLandDocId{BaseHinter: hint.NewBaseHinter(BCLandDocIdHint)}
-)
-
-type BCLandDocId struct {
-	hint.BaseHinter
-	s string
-}
-
-func NewBCLandDocId(id string) BCLandDocId {
-	return NewBCLandDocIdWithHint(BCLandDocIdHint, id)
-}
-
-func NewBCLandDocIdWithHint(ht hint.Hint, id string) BCLandDocId {
-
-	return BCLandDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
-}
-
-func MustNewBCLandDocId(id string) BCLandDocId {
-	uid := NewBCLandDocId(id)
-	if err := uid.IsValid(nil); err != nil {
-		panic(err)
-	}
-
-	return uid
-}
-
-func (ui BCLandDocId) IsValid([]byte) error {
-	if _, _, err := ParseDocId(ui.s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ui BCLandDocId) String() string {
-	return ui.s
-}
-
-func (ui BCLandDocId) Hint() hint.Hint {
-	return ui.BaseHinter.Hint()
-}
-
-func (ui BCLandDocId) Bytes() []byte {
-	return []byte(ui.s)
-}
-
-func (ui BCLandDocId) Equal(b BCLandDocId) bool {
-	if (b == BCLandDocId{}) {
+func (ui BSDocID) Equal(b BCUserDocID) bool {
+	if (b == BCUserDocID{}) {
 		return false
 	}
 
@@ -238,27 +109,26 @@ func (ui BCLandDocId) Equal(b BCLandDocId) bool {
 }
 
 var (
-	BCVotingDocIdType   = hint.Type("mitum-blockcity-voting-document-id")
-	BCVotingDocIdHint   = hint.NewHint(BCVotingDocIdType, "v0.0.1")
-	BCVotingDocIdHinter = BCVotingDocId{BaseHinter: hint.NewBaseHinter(BCVotingDocIdHint)}
+	BCUserDocIDType   = hint.Type("mitum-blockcity-user-document-id")
+	BCUserDocIDHint   = hint.NewHint(BCUserDocIDType, "v0.0.1")
+	BCUserDocIDHinter = BCUserDocID{BaseHinter: hint.NewBaseHinter(BCUserDocIDHint)}
 )
 
-type BCVotingDocId struct {
+type BCUserDocID struct {
 	hint.BaseHinter
 	s string
 }
 
-func NewBCVotingDocId(id string) BCVotingDocId {
-	return NewBCVotingDocIdWithHint(BCVotingDocIdHint, id)
+func NewBCUserDocID(id string) BCUserDocID {
+	return NewBCUserDocIDWithHint(BCUserDocIDHint, id)
 }
 
-func NewBCVotingDocIdWithHint(ht hint.Hint, id string) BCVotingDocId {
-
-	return BCVotingDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
+func NewBCUserDocIDWithHint(ht hint.Hint, id string) BCUserDocID {
+	return BCUserDocID{BaseHinter: hint.NewBaseHinter(ht), s: id}
 }
 
-func MustNewBCVotingDocId(id string) BCVotingDocId {
-	uid := NewBCVotingDocId(id)
+func MustNewBCUserDocID(id string) BCUserDocID {
+	uid := NewBCUserDocID(id)
 	if err := uid.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -266,27 +136,27 @@ func MustNewBCVotingDocId(id string) BCVotingDocId {
 	return uid
 }
 
-func (ui BCVotingDocId) IsValid([]byte) error {
-	if _, _, err := ParseDocId(ui.s); err != nil {
+func (ui BCUserDocID) IsValid([]byte) error {
+	if _, _, err := ParseDocID(ui.s); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ui BCVotingDocId) String() string {
+func (ui BCUserDocID) String() string {
 	return ui.s
 }
 
-func (ui BCVotingDocId) Hint() hint.Hint {
+func (ui BCUserDocID) Hint() hint.Hint {
 	return ui.BaseHinter.Hint()
 }
 
-func (ui BCVotingDocId) Bytes() []byte {
+func (ui BCUserDocID) Bytes() []byte { // nolint:stylecheck
 	return []byte(ui.s)
 }
 
-func (ui BCVotingDocId) Equal(b BCVotingDocId) bool {
-	if (b == BCVotingDocId{}) {
+func (ui BCUserDocID) Equal(b BCUserDocID) bool {
+	if (b == BCUserDocID{}) {
 		return false
 	}
 
@@ -302,27 +172,26 @@ func (ui BCVotingDocId) Equal(b BCVotingDocId) bool {
 }
 
 var (
-	BCHistoryDocIdType   = hint.Type("mitum-blockcity-history-document-id")
-	BCHistoryDocIdHint   = hint.NewHint(BCHistoryDocIdType, "v0.0.1")
-	BCHistoryDocIdHinter = BCHistoryDocId{BaseHinter: hint.NewBaseHinter(BCHistoryDocIdHint)}
+	BCLandDocIDType   = hint.Type("mitum-blockcity-land-document-id")
+	BCLandDocIDHint   = hint.NewHint(BCLandDocIDType, "v0.0.1")
+	BCLandDocIDHinter = BCLandDocID{BaseHinter: hint.NewBaseHinter(BCLandDocIDHint)}
 )
 
-type BCHistoryDocId struct {
+type BCLandDocID struct {
 	hint.BaseHinter
 	s string
 }
 
-func NewBCHistoryDocId(id string) BCHistoryDocId {
-	return NewBCHistoryDocIdWithHint(BCHistoryDocIdHint, id)
+func NewBCLandDocID(id string) BCLandDocID {
+	return NewBCLandDocIDWithHint(BCLandDocIDHint, id)
 }
 
-func NewBCHistoryDocIdWithHint(ht hint.Hint, id string) BCHistoryDocId {
-
-	return BCHistoryDocId{BaseHinter: hint.NewBaseHinter(ht), s: id}
+func NewBCLandDocIDWithHint(ht hint.Hint, id string) BCLandDocID {
+	return BCLandDocID{BaseHinter: hint.NewBaseHinter(ht), s: id}
 }
 
-func MustNewBCHistoryDocId(id string) BCHistoryDocId {
-	uid := NewBCHistoryDocId(id)
+func MustNewBCLandDocID(id string) BCLandDocID {
+	uid := NewBCLandDocID(id)
 	if err := uid.IsValid(nil); err != nil {
 		panic(err)
 	}
@@ -330,27 +199,27 @@ func MustNewBCHistoryDocId(id string) BCHistoryDocId {
 	return uid
 }
 
-func (ui BCHistoryDocId) IsValid([]byte) error {
-	if _, _, err := ParseDocId(ui.s); err != nil {
+func (ui BCLandDocID) IsValid([]byte) error {
+	if _, _, err := ParseDocID(ui.s); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ui BCHistoryDocId) String() string {
+func (ui BCLandDocID) String() string {
 	return ui.s
 }
 
-func (ui BCHistoryDocId) Hint() hint.Hint {
+func (ui BCLandDocID) Hint() hint.Hint {
 	return ui.BaseHinter.Hint()
 }
 
-func (ui BCHistoryDocId) Bytes() []byte {
+func (ui BCLandDocID) Bytes() []byte { // nolint:stylecheck
 	return []byte(ui.s)
 }
 
-func (ui BCHistoryDocId) Equal(b BCHistoryDocId) bool {
-	if (b == BCHistoryDocId{}) {
+func (ui BCLandDocID) Equal(b BCLandDocID) bool {
+	if (b == BCLandDocID{}) {
 		return false
 	}
 
@@ -365,21 +234,148 @@ func (ui BCHistoryDocId) Equal(b BCHistoryDocId) bool {
 	return ui.s == b.String()
 }
 
-func ParseDocId(s string) (string, hint.Type, error) {
-	if len(s) <= DocIdShortTypeSize {
-		return "", hint.Type(""), isvalid.InvalidError.Errorf("invalid DocId, %q", s)
+var (
+	BCVotingDocIDType   = hint.Type("mitum-blockcity-voting-document-id")
+	BCVotingDocIDHint   = hint.NewHint(BCVotingDocIDType, "v0.0.1")
+	BCVotingDocIDHinter = BCVotingDocID{BaseHinter: hint.NewBaseHinter(BCVotingDocIDHint)}
+)
+
+type BCVotingDocID struct {
+	hint.BaseHinter
+	s string
+}
+
+func NewBCVotingDocID(id string) BCVotingDocID {
+	return NewBCVotingDocIDWithHint(BCVotingDocIDHint, id)
+}
+
+func NewBCVotingDocIDWithHint(ht hint.Hint, id string) BCVotingDocID {
+	return BCVotingDocID{BaseHinter: hint.NewBaseHinter(ht), s: id}
+}
+
+func MustNewBCVotingDocID(id string) BCVotingDocID {
+	uid := NewBCVotingDocID(id)
+	if err := uid.IsValid(nil); err != nil {
+		panic(err)
 	}
 
-	shortType := s[len(s)-DocIdShortTypeSize:]
+	return uid
+}
 
-	if len(shortType) != DocIdShortTypeSize {
-		return "", hint.Type(""), isvalid.InvalidError.Errorf("invalid ShortType for DocId, %q", shortType)
+func (ui BCVotingDocID) IsValid([]byte) error {
+	if _, _, err := ParseDocID(ui.s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ui BCVotingDocID) String() string {
+	return ui.s
+}
+
+func (ui BCVotingDocID) Hint() hint.Hint {
+	return ui.BaseHinter.Hint()
+}
+
+func (ui BCVotingDocID) Bytes() []byte { // nolint:stylecheck
+	return []byte(ui.s)
+}
+
+func (ui BCVotingDocID) Equal(b BCVotingDocID) bool {
+	if (b == BCVotingDocID{}) {
+		return false
 	}
 
-	v, ok := DocIdShortTypeMap[shortType]
+	if ui.Hint().Type() != b.Hint().Type() {
+		return false
+	}
+
+	if err := b.IsValid(nil); err != nil {
+		return false
+	}
+
+	return ui.s == b.String()
+}
+
+var (
+	BCHistoryDocIDType   = hint.Type("mitum-blockcity-history-document-id")
+	BCHistoryDocIDHint   = hint.NewHint(BCHistoryDocIDType, "v0.0.1")
+	BCHistoryDocIDHinter = BCHistoryDocID{BaseHinter: hint.NewBaseHinter(BCHistoryDocIDHint)}
+)
+
+type BCHistoryDocID struct {
+	hint.BaseHinter
+	s string
+}
+
+func NewBCHistoryDocID(id string) BCHistoryDocID {
+	return NewBCHistoryDocIDWithHint(BCHistoryDocIDHint, id)
+}
+
+func NewBCHistoryDocIDWithHint(ht hint.Hint, id string) BCHistoryDocID {
+	return BCHistoryDocID{BaseHinter: hint.NewBaseHinter(ht), s: id}
+}
+
+func MustNewBCHistoryDocID(id string) BCHistoryDocID {
+	uid := NewBCHistoryDocID(id)
+	if err := uid.IsValid(nil); err != nil {
+		panic(err)
+	}
+
+	return uid
+}
+
+func (ui BCHistoryDocID) IsValid([]byte) error {
+	if _, _, err := ParseDocID(ui.s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ui BCHistoryDocID) String() string {
+	return ui.s
+}
+
+func (ui BCHistoryDocID) Hint() hint.Hint {
+	return ui.BaseHinter.Hint()
+}
+
+func (ui BCHistoryDocID) Bytes() []byte { // nolint:stylecheck
+	return []byte(ui.s)
+}
+
+func (ui BCHistoryDocID) Equal(b BCHistoryDocID) bool {
+	if (b == BCHistoryDocID{}) {
+		return false
+	}
+
+	if ui.Hint().Type() != b.Hint().Type() {
+		return false
+	}
+
+	if err := b.IsValid(nil); err != nil {
+		return false
+	}
+
+	return ui.s == b.String()
+}
+
+// ParseDocID receive typed docID string and return untyped docID string and docID type
+func ParseDocID(s string) (string, hint.Type, error) {
+	if len(s) <= DocIDShortTypeSize {
+		return "", hint.Type(""), isvalid.InvalidError.Errorf("invalid DocID, %q", s)
+	}
+
+	shortType := s[len(s)-DocIDShortTypeSize:]
+
+	if len(shortType) != DocIDShortTypeSize {
+		return "", hint.Type(""), isvalid.InvalidError.Errorf("invalid ShortType for DocID, %q", shortType)
+	}
+
+	v, ok := DocIDShortTypeMap[shortType]
 	if !ok {
-		return "", hint.Type(""), isvalid.InvalidError.Errorf("wrong ShortType of DocId : %q", shortType)
+		return "", hint.Type(""), isvalid.InvalidError.Errorf("wrong ShortType of DocID : %q", shortType)
 	}
 
-	return s[:len(s)-DocIdShortTypeSize], v, nil
+	return s[:len(s)-DocIDShortTypeSize], v, nil
 }

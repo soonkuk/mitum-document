@@ -23,7 +23,7 @@ var UpdateDocumentsProcessorPool = sync.Pool{
 	},
 }
 
-func (op UpdateDocuments) Process(
+func (UpdateDocuments) Process(
 	func(key string) (state.State, bool, error),
 	func(valuehash.Hash, ...state.State) error,
 ) error {
@@ -45,7 +45,6 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
-
 	if err := opp.item.IsValid(nil); err != nil {
 		return operation.NewBaseReasonError(err.Error())
 	}
@@ -75,11 +74,11 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 	}
 
 	// check existence of document state with documentid
-	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentId())); {
+	switch st, found, err := getState(StateKeyDocumentData(opp.item.DocumentID())); {
 	case err != nil:
 		return err
 	case !found:
-		return operation.NewBaseReasonError("document not registered with documentid, %q", opp.item.DocumentId())
+		return operation.NewBaseReasonError("document not registered with documentid, %q", opp.item.DocumentID())
 	default:
 		opp.nds = st
 	}
@@ -92,12 +91,6 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 	if !dd.Owner().Equal(opp.item.Doc().Owner()) {
 		return operation.NewBaseReasonError("item's Owner not matched with Owner in document, %v", opp.item.Doc().Owner())
 	}
-
-	/*
-		if dd.DocumentType() != opp.item.DocType() {
-			return operation.NewBaseReasonError("item's Document type not matched with document type in document, %v", opp.item.DocType())
-		}
-	*/
 
 	// update document data state
 	st, err := SetStateDocumentDataValue(opp.nds, opp.item.Doc())
@@ -113,7 +106,6 @@ func (opp *UpdateDocumentsItemProcessor) Process(
 	_ func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
-
 	sts := make([]state.State, 1)
 	sts[0] = opp.nds
 
@@ -216,11 +208,11 @@ func (opp *UpdateDocumentsProcessor) Process( // nolint:dupl
 
 	// append document data state and add doc info to owner document inventory
 	for i := range opp.ns {
-		if s, err := opp.ns[i].Process(getState, setState); err != nil {
+		s, err := opp.ns[i].Process(getState, setState)
+		if err != nil {
 			return operation.NewBaseReasonError("failed to process update document item: %w", err)
-		} else {
-			sts = append(sts, s...)
 		}
+		sts = append(sts, s...)
 	}
 
 	// append sender balance state
@@ -257,7 +249,10 @@ func (opp *UpdateDocumentsProcessor) calculateItemsFee() (map[currency.CurrencyI
 	return CalculateUpdateDocumentItemsFee(opp.cp, items)
 }
 
-func CalculateUpdateDocumentItemsFee(cp *currency.CurrencyPool, items []UpdateDocumentsItem) (map[currency.CurrencyID][2]currency.Big, error) {
+func CalculateUpdateDocumentItemsFee( // nolint:dupl
+	cp *currency.CurrencyPool,
+	items []UpdateDocumentsItem,
+) (map[currency.CurrencyID][2]currency.Big, error) {
 	required := map[currency.CurrencyID][2]currency.Big{}
 
 	for i := range items {
@@ -287,7 +282,6 @@ func CalculateUpdateDocumentItemsFee(cp *currency.CurrencyPool, items []UpdateDo
 		default:
 			required[it.Currency()] = [2]currency.Big{rq[0].Add(k), rq[1].Add(k)}
 		}
-
 	}
 
 	return required, nil

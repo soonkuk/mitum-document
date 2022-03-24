@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"

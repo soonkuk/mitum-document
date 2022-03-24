@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -11,9 +11,7 @@ func (it *BaseSignDocumentsItem) unpack(
 	di string,
 	ow base.AddressDecoder,
 	scid string,
-
 ) error {
-
 	it.id = di
 
 	a, err := ow.Encode(enc)

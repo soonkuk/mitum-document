@@ -20,11 +20,9 @@ func NewDocumentDoc(
 	doc document.DocumentData,
 	height base.Height,
 ) (DocumentDoc, error) {
-
-	var addresses = make([]string, len(doc.Accounts())+1)
-	addresses[0] = doc.Owner().String()
+	var addresses = make([]string, len(doc.Accounts()))
 	for i := range doc.Accounts() {
-		addresses[i+1] = doc.Accounts()[i].String()
+		addresses[i] = doc.Accounts()[i].String()
 	}
 	va := NewDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)
@@ -40,8 +38,8 @@ func NewDocumentDoc(
 	}, nil
 }
 
-func (doc DocumentDoc) DocumentId() string {
-	return doc.va.doc.DocumentId()
+func (doc DocumentDoc) DocumentID() string {
+	return doc.va.doc.DocumentID()
 }
 
 func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
@@ -51,9 +49,9 @@ func (doc DocumentDoc) MarshalBSON() ([]byte, error) {
 	}
 
 	m["owner"] = doc.va.Document().Owner()
-	m["documentid"] = doc.va.Document().DocumentId()
-	m["docid"] = doc.va.Document().DocumentId()[:len(doc.va.Document().DocumentId())-3]
-	m["doctype"] = doc.va.Document().DocumentId()[len(doc.va.Document().DocumentId())-3:]
+	m["documentid"] = doc.va.Document().DocumentID()
+	m["docid"] = doc.va.Document().DocumentID()[:len(doc.va.Document().DocumentID())-3]
+	m["doctype"] = doc.va.Document().DocumentID()[len(doc.va.Document().DocumentID())-3:]
 	m["addresses"] = doc.addresses
 	m["height"] = doc.height
 

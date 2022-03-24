@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"bytes"
@@ -30,7 +30,8 @@ type UserStatistics struct {
 }
 
 func NewUserStatistics(hp, strength, agility, dexterity, charisma, intelligence, vital uint) UserStatistics {
-	doc := UserStatistics{
+	us := UserStatistics{
+		BaseHinter:   hint.NewBaseHinter(UserStatisticsHint),
 		hp:           hp,
 		strength:     strength,
 		agility:      agility,
@@ -39,7 +40,7 @@ func NewUserStatistics(hp, strength, agility, dexterity, charisma, intelligence,
 		intelligence: intelligence,
 		vital:        vital,
 	}
-	return doc
+	return us
 }
 
 func MustNewUserStatistics(hp, strength, agility, dexterity, charisma, intelligence, vital uint) UserStatistics {
@@ -71,20 +72,11 @@ func (us UserStatistics) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(us.Bytes())
 }
 
-func (us UserStatistics) Hint() hint.Hint {
-	return UserStatisticsHint
-}
-
-func (us UserStatistics) IsValid([]byte) error {
+func (us UserStatistics) IsValid([]byte) error { // nolint:revive
 	return nil
 }
 
-func (us UserStatistics) String() string {
-	return fmt.Sprintf("%v:%v:%v:%v:%v:%v:%v", us.hp, us.strength, us.agility, us.dexterity, us.charisma, us.intelligence, us.vital)
-}
-
 func (us UserStatistics) Equal(b UserStatistics) bool {
-
 	if us.hp != b.hp {
 		return false
 	}
@@ -124,23 +116,23 @@ var (
 
 type DocInfo struct {
 	hint.BaseHinter
-	id      DocId
+	id      DocID
 	docType hint.Type
 }
 
 func NewDocInfo(id string, docType hint.Type) DocInfo {
-	var i DocId
+	var i DocID
 	switch docType {
 	case BSDocDataType:
-		i = NewBSDocId(id)
+		i = NewBSDocID(id)
 	case BCUserDataType:
-		i = NewBCUserDocId(id)
+		i = NewBCUserDocID(id)
 	case BCLandDataType:
-		i = NewBCLandDocId(id)
+		i = NewBCLandDocID(id)
 	case BCVotingDataType:
-		i = NewBCVotingDocId(id)
+		i = NewBCVotingDocID(id)
 	case BCHistoryDataType:
-		i = NewBCHistoryDocId(id)
+		i = NewBCHistoryDocID(id)
 	default:
 		return DocInfo{}
 	}
@@ -161,7 +153,7 @@ func MustNewDocInfo(id string, docType hint.Type) DocInfo {
 	return docInfo
 }
 
-func (di DocInfo) DocumentId() string {
+func (di DocInfo) DocumentID() string {
 	return di.id.String()
 }
 
@@ -170,7 +162,6 @@ func (di DocInfo) DocType() hint.Type {
 }
 
 func (di DocInfo) Bytes() []byte {
-
 	return util.ConcatBytesSlice(di.id.Bytes(), di.docType.Bytes())
 }
 
@@ -184,7 +175,7 @@ func (di DocInfo) GenerateHash() valuehash.Hash {
 
 func (di DocInfo) IsValid([]byte) error {
 	if di.id == nil {
-		return isvalid.InvalidError.Errorf("DocId in Docinfo is empty")
+		return isvalid.InvalidError.Errorf("DocID in Docinfo is empty")
 	}
 	if di.docType == hint.Type("") {
 		return isvalid.InvalidError.Errorf("DocType in Docinfo is empty")
@@ -205,27 +196,6 @@ func (di DocInfo) String() string {
 
 func (di DocInfo) Equal(b DocInfo) bool {
 	return bytes.Equal(di.id.Bytes(), b.id.Bytes()) && di.docType == b.docType
-}
-
-type Nickname string
-
-func (nk Nickname) Bytes() []byte {
-	return []byte(nk)
-}
-
-func (nk Nickname) String() string {
-	return string(nk)
-}
-
-func (nk Nickname) IsValid([]byte) error {
-	if len(nk) < 1 {
-		return errors.Errorf("empty Nickname")
-	}
-	return nil
-}
-
-func (nk Nickname) Equal(b Nickname) bool {
-	return nk == b
 }
 
 type FileHash string
@@ -280,8 +250,8 @@ func MustNewDocSign(address base.Address, signcode string, signed bool) DocSign 
 	return doc
 }
 
-func (doc DocSign) Address() base.Address {
-	return doc.address
+func (ds DocSign) Address() base.Address {
+	return ds.address
 }
 
 func (ds DocSign) Bytes() []byte {
@@ -304,11 +274,7 @@ func (ds DocSign) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(ds.Bytes())
 }
 
-func (ds DocSign) Hint() hint.Hint {
-	return DocSignHint
-}
-
-func (ds DocSign) IsValid([]byte) error {
+func (ds DocSign) IsValid([]byte) error { // nolint:revive
 	return nil
 }
 
@@ -322,7 +288,6 @@ func (ds DocSign) String() string {
 }
 
 func (ds DocSign) Equal(b DocSign) bool {
-
 	if !ds.address.Equal(b.address) {
 		return false
 	}
@@ -381,12 +346,11 @@ func MustNewVotingCandidate(address base.Address, nickname, manifest string, cou
 	return votingCandidate
 }
 
-func (vc VotingCandidate) Address() base.Address {
+func (vc VotingCandidate) Address() base.Address { // nolint:stylecheck
 	return vc.address
 }
 
 func (vc VotingCandidate) Bytes() []byte {
-
 	return util.ConcatBytesSlice(vc.address.Bytes(), []byte(vc.nickname), []byte(vc.manifest), util.UintToBytes(vc.count))
 }
 
@@ -399,7 +363,6 @@ func (vc VotingCandidate) GenerateHash() valuehash.Hash {
 }
 
 func (vc VotingCandidate) IsValid([]byte) error {
-
 	if len(vc.manifest) > MaxManifest {
 		return isvalid.InvalidError.Errorf("Over candidate max manifest")
 	}

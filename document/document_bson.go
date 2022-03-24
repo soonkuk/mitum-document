@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -224,13 +224,13 @@ type UserStatisticsBSONUnpacker struct {
 	VT uint `bson:"vital"`
 }
 
-func (us *UserStatistics) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (us *UserStatistics) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
 	var uus UserStatisticsBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &uus); err != nil {
 		return err
 	}
 
-	return us.unpack(enc, uus.HP, uus.ST, uus.AG, uus.DX, uus.CR, uus.IG, uus.VT)
+	return us.unpack(uus.HP, uus.ST, uus.AG, uus.DX, uus.CR, uus.IG, uus.VT)
 }
 
 func (di DocInfo) MarshalBSON() ([]byte, error) {
@@ -311,11 +311,11 @@ func (di *VotingCandidate) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return di.unpack(enc, uvc.AD, uvc.NC, uvc.MA, uvc.CT)
 }
 
-type DocIdBSONUnpacker struct {
+type DocIDBSONUnpacker struct {
 	BI string `bson:"id"`
 }
 
-func (di BSDocId) MarshalBSON() ([]byte, error) {
+func (di BSDocID) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -324,16 +324,16 @@ func (di BSDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *BSDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi DocIdBSONUnpacker
+func (di *BSDocID) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
+	var udi DocIDBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.BI)
+	return di.unpack(udi.BI)
 }
 
-func (di BCUserDocId) MarshalBSON() ([]byte, error) {
+func (di BCUserDocID) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -342,16 +342,16 @@ func (di BCUserDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *BCUserDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi DocIdBSONUnpacker
+func (di *BCUserDocID) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
+	var udi DocIDBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.BI)
+	return di.unpack(udi.BI)
 }
 
-func (di BCLandDocId) MarshalBSON() ([]byte, error) {
+func (di BCLandDocID) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -360,16 +360,16 @@ func (di BCLandDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *BCLandDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi DocIdBSONUnpacker
+func (di *BCLandDocID) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
+	var udi DocIDBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.BI)
+	return di.unpack(udi.BI)
 }
 
-func (di BCVotingDocId) MarshalBSON() ([]byte, error) {
+func (di BCVotingDocID) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -378,16 +378,16 @@ func (di BCVotingDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *BCVotingDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi DocIdBSONUnpacker
+func (di *BCVotingDocID) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
+	var udi DocIDBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.BI)
+	return di.unpack(udi.BI)
 }
 
-func (di BCHistoryDocId) MarshalBSON() ([]byte, error) {
+func (di BCHistoryDocID) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(di.Hint()),
 		bson.M{
@@ -396,11 +396,11 @@ func (di BCHistoryDocId) MarshalBSON() ([]byte, error) {
 	)
 }
 
-func (di *BCHistoryDocId) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
-	var udi DocIdBSONUnpacker
+func (di *BCHistoryDocID) UnpackBSON(b []byte, _ *bsonenc.Encoder) error {
+	var udi DocIDBSONUnpacker
 	if err := bsonenc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.BI)
+	return di.unpack(udi.BI)
 }

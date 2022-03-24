@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"encoding/json"
@@ -289,12 +289,12 @@ func (us *UserStatistics) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	return us.unpack(enc, uus.HP, uus.ST, uus.AG, uus.DX, uus.CR, uus.IG, uus.VT)
+	return us.unpack(uus.HP, uus.ST, uus.AG, uus.DX, uus.CR, uus.IG, uus.VT)
 }
 
 type DocInfoJSONPacker struct {
 	jsonenc.HintedHead
-	ID DocId     `json:"docid"`
+	ID DocID     `json:"docid"`
 	DT hint.Type `json:"doctype"`
 }
 
@@ -385,91 +385,91 @@ func (vc *VotingCandidate) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return vc.unpack(enc, uvc.AD, uvc.NC, uvc.MA, uvc.CT)
 }
 
-type DocIdJSONPacker struct {
+type DocIDJSONPacker struct {
 	jsonenc.HintedHead
 	SI string `json:"id"`
 }
 
-type DocIdJSONUnpacker struct {
+type DocIDJSONUnpacker struct {
 	SI string `json:"id"`
 }
 
-func (di BSDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di BSDocID) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIDJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-func (di *BSDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *BSDocID) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIDJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.SI)
+	return di.unpack(udi.SI)
 }
 
-func (di BCUserDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di BCUserDocID) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIDJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-func (di *BCUserDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *BCUserDocID) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIDJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.SI)
+	return di.unpack(udi.SI)
 }
 
-func (di BCLandDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di BCLandDocID) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIDJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-func (di *BCLandDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *BCLandDocID) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIDJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.SI)
+	return di.unpack(udi.SI)
 }
 
-func (di BCVotingDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di BCVotingDocID) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIDJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-func (di *BCVotingDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *BCVotingDocID) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIDJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.SI)
+	return di.unpack(udi.SI)
 }
 
-func (di BCHistoryDocId) MarshalJSON() ([]byte, error) {
-	return jsonenc.Marshal(DocIdJSONPacker{
+func (di BCHistoryDocID) MarshalJSON() ([]byte, error) {
+	return jsonenc.Marshal(DocIDJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(di.Hint()),
 		SI:         di.s,
 	})
 }
 
-func (di *BCHistoryDocId) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var udi DocIdJSONUnpacker
+func (di *BCHistoryDocID) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+	var udi DocIDJSONUnpacker
 	if err := enc.Unmarshal(b, &udi); err != nil {
 		return err
 	}
 
-	return di.unpack(enc, udi.SI)
+	return di.unpack(udi.SI)
 }

@@ -12,7 +12,6 @@ func (it *UpdateDocumentsItemImpl) unpack(
 	bdd []byte,
 	scid string,
 ) error {
-
 	// it.doctype = hint.Type(sdt)
 
 	// unpack documentdata

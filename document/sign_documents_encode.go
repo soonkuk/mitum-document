@@ -1,4 +1,4 @@
-package document
+package document // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum/base"
@@ -24,9 +24,9 @@ func (fact *SignDocumentsFact) unpack(
 		return err
 	}
 
-	its := make([]SignDocumentItem, len(hits))
+	its := make([]SignDocumentsItem, len(hits))
 	for i := range hits {
-		j, ok := hits[i].(SignDocumentItem)
+		j, ok := hits[i].(SignDocumentsItem)
 		if !ok {
 			return util.WrongTypeError.Errorf("expected SignDocumentsItem, not %T", hits[i])
 		}

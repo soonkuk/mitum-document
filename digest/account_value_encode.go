@@ -1,4 +1,4 @@
-package digest
+package digest // nolint: dupl, revive
 
 import (
 	"github.com/pkg/errors"
@@ -9,7 +9,9 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, cd []byte, height, previousHeight base.Height) error {
+func (va *AccountValue) unpack(
+	enc encoder.Encoder, bac []byte, bl []byte, cd []byte, height, previousHeight base.Height,
+) error {
 	if err := encoder.Decode(bac, enc, &va.ac); err != nil {
 		return err
 	}

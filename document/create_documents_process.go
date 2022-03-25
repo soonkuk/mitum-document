@@ -59,16 +59,16 @@ func (opp *CreateDocumentsItemProcessor) PreProcess(
 	}
 
 	id := NewDocID(opp.item.DocumentID())
-
+	accounts := opp.item.Doc().Accounts()
 	// check existence of DocumentData related accounts
-	for i := range opp.item.Doc().Accounts() {
-		switch _, found, err := getState(currency.StateKeyAccount(opp.item.Doc().Accounts()[i])); {
+	for i := range accounts {
+		switch _, found, err := getState(currency.StateKeyAccount(accounts[i])); {
 		case err != nil:
 			return err
 		case !found:
 			return operation.NewBaseReasonError(
-				"DocumentData related accounts not found, document type : %q, address : %q",
-				opp.item.Doc().Info().docType, opp.item.Doc().Accounts()[i],
+				"documentData related accounts not found, document type : %q, address : %q",
+				opp.item.Doc().Info().docType, accounts[i],
 			)
 		}
 	}
@@ -88,7 +88,6 @@ func (opp *CreateDocumentsItemProcessor) Process(
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
 	sts := make([]state.State, 1)
-
 	// set new document state
 	dst, err := SetStateDocumentDataValue(opp.nds, opp.item.Doc())
 	if err != nil {
@@ -231,7 +230,6 @@ func (opp *CreateDocumentsProcessor) Process( // nolint:dupl
 			return err
 		}
 	}
-
 	opp.dinv.Sort(true)
 
 	// prepare document inventory state and append it

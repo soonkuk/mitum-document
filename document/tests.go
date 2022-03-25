@@ -179,6 +179,17 @@ func generateDocument(id string, owner base.Address) DocumentData {
 	return doc
 }
 
+func assertPanic(t baseTest, f func(), panicError string, recovered *bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			e := r.(error)
+			t.Contains(e.Error(), panicError)
+			*recovered = true
+		}
+	}()
+	f()
+}
+
 type baseTest struct { // nolint: unused
 	suite.Suite
 	isaac.StorageSupportTest
@@ -289,14 +300,17 @@ func (t *baseTestOperationProcessor) newKey(pub key.Publickey, w uint) currency.
 	return k
 }
 
-func (t *baseTestOperationProcessor) newAccount(exists bool, amounts []currency.Amount) (*account, []state.State) {
-	ac := t.baseTest.newAccount()
+func (t *baseTestOperationProcessor) newStateAccount(exists bool, amounts []currency.Amount, acc *account) (ac *account, sts []state.State) {
+	if acc != nil {
+		ac = acc
+	} else {
+		ac = t.baseTest.newAccount()
+	}
 
 	if !exists {
 		return ac, nil
 	}
 
-	var sts []state.State
 	sts = append(sts, t.newStateKeys(ac.Address, ac.Keys()))
 
 	for _, am := range amounts {
@@ -324,27 +338,14 @@ func (t *baseTestOperationProcessor) newStateBalance(a base.Address, big currenc
 	return su
 }
 
-func (t *baseTestOperationProcessor) newStateDocuments(a base.Address, doc DocInfo) state.State {
+func (t *baseTestOperationProcessor) newStateDocuments(a base.Address, docInv DocumentInventory) state.State {
 	key := StateKeyDocuments(a)
 
-	docinv := NewDocumentInventory([]DocInfo{doc})
-
-	value, _ := state.NewHintedValue(docinv)
+	value, _ := state.NewHintedValue(docInv)
 	su, err := state.NewStateV0(key, value, base.NilHeight)
 	t.NoError(err)
 
 	return su
-}
-
-func (t *baseTestOperationProcessor) newStateDocument(a base.Address, docData DocumentData) []state.State {
-
-	var sts []state.State
-
-	sts = append(sts, t.newStateDocuments(a, docData.Info()))
-
-	sts = append(sts, t.newStateDocumentData(docData))
-
-	return sts
 }
 
 func (t *baseTestOperationProcessor) newStateDocumentData(docData DocumentData) state.State {
@@ -354,6 +355,22 @@ func (t *baseTestOperationProcessor) newStateDocumentData(docData DocumentData) 
 	t.NoError(err)
 
 	return su
+}
+
+func (t *baseTestOperationProcessor) newStateDocument(a base.Address, docData DocumentData, docInv DocumentInventory) []state.State {
+	var sts []state.State
+	sts = append(sts, t.newStateDocumentData(docData))
+	sts = append(sts, t.newStateDocuments(a, MustNewDocumentInventory([]DocInfo{docData.Info()})))
+	if !docInv.Equal(DocumentInventory{}) {
+		d := &docInv
+		err := d.Append(docData.Info())
+		if err != nil {
+			return sts
+		}
+		sts = sts[:len(sts)-1]
+		sts = append(sts, t.newStateDocuments(a, docInv))
+	}
+	return sts
 }
 
 func (t *baseTestOperationProcessor) newCurrencyDesignState(cid currency.CurrencyID, big currency.Big, genesisAccount base.Address, feeer currency.Feeer) state.State {

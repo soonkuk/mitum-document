@@ -33,6 +33,15 @@ func NewDocumentInventory(docInfos []DocInfo) DocumentInventory {
 	return DocumentInventory{docInfos: docInfos}
 }
 
+func MustNewDocumentInventory(docInfos []DocInfo) DocumentInventory {
+	d := NewDocumentInventory(docInfos)
+	if err := d.IsValid(nil); err != nil {
+		panic(err)
+	}
+
+	return d
+}
+
 func (div DocumentInventory) Bytes() []byte {
 	bs := make([][]byte, len(div.docInfos))
 	for i := range div.docInfos {
@@ -64,6 +73,12 @@ func (div DocumentInventory) IsValid([]byte) error {
 }
 
 func (div DocumentInventory) Equal(b DocumentInventory) bool {
+	if len(div.docInfos) != len(b.docInfos) {
+		return false
+	}
+	if len(div.docInfos) < 1 && len(b.docInfos) < 1 {
+		return true
+	}
 	div.Sort(true)
 	b.Sort(true)
 	for i := range div.docInfos {
@@ -75,6 +90,9 @@ func (div DocumentInventory) Equal(b DocumentInventory) bool {
 }
 
 func (div *DocumentInventory) Sort(ascending bool) {
+	if len(div.docInfos) < 1 {
+		return
+	}
 	sort.Slice(div.docInfos, func(i, j int) bool {
 		if ascending {
 			return bytes.Compare(div.docInfos[j].id.Bytes(), div.docInfos[i].id.Bytes()) > 0

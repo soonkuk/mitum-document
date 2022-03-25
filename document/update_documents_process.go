@@ -61,7 +61,7 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 	case err != nil:
 		return err
 	case !found:
-		return operation.NewBaseReasonError("Owner has no document inventory, %v", opp.item.Doc().Owner())
+		return operation.NewBaseReasonError("owner has no document inventory, %v", opp.item.Doc().Owner())
 
 		// get document inventory of owner
 	default:
@@ -71,6 +71,12 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 		}
 		opp.dinv = dinv
 		opp.ndinvs = st
+	}
+
+	// check existence of document id in document inventory
+	ok := opp.dinv.Exists(opp.item.DocumentID())
+	if !ok {
+		return operation.NewBaseReasonError("documentid not in document inventory, %q", opp.item.DocumentID())
 	}
 
 	// check existence of document state with documentid
@@ -90,6 +96,20 @@ func (opp *UpdateDocumentsItemProcessor) PreProcess(
 
 	if !dd.Owner().Equal(opp.item.Doc().Owner()) {
 		return operation.NewBaseReasonError("item's Owner not matched with Owner in document, %v", opp.item.Doc().Owner())
+	}
+
+	accounts := opp.item.Doc().Accounts()
+	// check existence of update DocumentData related accounts
+	for i := range accounts {
+		switch _, found, err := getState(currency.StateKeyAccount(accounts[i])); {
+		case err != nil:
+			return err
+		case !found:
+			return operation.NewBaseReasonError(
+				"documentData related accounts not found, document type : %q, address : %q",
+				opp.item.Doc().Info().docType, accounts[i],
+			)
+		}
 	}
 
 	// update document data state

@@ -41,7 +41,7 @@ func (t *testSignDocumentsItemImpl) TestInvaliDocumentType() {
 	t.Contains(err.Error(), "invalid docID type")
 }
 
-func TestSignDocumentsItemSingleFile(t *testing.T) {
+func TestSignDocumentsItemsItem(t *testing.T) {
 	suite.Run(t, new(testSignDocumentsItemImpl))
 }
 

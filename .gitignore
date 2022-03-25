@@ -2,6 +2,7 @@
 *.dylib
 *.test
 *.out
+*.yaml
 .*.sw?
 .sw?
 .DS_Store
@@ -28,4 +29,3 @@ tests/*/*/coverage/
 /env
 /openapi
 /sh
-mitumtestcfg.yml

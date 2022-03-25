@@ -91,14 +91,14 @@ func (opp *SignDocumentsItemProcessor) PreProcess( // nolint:revive
 
 	v, ok := dd.(BSDocData)
 	if !ok {
-		return operation.NewBaseReasonError("Document is not Blocksign Document, %v", opp.item.DocumentID())
+		return operation.NewBaseReasonError("document is not Blocksign Document, %v", opp.item.DocumentID())
 	}
 	if !v.Creator().Address().Equal(opp.item.Owner()) {
-		return operation.NewBaseReasonError("Owner not matched with creator in document, %v", opp.item.Owner())
+		return operation.NewBaseReasonError("owner not matched with creator in document, %v", opp.item.Owner())
 	}
 
 	if len(v.Signers()) < 1 {
-		return operation.NewBaseReasonError("sender not found in document Signers, %v", opp.sender)
+		return operation.NewBaseReasonError("ssender not found in document Signers, %v", opp.sender)
 	}
 	// check signer exist in document data signers
 	for i := range v.Signers() {

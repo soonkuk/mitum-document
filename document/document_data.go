@@ -205,7 +205,13 @@ func (doc BSDocData) IsValid([]byte) error {
 		return isvalid.InvalidError.Errorf("invalid User Document Data: %w", err)
 	}
 
+	signerMap := make(map[string]struct{})
 	for i := range doc.signers {
+		_, found := signerMap[doc.signers[i].Address().String()]
+		if found {
+			return isvalid.InvalidError.Errorf("duplicated signer: %v", doc.signers[i].Address())
+		}
+		signerMap[doc.signers[i].Address().String()] = struct{}{}
 		c := doc.signers[i]
 		if err := c.IsValid(nil); err != nil {
 			return err
@@ -228,11 +234,21 @@ func (doc BSDocData) Signers() []DocSign {
 }
 
 func (doc BSDocData) Accounts() []base.Address {
-	as := make([]base.Address, len(doc.signers))
+	accountsMap := make(map[base.Address]struct{})
 	for i := range doc.signers {
-		as[i] = doc.signers[i].Address()
+		_, found := accountsMap[doc.signers[i].Address()]
+		if !found {
+			accountsMap[doc.signers[i].Address()] = struct{}{}
+		}
 	}
-	return as
+	accounts := make([]base.Address, len(accountsMap))
+	count := 0
+	for k := range accountsMap {
+		accounts[count] = k
+		count++
+	}
+
+	return accounts
 }
 
 func (doc BSDocData) Info() DocInfo {
@@ -379,8 +395,8 @@ func (doc BCUserData) Owner() base.Address {
 	return doc.owner
 }
 
-func (doc BCUserData) Accounts() []base.Address {
-	return []base.Address{doc.owner}
+func (BCUserData) Accounts() []base.Address {
+	return nil
 }
 
 func (doc BCUserData) Info() DocInfo {
@@ -514,7 +530,7 @@ func (doc BCLandData) Info() DocInfo {
 }
 
 func (doc BCLandData) Accounts() []base.Address {
-	return []base.Address{doc.owner}
+	return []base.Address{doc.account}
 }
 
 func (doc BCLandData) Owner() base.Address {
@@ -672,7 +688,25 @@ func (doc BCVotingData) Info() DocInfo {
 }
 
 func (doc BCVotingData) Accounts() []base.Address {
-	return []base.Address{doc.owner}
+	accountsMap := make(map[base.Address]struct{})
+	_, found := accountsMap[doc.account]
+	if !found {
+		accountsMap[doc.account] = struct{}{}
+	}
+	for i := range doc.candidates {
+		_, found := accountsMap[doc.candidates[i].address]
+		if !found {
+			accountsMap[doc.candidates[i].address] = struct{}{}
+		}
+	}
+	accounts := make([]base.Address, len(accountsMap))
+	count := 0
+	for k := range accountsMap {
+		accounts[count] = k
+		count++
+	}
+
+	return accounts
 }
 
 func (doc BCVotingData) Owner() base.Address {

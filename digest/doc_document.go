@@ -20,9 +20,10 @@ func NewDocumentDoc(
 	doc document.DocumentData,
 	height base.Height,
 ) (DocumentDoc, error) {
-	var addresses = make([]string, len(doc.Accounts()))
+	var addresses = make([]string, len(doc.Accounts())+1)
+	addresses[0] = doc.Owner().String()
 	for i := range doc.Accounts() {
-		addresses[i] = doc.Accounts()[i].String()
+		addresses[i+1] = doc.Accounts()[i].String()
 	}
 	va := NewDocumentValue(doc, height)
 	b, err := mongodbstorage.NewBaseDoc(nil, va, enc)

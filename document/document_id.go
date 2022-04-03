@@ -1,6 +1,8 @@
 package document // nolint: dupl, revive
 
 import (
+	"regexp"
+
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/isvalid"
 )
@@ -9,6 +11,7 @@ type DocID interface {
 	String() string
 	Bytes() []byte
 	Hint() hint.Hint
+	IsValid([]byte) error
 }
 
 func NewDocID(id string) (did DocID) {
@@ -34,6 +37,11 @@ func NewDocID(id string) (did DocID) {
 	}
 	return did
 }
+
+var (
+	MaxLengthDocID = 10
+	ReValidDocID   = regexp.MustCompile(`[a-z0-9]+`)
+)
 
 var DocIDShortTypeSize = 3
 
@@ -74,8 +82,14 @@ func MustNewBSDocID(id string) BSDocID {
 }
 
 func (ui BSDocID) IsValid([]byte) error {
-	if _, _, err := ParseDocID(ui.s); err != nil {
+	s, _, err := ParseDocID(ui.s)
+	if err != nil {
 		return err
+	} else if !ReValidDocID.MatchString(s) {
+		return isvalid.InvalidError.Errorf("wrong doc id, %q", s)
+	} else if l := len(s); l > MaxLengthDocID {
+		return isvalid.InvalidError.Errorf(
+			"invalid length of document id, %d <= %d", l, MaxLengthDocID)
 	}
 	return nil
 }
@@ -137,8 +151,14 @@ func MustNewBCUserDocID(id string) BCUserDocID {
 }
 
 func (ui BCUserDocID) IsValid([]byte) error {
-	if _, _, err := ParseDocID(ui.s); err != nil {
+	s, _, err := ParseDocID(ui.s)
+	if err != nil {
 		return err
+	} else if !ReValidDocID.MatchString(s) {
+		return isvalid.InvalidError.Errorf("wrong doc id, %q", s)
+	} else if l := len(s); l > MaxLengthDocID {
+		return isvalid.InvalidError.Errorf(
+			"invalid length of document id, %d <= %d", l, MaxLengthDocID)
 	}
 	return nil
 }
@@ -200,8 +220,14 @@ func MustNewBCLandDocID(id string) BCLandDocID {
 }
 
 func (ui BCLandDocID) IsValid([]byte) error {
-	if _, _, err := ParseDocID(ui.s); err != nil {
+	s, _, err := ParseDocID(ui.s)
+	if err != nil {
 		return err
+	} else if !ReValidDocID.MatchString(s) {
+		return isvalid.InvalidError.Errorf("wrong doc id, %q", s)
+	} else if l := len(s); l > MaxLengthDocID {
+		return isvalid.InvalidError.Errorf(
+			"invalid length of document id, %d <= %d", l, MaxLengthDocID)
 	}
 	return nil
 }
@@ -263,8 +289,14 @@ func MustNewBCVotingDocID(id string) BCVotingDocID {
 }
 
 func (ui BCVotingDocID) IsValid([]byte) error {
-	if _, _, err := ParseDocID(ui.s); err != nil {
+	s, _, err := ParseDocID(ui.s)
+	if err != nil {
 		return err
+	} else if !ReValidDocID.MatchString(s) {
+		return isvalid.InvalidError.Errorf("wrong doc id, %q", s)
+	} else if l := len(s); l > MaxLengthDocID {
+		return isvalid.InvalidError.Errorf(
+			"invalid length of document id, %d <= %d", l, MaxLengthDocID)
 	}
 	return nil
 }
@@ -326,8 +358,14 @@ func MustNewBCHistoryDocID(id string) BCHistoryDocID {
 }
 
 func (ui BCHistoryDocID) IsValid([]byte) error {
-	if _, _, err := ParseDocID(ui.s); err != nil {
+	s, _, err := ParseDocID(ui.s)
+	if err != nil {
 		return err
+	} else if !ReValidDocID.MatchString(s) {
+		return isvalid.InvalidError.Errorf("wrong doc id, %q", s)
+	} else if l := len(s); l > MaxLengthDocID {
+		return isvalid.InvalidError.Errorf(
+			"invalid length of document id, %d <= %d", l, MaxLengthDocID)
 	}
 	return nil
 }

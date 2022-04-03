@@ -182,6 +182,7 @@ func (di DocInfo) IsValid([]byte) error {
 	}
 
 	if err := isvalid.Check(nil, false,
+		di.id,
 		di.BaseHinter,
 		di.docType,
 	); err != nil {

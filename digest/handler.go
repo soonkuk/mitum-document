@@ -32,7 +32,7 @@ var (
 	HandlerPathCurrencies                 = `/currency`
 	HandlerPathCurrency                   = `/currency/{currencyid:.*}`
 	HandlerPathDocuments                  = `/block/documents`
-	HandlerPathDocument                   = `/block/document/{documentid:[0-9a-z]+}`
+	HandlerPathDocument                   = `/block/document/{documentid:[0-9a-zA-Z-]+}`
 	HandlerPathManifests                  = `/block/manifests`
 	HandlerPathOperations                 = `/block/operations`
 	HandlerPathOperation                  = `/block/operation/{hash:(?i)[0-9a-z][0-9a-z]+}`

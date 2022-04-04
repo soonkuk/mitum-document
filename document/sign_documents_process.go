@@ -137,7 +137,7 @@ func (opp *SignDocumentsItemProcessor) Close() error {
 	opp.sender = nil
 	opp.item = nil
 	opp.nds = nil
-	opp.dinv = DocumentInventory{}
+	opp.dinv = NewDocumentInventory([]DocInfo{})
 	opp.ndinvs = nil
 
 	CreateDocumentsItemProcessorPool.Put(opp)

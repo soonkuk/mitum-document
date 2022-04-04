@@ -28,9 +28,15 @@ type DocumentInventory struct {
 
 func NewDocumentInventory(docInfos []DocInfo) DocumentInventory {
 	if docInfos == nil {
-		return DocumentInventory{docInfos: []DocInfo{}}
+		return DocumentInventory{
+			BaseHinter: hint.NewBaseHinter(DocumentInventoryHint),
+			docInfos:   []DocInfo{},
+		}
 	}
-	return DocumentInventory{docInfos: docInfos}
+	return DocumentInventory{
+		BaseHinter: hint.NewBaseHinter(DocumentInventoryHint),
+		docInfos:   docInfos,
+	}
 }
 
 func MustNewDocumentInventory(docInfos []DocInfo) DocumentInventory {
@@ -49,6 +55,10 @@ func (div DocumentInventory) Bytes() []byte {
 	}
 
 	return util.ConcatBytesSlice(bs...)
+}
+
+func (div DocumentInventory) Hint() hint.Hint {
+	return DocumentInventoryHint
 }
 
 func (div DocumentInventory) Hash() valuehash.Hash {

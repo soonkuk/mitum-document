@@ -132,7 +132,7 @@ func NewCreateDocumentsProcessor(cp *currency.CurrencyPool) currency.GetNewProce
 
 		opp.cp = cp
 		opp.CreateDocuments = i
-		opp.dinv = DocumentInventory{}
+		opp.dinv = NewDocumentInventory([]DocInfo{})
 		opp.ndinvs = nil
 		opp.sb = nil
 		opp.ns = nil
@@ -255,7 +255,7 @@ func (opp *CreateDocumentsProcessor) Close() error {
 
 	opp.cp = nil
 	opp.CreateDocuments = CreateDocuments{}
-	opp.dinv = DocumentInventory{}
+	opp.dinv = NewDocumentInventory([]DocInfo{})
 	opp.sb = nil
 	opp.ndinvs = nil
 	opp.required = nil

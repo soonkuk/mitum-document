@@ -138,7 +138,7 @@ func (opp *UpdateDocumentsItemProcessor) Close() error {
 	opp.sender = nil
 	opp.item = nil
 	opp.nds = nil
-	opp.dinv = DocumentInventory{}
+	opp.dinv = NewDocumentInventory([]DocInfo{})
 	opp.ndinvs = nil
 
 	UpdateDocumentsItemProcessorPool.Put(opp)

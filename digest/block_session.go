@@ -93,9 +93,14 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 	}
 
 	if len(bs.documentModels) > 0 {
-
 		for i := range bs.documentList {
-			if err := bs.st.cleanByHeightColNameDocumentId(ctx, bs.block.Height(), defaultColNameDocument, bs.documentList[i]); err != nil {
+			err := bs.st.cleanByHeightColNameDocumentId(
+				ctx,
+				bs.block.Height(),
+				defaultColNameDocument,
+				bs.documentList[i],
+			)
+			if err != nil {
 				return err
 			}
 		}
@@ -205,17 +210,17 @@ func (bs *BlockSession) prepareAccounts() error {
 			}
 			balanceModels = append(balanceModels, j...)
 		case document.IsStateDocumentDataKey(st.Key()):
-			if j, err := bs.handleDocumentDataState(st); err != nil {
+			j, err := bs.handleDocumentDataState(st)
+			if err != nil {
 				return err
-			} else {
-				documentModels = append(documentModels, j...)
 			}
+			documentModels = append(documentModels, j...)
 		case document.IsStateDocumentsKey(st.Key()):
-			if j, err := bs.handleDocumentsState(st); err != nil {
+			j, err := bs.handleDocumentsState(st)
+			if err != nil {
 				return err
-			} else {
-				documentsModels = append(documentsModels, j...)
 			}
+			documentsModels = append(documentsModels, j...)
 		default:
 			continue
 		}
@@ -258,20 +263,20 @@ func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteMo
 	if err != nil {
 		return nil, err
 	}
-	if ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height()); err != nil {
+	ndoc, err := NewDocumentDoc(bs.st.database.Encoder(), doc, bs.block.Height())
+	if err != nil {
 		return nil, err
-	} else {
-		bs.documentList = append(bs.documentList, ndoc.DocumentID())
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 	}
+	bs.documentList = append(bs.documentList, ndoc.DocumentID())
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(ndoc)}, nil
 }
 
 func (bs *BlockSession) handleDocumentsState(st state.State) ([]mongo.WriteModel, error) {
-	if doc, err := NewDocumentsDoc(st, bs.st.database.Encoder()); err != nil {
+	doc, err := NewDocumentsDoc(st, bs.st.database.Encoder())
+	if err != nil {
 		return nil, err
-	} else {
-		return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 	}
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 }
 
 func (bs *BlockSession) writeModels(ctx context.Context, col string, models []mongo.WriteModel) error {

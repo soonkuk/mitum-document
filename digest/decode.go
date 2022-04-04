@@ -40,7 +40,6 @@ func LoadAccountValue(decoder func(interface{}) error, encs *encoder.Encoders) (
 	if err := decoder(&b); err != nil {
 		return AccountValue{}, err
 	}
-
 	_, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs)
 	if err != nil {
 		return AccountValue{}, err

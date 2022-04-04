@@ -1020,8 +1020,8 @@ func (st *Database) Documents(
 
 // DocumentList return document invetory by address
 func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
-	var lastHeight, previousHeight base.Height = base.NilHeight, base.NilHeight
-	doc := document.DocumentInventory{}
+	var lastHeight, previousHeight = base.NilHeight, base.NilHeight
+	doc := document.NewDocumentInventory([]document.DocInfo{})
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
@@ -1040,7 +1040,6 @@ func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, ba
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
 		if errors.Is(err, util.NotFoundError) {
-
 			return document.NewDocumentInventory([]document.DocInfo{}), lastHeight, previousHeight, nil
 		}
 	}

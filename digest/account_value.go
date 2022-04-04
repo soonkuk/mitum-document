@@ -88,8 +88,8 @@ func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	return va
 }
 
-func (va AccountValue) SetDocument(document document.DocumentInventory) AccountValue {
-	va.document = document
+func (va AccountValue) SetDocument(doc document.DocumentInventory) AccountValue {
+	va.document = doc
 
 	return va
 }

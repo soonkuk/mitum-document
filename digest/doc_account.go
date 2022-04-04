@@ -66,7 +66,7 @@ type BalanceDoc struct {
 func NewBalanceDoc(st state.State, enc encoder.Encoder) (BalanceDoc, error) {
 	am, err := currency.StateBalanceValue(st)
 	if err != nil {
-		return BalanceDoc{}, errors.Wrap(err, "BalanceDoc needs Amount state")
+		return BalanceDoc{}, errors.Wrap(err, "balanceDoc needs Amount state")
 	}
 
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
@@ -100,9 +100,8 @@ type DocumentsDoc struct {
 	st state.State
 }
 
-// NewDocumentDoc gets the State of DocumentData
+// NewDocumentsDoc gets the State of Document Inventory
 func NewDocumentsDoc(st state.State, enc encoder.Encoder) (DocumentsDoc, error) {
-
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
 	if err != nil {
 		return DocumentsDoc{}, err

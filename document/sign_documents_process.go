@@ -103,6 +103,9 @@ func (opp *SignDocumentsItemProcessor) PreProcess( // nolint:revive
 	// check signer exist in document data signers
 	for i := range v.Signers() {
 		if v.Signers()[i].Address().Equal(opp.sender) {
+			if v.Signers()[i].Signed() {
+				return operation.NewBaseReasonError("sender already signed the document, %v", opp.sender)
+			}
 			v.Signers()[i].SetSigned()
 			break
 		}

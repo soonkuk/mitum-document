@@ -462,7 +462,11 @@ func (hd *Handlers) handleAccountDocuments(w http.ResponseWriter, r *http.Reques
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
+	cachekey := CacheKey(
+		r.URL.Path, stringOffsetQuery(offset),
+		stringBoolQuery("reverse", reverse),
+		stringDoctypeQuery(doctype),
+	)
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return

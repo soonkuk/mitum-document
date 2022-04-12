@@ -17,7 +17,11 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
+	cachekey := CacheKey(
+		r.URL.Path, stringOffsetQuery(offset),
+		stringBoolQuery("reverse", reverse),
+		stringDoctypeQuery(doctype),
+	)
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
@@ -53,7 +57,6 @@ func (hd *Handlers) handleDocuments(w http.ResponseWriter, r *http.Request) {
 
 		HTTP2WriteCache(w, cachekey, expire)
 	}
-
 }
 
 func (hd *Handlers) handleDocumentsInGroup(
@@ -97,7 +100,6 @@ func (hd *Handlers) handleDocumentsInGroup(
 }
 
 func (hd *Handlers) handleDocument(w http.ResponseWriter, r *http.Request) {
-
 	cachekey := CacheKeyPath(r)
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
@@ -148,7 +150,11 @@ func (hd *Handlers) handleDocumentsByHeight(w http.ResponseWriter, r *http.Reque
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 	doctype := parseStringQuery(r.URL.Query().Get("doctype"))
 
-	cachekey := CacheKey(r.URL.Path, stringOffsetQuery(offset), stringBoolQuery("reverse", reverse), stringDoctypeQuery(doctype))
+	cachekey := CacheKey(
+		r.URL.Path, stringOffsetQuery(offset),
+		stringBoolQuery("reverse", reverse),
+		stringDoctypeQuery(doctype),
+	)
 
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
@@ -259,7 +265,7 @@ func (hd *Handlers) buildDocumentHal(va DocumentValue) (Hal, error) {
 	return hal, nil
 }
 
-func (hd *Handlers) buildDocumentsHal(
+func (*Handlers) buildDocumentsHal(
 	baseSelf string,
 	vas []Hal,
 	offset string,

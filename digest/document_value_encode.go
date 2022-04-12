@@ -7,7 +7,6 @@ import (
 )
 
 func (dv *DocumentValue) unpack(enc encoder.Encoder, bdm []byte, height base.Height) error {
-
 	if bdm != nil {
 		i, err := document.DecodeDocumentData(bdm, enc)
 		if err != nil {

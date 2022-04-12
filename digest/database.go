@@ -957,7 +957,6 @@ func (st *Database) Document(
 		defaultColNameDocument,
 		util.NewBSONFilter("documentid", i).D(),
 		func(res *mongo.SingleResult) error {
-
 			i, err := LoadDocument(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
@@ -1007,7 +1006,6 @@ func (st *Database) Documents(
 		defaultColNameDocument,
 		filter,
 		func(cursor *mongo.Cursor) (bool, error) {
-
 			va, err := LoadDocument(cursor.Decode, st.database.Encoders())
 			if err != nil {
 				return false, err
@@ -1058,17 +1056,23 @@ func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, ba
 	return doc, lastHeight, previousHeight, nil
 }
 
-func (st *Database) cleanByHeightColNameDocumentId(ctx context.Context, height base.Height, colName string, documentid string) error {
-
+func (st *Database) cleanByHeightColNameDocumentId(
+	ctx context.Context,
+	height base.Height,
+	colName string,
+	documentid string,
+) error {
 	if height <= base.PreGenesisHeight+1 {
 		return st.clean(ctx)
 	}
 
 	opts := options.BulkWrite().SetOrdered(true)
-	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"documentid": documentid, "height": bson.M{"$lte": height}})
+	removeByHeight := mongo.NewDeleteManyModel().SetFilter(
+		bson.M{"documentid": documentid, "height": bson.M{"$lte": height}},
+	)
 
 	res, err := st.database.Client().Collection(colName).BulkWrite(
-		context.Background(),
+		ctx,
 		[]mongo.WriteModel{removeByHeight},
 		opts,
 	)

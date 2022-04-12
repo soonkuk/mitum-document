@@ -14,11 +14,11 @@ type DocumentValueJSONPacker struct {
 	HT base.Height           `json:"height"`
 }
 
-func (va DocumentValue) MarshalJSON() ([]byte, error) {
+func (dv DocumentValue) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(DocumentValueJSONPacker{
-		HintedHead: jsonenc.NewHintedHead(va.Hint()),
-		DM:         va.doc,
-		HT:         va.height,
+		HintedHead: jsonenc.NewHintedHead(dv.Hint()),
+		DM:         dv.doc,
+		HT:         dv.height,
 	})
 }
 
@@ -33,7 +33,8 @@ func (dv *DocumentValue) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		return err
 	}
 
-	if err := dv.unpack(enc, uva.DM, uva.HT); err != nil {
+	err := dv.unpack(enc, uva.DM, uva.HT)
+	if err != nil {
 		return err
 	}
 	return nil

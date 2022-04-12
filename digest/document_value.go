@@ -20,14 +20,13 @@ func NewDocumentValue(
 	doc document.DocumentData,
 	height base.Height,
 ) DocumentValue {
-
 	return DocumentValue{
 		doc:    doc,
 		height: height,
 	}
 }
 
-func (dv DocumentValue) Hint() hint.Hint {
+func (DocumentValue) Hint() hint.Hint {
 	return DocumentValueHint
 }
 

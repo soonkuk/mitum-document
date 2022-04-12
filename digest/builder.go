@@ -176,7 +176,6 @@ func (Builder) templateCurrencyPolicyUpdaterFact() Hal {
 }
 
 func (Builder) templateCreateDocumentsFact() Hal {
-
 	fact := document.NewCreateDocumentsFact(
 		templateToken,
 		templateSender,
@@ -196,7 +195,6 @@ func (Builder) templateCreateDocumentsFact() Hal {
 }
 
 func (Builder) templateSignDocumentsFact() Hal {
-
 	fact := document.NewSignDocumentsFact(
 		templateToken,
 		templateSender,
@@ -529,16 +527,16 @@ func (Builder) isValidFactCreateAccounts(fact currency.CreateAccountsFact) error
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Sender().Equal(templateSender) {
-		return errors.Errorf("Please set sender; sender is same with template default")
+		return errors.Errorf("please set sender; sender is same with template default")
 	}
 
 	for i := range fact.Items() {
 		if _, same := fact.Items()[i].Keys().Key(templatePublickey); same {
-			return errors.Errorf("Please set key; key is same with template default")
+			return errors.Errorf("please set key; key is same with template default")
 		}
 	}
 
@@ -551,15 +549,15 @@ func (Builder) isValidFactKeyUpdater(fact currency.KeyUpdaterFact) error {
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Target().Equal(templateSender) {
-		return errors.Errorf("Please set target; target is same with template default")
+		return errors.Errorf("please set target; target is same with template default")
 	}
 
 	if _, same := fact.Keys().Key(templatePublickey); same {
-		return errors.Errorf("Please set key; key is same with template default")
+		return errors.Errorf("please set key; key is same with template default")
 	}
 
 	return nil
@@ -571,16 +569,16 @@ func (Builder) isValidFactTransfers(fact currency.TransfersFact) error {
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Sender().Equal(templateSender) {
-		return errors.Errorf("Please set sender; sender is same with template default")
+		return errors.Errorf("please set sender; sender is same with template default")
 	}
 
 	for i := range fact.Items() {
 		if fact.Items()[i].Receiver().Equal(templateReceiver) {
-			return errors.Errorf("Please set receiver; receiver is same with template default")
+			return errors.Errorf("please set receiver; receiver is same with template default")
 		}
 	}
 
@@ -593,15 +591,15 @@ func (Builder) isValidFactCurrencyRegister(fact currency.CurrencyRegisterFact) e
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Currency().GenesisAccount().Equal(templateReceiver) {
-		return errors.Errorf("Please set genesis_account; genesis_account is same with template default")
+		return errors.Errorf("please set genesis_account; genesis_account is same with template default")
 	}
 
 	if fact.Currency().Policy().NewAccountMinBalance().Equal(templateBig) {
-		return errors.Errorf("Please set new_account_min_balance; new_account_min_balance is same with template default")
+		return errors.Errorf("please set new_account_min_balance; new_account_min_balance is same with template default")
 	}
 
 	return nil
@@ -613,7 +611,7 @@ func (Builder) isValidFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpda
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	return nil
@@ -625,11 +623,11 @@ func (Builder) isValidFactCreateDocuments(fact document.CreateDocumentsFact) err
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Sender().Equal(templateSender) {
-		return errors.Errorf("Please set sender; sender is same with template default")
+		return errors.Errorf("please set sender; sender is same with template default")
 	}
 
 	return nil
@@ -641,16 +639,16 @@ func (Builder) isValidFactSignDocuments(fact document.SignDocumentsFact) error {
 	}
 
 	if bytes.Equal(fact.Token(), templateToken) {
-		return errors.Errorf("Please set token; token same with template default")
+		return errors.Errorf("please set token; token same with template default")
 	}
 
 	if fact.Sender().Equal(templateSender) {
-		return errors.Errorf("Please set sender; sender is same with template default")
+		return errors.Errorf("please set sender; sender is same with template default")
 	}
 
 	for i := range fact.Items() {
 		if same := fact.Items()[i].Owner().Equal(templateOwner); same {
-			return errors.Errorf("Please set owner; owner is same with template default")
+			return errors.Errorf("please set owner; owner is same with template default")
 		}
 	}
 
@@ -698,11 +696,11 @@ func (bl Builder) BuildOperation(b []byte) (Hal, error) {
 	for i := range nop.Signs() {
 		fs := nop.Signs()[i]
 		if fs.Signer().Equal(templatePublickey) {
-			return nil, errors.Errorf("Please set publickey; signer is same with template default")
+			return nil, errors.Errorf("please set publickey; signer is same with template default")
 		}
 
 		if fs.Signature().Equal(templateSignature) {
-			return nil, errors.Errorf("Please set signature; signature same with template default")
+			return nil, errors.Errorf("please set signature; signature same with template default")
 		}
 	}
 

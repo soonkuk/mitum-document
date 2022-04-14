@@ -1,0 +1,278 @@
+# This scenario will test,
+# - standalone mode, only one node, `no0`
+# - *init* before *run*
+# - the node will work successfully
+vars: |
+    {{ SetVar "NetworkID" "mitum contest; Sat 26 Dec 2020 05:29:13 AM KST" }}
+
+    {{ SetVar "Account.Genesis.Privatekey" "L5GTSKkRs9NPsXwYgACZdodNUJqCAWjz2BccuR4cAgxJumEZWjokmpr" }}
+    {{ SetVar "Account.Genesis.Publickey" "rcrd3KA2wWNhKdAP8rHRzfRmgp91oR9mqopckyXRmCvGmpu" }}
+    {{ SetVar "Account.Genesis.Address" "Gu5xHjhos5WkjGo9jKmYMY7dwWWzbEGdQCs11QkyAhh8mca" }}
+
+    {{ SetVar "Account.a0.Privatekey" "Ky9hsGeKX4PYNNQEXHE9wQfJErfr1PMgxRQsjmEJ1s5k6YDigWT2mpr" }}
+    {{ SetVar "Account.a0.Publickey" "d9yr7HGb8XQoUvj3qqNwgdvKLCkrGPNNZ7AFZAYMZv5ampu" }}
+    {{ SetVar "Account.a0.Address" "9q1DtwbFD5YZ94UxMPKzpaEnLaVpiKnbmaGMupBKu4fGmca" }}
+
+    {{ SetVar "Account.a1.Privatekey" "L5KG5N17UupWCpjGHXGFCM7XUcKR7Q2Ni8eHZnn7Afdz9KkvMb48mpr" }}
+    {{ SetVar "Account.a1.Publickey" "qoFU3dw8eVUifyqFwwqYcHGr8b4WufKX1FVifpMeCAhtmpu" }}
+    {{ SetVar "Account.a1.Address" "5q59avV7d94t9nY5DHKKVifBntzVLdgD2dhiX15FY8onmca" }}
+
+    {{ SetVar "CID" "MCC" }}
+    {{ SetVar "DOCID" "01sdi" }}
+
+hosts:
+    - weight: 2
+      host: 172.17.0.1
+      local: true
+
+storage: mongodb://127.0.0.1:27017/contest
+node-config:
+    common: |
+        {{ SetVar "Self.Address" ( printf "%ssas" .Self.Alias ) }}
+        {{ SetVar "Self.NetworkURL" ( printf "https://%s:%s" .Self.Host (ContainerBindPort (printf "port.bind-%s" .Self.Alias) "udp" "54321") ) }}
+        {{ SetVar "Self.StorageURI" (printf "mongodb://storage:27017/contest_%s" .Self.Alias ) }}
+        {{ SetVar "Self.DigestURL" ( printf "https://%s:%s" .Self.Host (ContainerBindPort (printf "port.bind-%s" .Self.Alias) "tcp" "54322") ) }}
+
+        address: {{ .Self.Address }}
+        privatekey: {{ NewKey "Self.Privatekey" }}
+        publickey: {{ with .Self.Privatekey }}{{ .Publickey }}{{ end }}
+        storage:
+            database:
+                uri: {{ .Self.StorageURI }}
+            blockdata:
+                path: /data/blockdata
+        network-id: {{ .NetworkID }}
+        network:
+            bind: https://0.0.0.0:54321
+            url: {{ .Self.NetworkURL }}
+
+        policy:
+            threshold: 67
+
+        genesis-operations:
+            - type: genesis-currencies
+              account-keys:
+                keys:
+                    - publickey: {{ .Account.Genesis.Publickey }}
+                      privatekey: {{ .Account.Genesis.Privatekey }}
+                      weight: 100
+                threshold: 100
+              currencies:
+                  - currency: {{ .CID }}
+                    balance: "100"
+                    feeer:
+                      type: fixed
+                      amount: 1
+
+        time-server: ""
+
+        suffrage:
+            nodes:
+                - no0sas
+        digest:
+            network:
+                bind: https://0.0.0.0:54322
+                url: {{ .Self.DigestURL }}
+
+        _nodes-config:
+            address: {{ .Self.Address }}
+            publickey: {{ with .Self.Privatekey }}{{ .Publickey }}{{ end }}
+
+    no0:
+
+nodes-config: |
+    nodes:{{ range $node, $config := .NodesConfig }}
+        - address: {{ index $config "address" }}
+          publickey: {{ index $config "publickey" }}{{ end }}
+
+sequences:
+    - condition: >
+        {"m": "contest ready"}
+      action:
+          name: init-nodes
+          nodes:
+              - no0
+
+    # check genesis account is created in storage
+    - condition:
+        query: >
+            {"key": "{{ .Account.Genesis.Address }}:account", "height": 0, "d.value.value.keys.keys.key": "{{ .Account.Genesis.Publickey }}", "d.value.value.keys.keys.weight": 100, "d.value.value.keys.threshold": 100}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+    - condition:
+        query: >
+            {"key": "{{ .Account.Genesis.Address }}-{{ .CID }}:balance", "height": 0, "d.value.value.amount": "100"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+    - condition: >
+        {"node": "no0", "x.status_code": 0, "x.m": "init node stopped without error"}
+
+    - condition: >
+        {"node": "no0", "x.m": "genesis block created"}
+      action:
+          name: start-nodes
+          nodes:
+              - no0
+
+    - condition: >
+        {"node": "no0", "x.m": "new block stored", "x.block.height": 3, "x.block.round": 0}
+
+      # create new account, a0
+      action:
+          name: host-command
+          args:
+              - |
+                  {{ .Runtime.Flags.RunnerFile }} seal create-account \
+                    "{{ .Account.Genesis.Privatekey }}" \
+                    "{{ .Account.Genesis.Address }}" \
+                    --key "{{ .Account.a0.Publickey }},100" \
+                    --threshold 100 \
+                    --network-id "{{ .NetworkID }}" \
+                    "{{ .CID }},40" | {{ .Runtime.Flags.RunnerFile }} seal send \
+                        --node "{{ .Design.Node.no0.Network.URL }}" \
+                        --network-id "{{ .NetworkID }}" \
+                        --seal - \
+                        --tls-insecure \
+                        "{{ .Account.Genesis.Privatekey }}"
+
+    # check genesis account is changed
+    - condition:
+        query: >
+            {"key": "{{ .Account.Genesis.Address }}-{{ .CID }}:balance", "height": {"$gt": 3}, "d.value.value.amount": "60"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+      register:
+          type: last_match
+          to: a0_created
+
+    # check a0 is created
+    - condition:
+        query: >
+            {"key": "{{ .Account.a0.Address }}:account", "height": {{ .Register.a0_created.height }}, "d.value.value.keys.keys.key": "{{ .Account.a0.Publickey }}", "d.value.value.keys.keys.weight": 100, "d.value.value.keys.threshold": 100}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+    - condition:
+        query: >
+            {"key": "{{ .Account.a0.Address }}-{{ .CID }}:balance", "height": {{ .Register.a0_created.height }}, "d.value.value.amount": "40"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+      # create new account, a1
+      action:
+          name: host-command
+          args:
+              - |
+                  {{ .Runtime.Flags.RunnerFile }} seal create-account \
+                    "{{ .Account.Genesis.Privatekey }}" \
+                    "{{ .Account.Genesis.Address }}" \
+                    --key "{{ .Account.a1.Publickey }},100" \
+                    --threshold 100 \
+                    --network-id "{{ .NetworkID }}" \
+                    "{{ .CID }},40" | {{ .Runtime.Flags.RunnerFile }} seal send \
+                        --node "{{ .Design.Node.no0.Network.URL }}" \
+                        --network-id "{{ .NetworkID }}" \
+                        --seal - \
+                        --tls-insecure \
+                        "{{ .Account.Genesis.Privatekey }}"
+
+    # check genesis account is changed
+    - condition:
+        query: >
+            {"key": "{{ .Account.Genesis.Address }}-{{ .CID }}:balance", "height": {"$gt": 3}, "d.value.value.amount": "20"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+      register:
+          type: last_match
+          to: a1_created
+
+    # check a1 is created
+    - condition:
+        query: >
+            {"key": "{{ .Account.a1.Address }}:account", "height": {{ .Register.a1_created.height }}, "d.value.value.keys.keys.key": "{{ .Account.a1.Publickey }}", "d.value.value.keys.keys.weight": 100, "d.value.value.keys.threshold": 100}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+    - condition:
+        query: >
+            {"key": "{{ .Account.a1.Address }}-{{ .CID }}:balance", "height": {{ .Register.a1_created.height }}, "d.value.value.amount": "40"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+
+      # create new blocksign document, d0
+      action:
+          name: host-command
+          args:
+              - |
+                  {{ .Runtime.Flags.RunnerFile }} seal document create-blocksign-document \
+                    "{{ .Account.a0.Privatekey }}" \
+                    "{{ .Account.a0.Address }}" \
+                    "filehash" \
+                    "signcode0" \
+                    "{{ .DOCID }}" \
+                    "title" \
+                    "100" \
+                    --signers={{ .Account.a1.Address }},"signcode1" \
+                    --network-id "{{ .NetworkID }}" \
+                    {{ .CID }} | {{ .Runtime.Flags.RunnerFile }} seal send \
+                        --node "{{ .Design.Node.no0.Network.URL }}" \
+                        --network-id "{{ .NetworkID }}" \
+                        --seal - \
+                        --tls-insecure \
+                        "{{ .Account.a0.Privatekey }}"
+
+    # check a0 account balance changed
+    - condition:
+        query: >
+            {"key": "{{ .Account.a0.Address }}-{{ .CID }}:balance", "height": {"$gt": 3}, "d.value.value.amount": "39"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+    # check d0 document is created
+    - condition:
+        query: >
+            {"key": "{{ .Account.a0.Address }}:Documents", "height": {"$gt": 3}, "d.value.value.documents.0.doctype":"mitum-blocksign-document-data"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+    - condition:
+        query: >
+            {"key": "{{ .Account.a0.Address }}:Documents", "height": {"$gt": 3}, "d.value.value.documents.0.docid.id":"01sdi"}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state
+
+      # sign blocksign document, d0
+      action:
+          name: host-command
+          args:
+              - |
+                  {{ .Runtime.Flags.RunnerFile }} seal document sign-blocksign-document \
+                    "{{ .Account.a1.Privatekey }}" \
+                    "{{ .Account.a1.Address }}" \
+                    "{{ .DOCID }}" \
+                    "{{ .Account.a0.Address }}" \
+                    --network-id "{{ .NetworkID }}" \
+                    {{ .CID }} | {{ .Runtime.Flags.RunnerFile }} seal send \
+                        --node "{{ .Design.Node.no0.Network.URL }}" \
+                        --network-id "{{ .NetworkID }}" \
+                        --seal - \
+                        --tls-insecure \
+                        "{{ .Account.a1.Privatekey }}"
+
+    - condition:
+        query: >
+            {"key": "{{ .DOCID }}:DocumentData", "height": {"$gt": 5}, "d.value.value.signers.0.signed":true}
+        storage: >
+            {{ .Runtime.Node.no0.Storage.URI }}/contest_no0
+        col: state

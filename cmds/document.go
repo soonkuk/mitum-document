@@ -6,6 +6,7 @@ type DocumentCommand struct {
 	CreateBlockcityLandDocument    CreateBlockcityLandDocumentCommand    `cmd:"" name:"create-blockcity-land-document" help:"create new blockcity land document"`
 	CreateBlockcityVotingDocument  CreateBlockcityVotingDocumentCommand  `cmd:"" name:"create-blockcity-voting-document" help:"create new blockcity voting document"`
 	CreateBlockcityHistoryDocument CreateBlockcityHistoryDocumentCommand `cmd:"" name:"create-blockcity-history-document" help:"create new blockcity history document"`
+	SignBlockSignDocument          SignDocumentCommand                   `cmd:"" name:"sign-blocksign-document" help:"sign blocksign document"`
 	UpdateBlockcityUserDocument    UpdateBlockcityUserDocumentCommand    `cmd:"" name:"update-blockcity-user-document" help:"update blockcity user document"`
 	UpdateBlockcityLandDocument    UpdateBlockcityLandDocumentCommand    `cmd:"" name:"update-blockcity-land-document" help:"update blockcity land document"`
 	UpdateBlockcityVotingDocument  UpdateBlockcityVotingDocumentCommand  `cmd:"" name:"update-blockcity-voting-document" help:"update blockcity voting document"`
@@ -19,6 +20,7 @@ func NewDocumentCommand() DocumentCommand {
 		CreateBlockcityLandDocument:    NewCreateBlockcityLandDocumentCommand(),
 		CreateBlockcityVotingDocument:  NewCreateBlockcityVotingDocumentCommand(),
 		CreateBlockcityHistoryDocument: NewCreateBlockcityHistoryDocumentCommand(),
+		SignBlockSignDocument:          NewSignDocumentCommand(),
 		UpdateBlockcityUserDocument:    NewUpdateBlockcityUserDocumentCommand(),
 		UpdateBlockcityLandDocument:    NewUpdateBlockcityLandDocumentCommand(),
 		UpdateBlockcityVotingDocument:  NewUpdateBlockcityVotingDocumentCommand(),

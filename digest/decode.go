@@ -92,7 +92,7 @@ func LoadDocuments(decoder func(interface{}) error, encs *encoder.Encoders) (sta
 	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
 		return nil, err
 	} else if st, ok := hinter.(state.State); !ok {
-		return nil, errors.Errorf("not DocumentValue : %T", hinter)
+		return nil, errors.Errorf("not DocumentsValue : %T", hinter)
 	} else {
 		return st, nil
 	}

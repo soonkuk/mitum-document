@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/protoconNet/mitum-document/document"
+	"github.com/protoconNet/mitum-document/extension"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spikeekips/mitum/base"
@@ -161,6 +162,8 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(document.UpdateDocumentsHinter, document.NewUpdateDocumentsProcessor(cp)); err != nil {
 		return nil, err
+	} else if _, err := opr.SetProcessor(extension.CreateContractAccountsHinter, extension.NewCreateContractAccountsProcessor(cp)); err != nil {
+		return nil, err
 	}
 
 	threshold, err := base.NewThreshold(uint(len(suffrage.Nodes())), policy.ThresholdRatio())
@@ -223,6 +226,7 @@ func InitializeProposalProcessor(ctx context.Context, opr *document.OperationPro
 		document.SignDocumentsHinter,
 		document.CreateDocumentsHinter,
 		document.UpdateDocumentsHinter,
+		extension.CreateContractAccountsHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

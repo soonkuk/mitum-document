@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/protoconNet/mitum-document/document"
+	"github.com/protoconNet/mitum-document/extension"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -32,6 +33,7 @@ var maxLimit int64 = 50
 
 var (
 	defaultColNameAccount   = "digest_ac"
+	defaultColNameExtension = "digest_et"
 	defaultColNameDocument  = "digest_dm"
 	defaultColNameDocuments = "digest_dv"
 	defaultColNameBalance   = "digest_bl"
@@ -40,6 +42,7 @@ var (
 
 var AllCollections = []string{
 	defaultColNameAccount,
+	defaultColNameExtension,
 	defaultColNameBalance,
 	defaultColNameOperation,
 	defaultColNameDocument,
@@ -458,6 +461,16 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 		return rs, false, err
 	default:
 		rs = rs.SetBalance(am).
+			SetHeight(lastHeight).
+			SetPreviousHeight(previousHeight)
+	}
+
+	// NOTE load owner
+	switch owner, lastHeight, previousHeight, err := st.ContractAccountOwner(a); {
+	case err != nil:
+		return rs, false, err
+	default:
+		rs = rs.SetOwner(owner).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -1019,7 +1032,7 @@ func (st *Database) Documents(
 // DocumentList return document invetory by address
 func (st *Database) DocumentList(a base.Address) (document.DocumentInventory, base.Height, base.Height, error) {
 	var lastHeight, previousHeight = base.NilHeight, base.NilHeight
-	doc := document.NewDocumentInventory([]document.DocInfo{})
+	doc := document.NewDocumentInventory(nil)
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()
 	var sta state.State
@@ -1201,4 +1214,44 @@ func parseOffsetHeight(s string) (base.Height, error) {
 	} else {
 		return h, nil
 	}
+}
+
+// ContractAccountOwner return contract account owner by address
+func (st *Database) ContractAccountOwner(a base.Address) (base.Address, base.Height, base.Height, error) {
+	var lastHeight, previousHeight = base.NilHeight, base.NilHeight
+	var owner base.Address
+	filter := util.NewBSONFilter("address", a.String())
+	q := filter.D()
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameExtension,
+		q,
+		func(res *mongo.SingleResult) error {
+			i, err := LoadDocuments(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+			return nil, lastHeight, previousHeight, nil
+		}
+	}
+
+	i, err := extension.StateContractAccountOwnerValue(sta)
+	if err != nil {
+		return nil, lastHeight, previousHeight, err
+	}
+	owner = i.Address()
+
+	if h := sta.Height(); h > lastHeight {
+		lastHeight = h
+		previousHeight = sta.PreviousHeight()
+	}
+
+	return owner, lastHeight, previousHeight, nil
 }

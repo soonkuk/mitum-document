@@ -6,6 +6,7 @@ import (
 
 	"github.com/protoconNet/mitum-document/digest"
 	"github.com/protoconNet/mitum-document/document"
+	"github.com/protoconNet/mitum-document/extension"
 	"github.com/spikeekips/mitum-currency/currency"
 )
 
@@ -70,6 +71,11 @@ var types = []hint.Type{
 	document.DocInfoType,
 	document.VotingCandidateType,
 	document.DocumentInventoryType,
+	extension.ContractAccountKeysType,
+	extension.CreateContractAccountsFactType,
+	extension.CreateContractAccountsType,
+	extension.CreateContractAccountsItemMultiAmountsType,
+	extension.CreateContractAccountsItemSingleAmountType,
 	digest.ProblemType,
 	digest.NodeInfoType,
 	digest.BaseHalType,
@@ -134,6 +140,11 @@ var hinters = []hint.Hinter{
 	document.BCVotingDocIDHinter,
 	document.BCHistoryDocIDHinter,
 	document.DocumentInventoryHinter,
+	extension.ContractAccountKeysHinter,
+	extension.CreateContractAccountsFactHinter,
+	extension.CreateContractAccountsHinter,
+	extension.CreateContractAccountsItemMultiAmountsHinter,
+	extension.CreateContractAccountsItemSingleAmountHinter,
 	digest.AccountValue{},
 	digest.DocumentValue{},
 	digest.BaseHal{},

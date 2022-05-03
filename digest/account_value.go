@@ -19,6 +19,7 @@ var (
 type AccountValue struct {
 	ac             currency.Account
 	balance        []currency.Amount
+	owner          base.Address
 	document       document.DocumentInventory
 	height         base.Height
 	previousHeight base.Height
@@ -54,6 +55,10 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
+func (va AccountValue) Owner() base.Address {
+	return va.owner
+}
+
 func (va AccountValue) Document() document.DocumentInventory {
 	return va.document
 }
@@ -84,6 +89,12 @@ func (va AccountValue) SetPreviousHeight(height base.Height) AccountValue {
 
 func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	va.balance = balance
+
+	return va
+}
+
+func (va AccountValue) SetOwner(owner base.Address) AccountValue {
+	va.owner = owner
 
 	return va
 }

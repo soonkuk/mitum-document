@@ -10,7 +10,7 @@ import (
 )
 
 func (va *AccountValue) unpack(
-	enc encoder.Encoder, bac []byte, bl []byte, cd []byte, height, previousHeight base.Height,
+	enc encoder.Encoder, bac []byte, bl []byte, bow base.AddressDecoder, cd []byte, height, previousHeight base.Height,
 ) error {
 	if err := encoder.Decode(bac, enc, &va.ac); err != nil {
 		return err
@@ -31,6 +31,12 @@ func (va *AccountValue) unpack(
 	}
 
 	va.balance = balance
+
+	a, err := bow.Encode(enc)
+	if err != nil {
+		return err
+	}
+	va.owner = a
 
 	if cd != nil {
 		if hinter, err := enc.Decode(cd); err != nil {

@@ -3,6 +3,7 @@ package digest
 import (
 	"github.com/pkg/errors"
 	"github.com/protoconNet/mitum-document/document"
+	"github.com/protoconNet/mitum-document/extension"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -118,6 +119,35 @@ func (doc DocumentsDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 	address := doc.st.Key()[:len(doc.st.Key())-len(document.StateKeyDocumentsSuffix)]
+	m["address"] = address
+	m["height"] = doc.st.Height()
+
+	return bsonenc.Marshal(m)
+}
+
+type ContractAccountOwnerDoc struct {
+	mongodbstorage.BaseDoc
+	st state.State
+}
+
+// NewContractAccountOwnerDoc gets the State of contract account owner
+func NewContractAccountOwnerDoc(st state.State, enc encoder.Encoder) (ContractAccountOwnerDoc, error) {
+	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
+	if err != nil {
+		return ContractAccountOwnerDoc{}, err
+	}
+	return ContractAccountOwnerDoc{
+		BaseDoc: b,
+		st:      st,
+	}, nil
+}
+
+func (doc ContractAccountOwnerDoc) MarshalBSON() ([]byte, error) {
+	m, err := doc.BaseDoc.M()
+	if err != nil {
+		return nil, err
+	}
+	address := doc.st.Key()[:len(doc.st.Key())-len(extension.StateKeyContractAccountOwnerSuffix)]
 	m["address"] = address
 	m["height"] = doc.st.Height()
 

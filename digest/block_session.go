@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/protoconNet/mitum-document/document"
+	"github.com/protoconNet/mitum-document/extension"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
@@ -25,16 +26,17 @@ var bulkWriteLimit = 500
 
 type BlockSession struct {
 	sync.RWMutex
-	block           block.Block
-	st              *Database
-	opsTreeNodes    map[string]operation.FixedTreeNode
-	operationModels []mongo.WriteModel
-	accountModels   []mongo.WriteModel
-	documentModels  []mongo.WriteModel
-	documentsModels []mongo.WriteModel
-	balanceModels   []mongo.WriteModel
-	statesValue     *sync.Map
-	documentList    []string
+	block                      block.Block
+	st                         *Database
+	opsTreeNodes               map[string]operation.FixedTreeNode
+	operationModels            []mongo.WriteModel
+	accountModels              []mongo.WriteModel
+	documentModels             []mongo.WriteModel
+	documentsModels            []mongo.WriteModel
+	balanceModels              []mongo.WriteModel
+	contractAccountOwnerModels []mongo.WriteModel
+	statesValue                *sync.Map
+	documentList               []string
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -112,6 +114,12 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 
 	if len(bs.documentsModels) > 0 {
 		if err := bs.writeModels(ctx, defaultColNameDocuments, bs.documentsModels); err != nil {
+			return err
+		}
+	}
+
+	if len(bs.contractAccountOwnerModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameExtension, bs.contractAccountOwnerModels); err != nil {
 			return err
 		}
 	}
@@ -194,6 +202,7 @@ func (bs *BlockSession) prepareAccounts() error {
 	var balanceModels []mongo.WriteModel
 	var documentModels []mongo.WriteModel
 	var documentsModels []mongo.WriteModel
+	var contractAccountOwnerModels []mongo.WriteModel
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {
@@ -221,6 +230,12 @@ func (bs *BlockSession) prepareAccounts() error {
 				return err
 			}
 			documentsModels = append(documentsModels, j...)
+		case extension.IsStateContractAccountOwnerKey(st.Key()):
+			j, err := bs.handleContractAccountOwnerState(st)
+			if err != nil {
+				return err
+			}
+			contractAccountOwnerModels = append(contractAccountOwnerModels, j...)
 		default:
 			continue
 		}
@@ -235,6 +250,10 @@ func (bs *BlockSession) prepareAccounts() error {
 
 	if len(documentsModels) > 0 {
 		bs.documentsModels = documentsModels
+	}
+
+	if len(contractAccountOwnerModels) > 0 {
+		bs.contractAccountOwnerModels = contractAccountOwnerModels
 	}
 
 	return nil
@@ -273,6 +292,14 @@ func (bs *BlockSession) handleDocumentDataState(st state.State) ([]mongo.WriteMo
 
 func (bs *BlockSession) handleDocumentsState(st state.State) ([]mongo.WriteModel, error) {
 	doc, err := NewDocumentsDoc(st, bs.st.database.Encoder())
+	if err != nil {
+		return nil, err
+	}
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+}
+
+func (bs *BlockSession) handleContractAccountOwnerState(st state.State) ([]mongo.WriteModel, error) {
+	doc, err := NewContractAccountOwnerDoc(st, bs.st.database.Encoder())
 	if err != nil {
 		return nil, err
 	}

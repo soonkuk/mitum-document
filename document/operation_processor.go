@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-document/extension"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -152,7 +153,8 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*currency.SuffrageInflationProcessor,
 		*SignDocumentsProcessor,
 		*CreateDocumentsProcessor,
-		*UpdateDocumentsProcessor:
+		*UpdateDocumentsProcessor,
+		*extension.CreateContractAccountsProcessor:
 		return opr.process(op)
 	case currency.Transfers,
 		currency.CreateAccounts,
@@ -162,7 +164,8 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		currency.SuffrageInflation,
 		SignDocuments,
 		CreateDocuments,
-		UpdateDocuments:
+		UpdateDocuments,
+		extension.CreateContractAccounts:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -188,6 +191,8 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *CreateDocumentsProcessor:
 		sp = t
 	case *UpdateDocumentsProcessor:
+		sp = t
+	case *extension.CreateContractAccountsProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -234,6 +239,9 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error { // n
 		didtype = DuplicationTypeSender
 	case UpdateDocuments:
 		did = t.Fact().(UpdateDocumentsFact).Sender().String()
+		didtype = DuplicationTypeSender
+	case extension.CreateContractAccounts:
+		did = t.Fact().(extension.CreateContractAccountsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	default:
 		return nil
@@ -322,7 +330,9 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		currency.SuffrageInflation,
 		SignDocuments,
 		UpdateDocuments,
-		CreateDocuments:
+		CreateDocuments,
+		extension.CreateContractAccounts:
+
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:
 		return op, false, nil
